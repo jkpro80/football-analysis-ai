@@ -1,0 +1,2890 @@
+
+========================================
+FILE: C:\Projects\football-analysis\frontend\app\admin\page.tsx
+========================================
+
+import Link from "next/link";
+
+import MatchStatusChart from "@/components/MatchStatusChart";
+import DataManagementPanel from "@/components/admin/DataManagementPanel";
+
+type Team = {
+  id: number;
+  name: string;
+  country: string;
+};
+
+type Match = {
+  id: number;
+  home_team_id: number;
+  away_team_id: number;
+  date: string;
+  status: string;
+  home_team: string;
+  away_team: string;
+};
+
+async function getTeams(): Promise<Team[]> {
+  const response = await fetch(
+    "http://127.0.0.1:8000/teams",
+    {
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("تعذر تحميل الفرق");
+  }
+
+  return response.json();
+}
+
+async function getMatches(): Promise<Match[]> {
+  const response = await fetch(
+    "http://127.0.0.1:8000/matches",
+    {
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("تعذر تحميل المباريات");
+  }
+
+  return response.json();
+}
+
+function translateStatus(status: string) {
+  const statuses: Record<string, string> = {
+    scheduled: "مجدولة",
+    live: "مباشرة",
+    finished: "منتهية",
+    postponed: "مؤجلة",
+    cancelled: "ملغاة",
+  };
+
+  return statuses[status] ?? status;
+}
+
+function getStatusBackground(status: string) {
+  const colors: Record<string, string> = {
+    scheduled: "#dbeafe",
+    live: "#fee2e2",
+    finished: "#dcfce7",
+    postponed: "#fef3c7",
+    cancelled: "#e2e8f0",
+  };
+
+  return colors[status] ?? "#e2e8f0";
+}
+
+function getStatusColor(status: string) {
+  const colors: Record<string, string> = {
+    scheduled: "#1d4ed8",
+    live: "#b91c1c",
+    finished: "#15803d",
+    postponed: "#b45309",
+    cancelled: "#475569",
+  };
+
+  return colors[status] ?? "#0f172a";
+}
+
+function StatCard({
+  title,
+  value,
+  description,
+}: {
+  title: string;
+  value: number;
+  description: string;
+}) {
+  return (
+    <div
+      style={{
+        border: "1px solid #cbd5e1",
+        borderRadius: "20px",
+        padding: "24px",
+      }}
+    >
+      <p
+        style={{
+          margin: 0,
+          color: "#64748b",
+        }}
+      >
+        {title}
+      </p>
+
+      <strong
+        style={{
+          display: "block",
+          marginTop: "10px",
+          fontSize: "36px",
+        }}
+      >
+        {value}
+      </strong>
+
+      <p
+        style={{
+          margin: "8px 0 0",
+          color: "#64748b",
+          fontSize: "14px",
+        }}
+      >
+        {description}
+      </p>
+    </div>
+  );
+}
+
+export default async function AdminDashboardPage() {
+  const [teams, matches] = await Promise.all([
+    getTeams(),
+    getMatches(),
+  ]);
+
+  const liveMatches = matches.filter(
+    (match) => match.status === "live"
+  ).length;
+
+  const scheduledMatches = matches.filter(
+    (match) => match.status === "scheduled"
+  ).length;
+
+  const finishedMatches = matches.filter(
+    (match) => match.status === "finished"
+  ).length;
+
+  const postponedMatches = matches.filter(
+    (match) => match.status === "postponed"
+  ).length;
+
+  const cancelledMatches = matches.filter(
+    (match) => match.status === "cancelled"
+  ).length;
+
+  const recentMatches = matches.slice(0, 5);
+
+  return (
+    <main
+      dir="rtl"
+      style={{
+        minHeight: "100vh",
+        padding: "40px",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: "1150px",
+          margin: "0 auto",
+        }}
+      >
+        <header
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "20px",
+            flexWrap: "wrap",
+            marginBottom: "30px",
+          }}
+        >
+          <div>
+            <p
+              style={{
+                margin: 0,
+                color: "#64748b",
+              }}
+            >
+              Football Analysis AI
+            </p>
+
+            <h1
+              style={{
+                margin: "8px 0 0",
+                fontSize: "40px",
+              }}
+            >
+              لوحة التحكم
+            </h1>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: "12px",
+              flexWrap: "wrap",
+            }}
+          >
+            <Link
+              href="/admin/teams"
+              style={{
+                padding: "11px 16px",
+                border: "1px solid #0f766e",
+                borderRadius: "10px",
+                textDecoration: "none",
+                color: "#0f766e",
+                fontWeight: 800,
+              }}
+            >
+              إدارة الفرق
+            </Link>
+
+            <Link
+              href="/admin/teams/new"
+              style={{
+                padding: "11px 16px",
+                borderRadius: "10px",
+                backgroundColor: "#0f766e",
+                color: "#ffffff",
+                textDecoration: "none",
+                fontWeight: 800,
+              }}
+            >
+              + إضافة فريق
+            </Link>
+
+            <Link
+              href="/admin/matches"
+              style={{
+                padding: "11px 16px",
+                border: "1px solid #2563eb",
+                borderRadius: "10px",
+                textDecoration: "none",
+                color: "#2563eb",
+                fontWeight: 800,
+              }}
+            >
+              إدارة المباريات
+            </Link>
+
+            <Link
+              href="/admin/matches/new"
+              style={{
+                padding: "11px 16px",
+                borderRadius: "10px",
+                backgroundColor: "#2563eb",
+                color: "#ffffff",
+                textDecoration: "none",
+                fontWeight: 800,
+              }}
+            >
+              + إضافة مباراة
+            </Link>
+          </div>
+        </header>
+
+        <DataManagementPanel />
+
+        <section
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: "18px",
+          }}
+        >
+          <StatCard
+            title="عدد الفرق"
+            value={teams.length}
+            description="جميع الفرق المسجلة"
+          />
+
+          <StatCard
+            title="عدد المباريات"
+            value={matches.length}
+            description="جميع المباريات في النظام"
+          />
+
+          <StatCard
+            title="المباريات المباشرة"
+            value={liveMatches}
+            description="المباريات بحالة مباشرة"
+          />
+
+          <StatCard
+            title="المباريات المجدولة"
+            value={scheduledMatches}
+            description="المباريات القادمة"
+          />
+        </section>
+
+        <MatchStatusChart
+          scheduled={scheduledMatches}
+          live={liveMatches}
+          finished={finishedMatches}
+          postponed={postponedMatches}
+          cancelled={cancelledMatches}
+        />
+
+        <section
+          style={{
+            marginTop: "28px",
+            border: "1px solid #cbd5e1",
+            borderRadius: "20px",
+            padding: "24px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "16px",
+              flexWrap: "wrap",
+              marginBottom: "20px",
+            }}
+          >
+            <div>
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: "26px",
+                }}
+              >
+                آخر المباريات
+              </h2>
+
+              <p
+                style={{
+                  margin: "6px 0 0",
+                  color: "#64748b",
+                }}
+              >
+                أحدث المباريات المتاحة في النظام
+              </p>
+            </div>
+
+            <Link
+              href="/admin/matches"
+              style={{
+                textDecoration: "none",
+                fontWeight: 800,
+                color: "#0f766e",
+              }}
+            >
+              عرض جميع المباريات
+            </Link>
+          </div>
+
+          {recentMatches.length === 0 ? (
+            <p>لا توجد مباريات حاليًا.</p>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gap: "14px",
+              }}
+            >
+              {recentMatches.map((match) => (
+                <div
+                  key={match.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "16px",
+                    flexWrap: "wrap",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "14px",
+                    padding: "16px",
+                  }}
+                >
+                  <div>
+                    <strong
+                      style={{
+                        fontSize: "19px",
+                      }}
+                    >
+                      {match.home_team}
+                      {" VS "}
+                      {match.away_team}
+                    </strong>
+
+                    <p
+                      style={{
+                        margin: "6px 0 0",
+                        color: "#64748b",
+                      }}
+                    >
+                      {match.date}
+                    </p>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "10px",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <span
+                      style={{
+                        padding: "7px 12px",
+                        borderRadius: "999px",
+                        backgroundColor:
+                          getStatusBackground(match.status),
+                        color: getStatusColor(match.status),
+                        fontWeight: 700,
+                      }}
+                    >
+                      {translateStatus(match.status)}
+                    </span>
+
+                    <Link
+                      href={`/matches/${match.id}`}
+                      style={{
+                        padding: "9px 14px",
+                        borderRadius: "10px",
+                        border: "1px solid #94a3b8",
+                        color: "inherit",
+                        textDecoration: "none",
+                        fontWeight: 700,
+                      }}
+                    >
+                      عرض التحليل
+                    </Link>
+
+                    <Link
+                      href={`/predictions/${match.id}`}
+                      style={{
+                        padding: "9px 14px",
+                        borderRadius: "10px",
+                        backgroundColor: "#10b981",
+                        color: "#052e16",
+                        textDecoration: "none",
+                        fontWeight: 800,
+                      }}
+                    >
+                      التوقع
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    </main>
+  );
+}
+
+========================================
+FILE: C:\Projects\football-analysis\frontend\app\admin\matches\page.tsx
+========================================
+
+type Match = {
+  id: number;
+  sportmonks_id: number | null;
+  home_team: string;
+  away_team: string;
+  date: string;
+  status: string;
+};
+
+type ModelStatus = {
+  active_model: string;
+  enabled: boolean;
+  sample_size: number;
+  updated_at: string | null;
+  weights: {
+    home_goal_multiplier: number;
+    away_goal_multiplier: number;
+    total_goal_multiplier: number;
+    attack_multiplier: number;
+    home_advantage_multiplier: number;
+  };
+};
+
+type AccuracyReport = {
+  model_version: string;
+  evaluated_predictions: number;
+  sample_status: string;
+  accuracy?: {
+    match_result: number;
+    over_2_5: number;
+    btts: number;
+    exact_score: number;
+  };
+  mean_absolute_error?: {
+    home_goals: number;
+    away_goals: number;
+    total_goals: number;
+  };
+};
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ??
+  "http://127.0.0.1:8000";
+
+async function fetchJson<T>(
+  path: string,
+): Promise<T | null> {
+  try {
+    const response = await fetch(
+      `${API_URL}${path}`,
+      {
+        cache: "no-store",
+      },
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return (await response.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+async function getMatches(): Promise<Match[]> {
+  const data = await fetchJson<unknown>(
+    "/matches",
+  );
+
+  if (!Array.isArray(data)) {
+    return [];
+  }
+
+  return data.map((item) => {
+    const match = item as Record<
+      string,
+      unknown
+    >;
+
+    return {
+      id: Number(match.id),
+      sportmonks_id:
+        match.sportmonks_id === null ||
+        match.sportmonks_id === undefined
+          ? null
+          : Number(match.sportmonks_id),
+      home_team: String(
+        match.home_team ??
+          match.home_team_name ??
+          "Home Team",
+      ),
+      away_team: String(
+        match.away_team ??
+          match.away_team_name ??
+          "Away Team",
+      ),
+      date: String(
+        match.date ?? "",
+      ),
+      status: String(
+        match.status ?? "unknown",
+      ),
+    };
+  });
+}
+
+function formatDate(
+  value: string,
+): string {
+  if (!value) {
+    return "غير محدد";
+  }
+
+  const normalized = value.includes("T")
+    ? value
+    : value.replace(" ", "T") + "Z";
+
+  const date = new Date(normalized);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(
+    "ar-IQ",
+    {
+      dateStyle: "medium",
+      timeStyle: "short",
+    },
+  ).format(date);
+}
+
+function formatPercent(
+  value: number | undefined,
+): string {
+  if (
+    value === undefined ||
+    Number.isNaN(value)
+  ) {
+    return "—";
+  }
+
+  return `${value.toFixed(1)}%`;
+}
+
+export default async function HomePage() {
+  const [
+    modelStatus,
+    accuracy,
+    matches,
+  ] = await Promise.all([
+    fetchJson<ModelStatus>(
+      "/model/status",
+    ),
+    fetchJson<AccuracyReport>(
+      "/model/accuracy",
+    ),
+    getMatches(),
+  ]);
+
+  const visibleMatches = matches.slice(
+    0,
+    12,
+  );
+
+  return (
+    <main
+      dir="rtl"
+      className="min-h-screen bg-slate-950 px-4 py-8 text-slate-100 md:px-8"
+    >
+      <div className="mx-auto max-w-7xl">
+        <section className="mb-8 rounded-3xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl">
+          <p className="mb-2 text-sm font-medium text-emerald-400">
+            Football Analysis AI
+          </p>
+
+          <h1 className="text-3xl font-bold tracking-tight md:text-5xl">
+            منصة تحليل وتوقع المباريات
+          </h1>
+
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-400 md:text-base">
+            توقعات مبنية على الفورمة الحديثة،
+            أداء الأرض والخارج، المواجهات
+            المباشرة، Elo، نموذج Poisson،
+            والمعايرة التلقائية.
+          </p>
+        </section>
+
+        <section className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            title="النموذج الفعّال"
+            value={
+              modelStatus?.active_model ??
+              "غير متاح"
+            }
+            subtitle={
+              modelStatus?.enabled
+                ? "المعايرة مفعّلة"
+                : "المعايرة غير مفعّلة"
+            }
+          />
+
+          <StatCard
+            title="التوقعات المقيّمة"
+            value={String(
+              accuracy?.evaluated_predictions ??
+                0,
+            )}
+            subtitle={
+              accuracy?.sample_status ??
+              "لا توجد بيانات"
+            }
+          />
+
+          <StatCard
+            title="دقة نتيجة المباراة"
+            value={formatPercent(
+              accuracy?.accuracy
+                ?.match_result,
+            )}
+            subtitle="سوق 1X2"
+          />
+
+          <StatCard
+            title="متوسط خطأ الأهداف"
+            value={
+              accuracy
+                ?.mean_absolute_error
+                ?.total_goals !== undefined
+                ? accuracy
+                    .mean_absolute_error
+                    .total_goals
+                    .toFixed(3)
+                : "—"
+            }
+            subtitle="MAE مجموع الأهداف"
+          />
+        </section>
+
+        <section className="mb-8 grid gap-4 md:grid-cols-3">
+          <MetricCard
+            title="Over 2.5"
+            value={formatPercent(
+              accuracy?.accuracy
+                ?.over_2_5,
+            )}
+          />
+
+          <MetricCard
+            title="BTTS"
+            value={formatPercent(
+              accuracy?.accuracy?.btts,
+            )}
+          />
+
+          <MetricCard
+            title="النتيجة الدقيقة"
+            value={formatPercent(
+              accuracy?.accuracy
+                ?.exact_score,
+            )}
+          />
+        </section>
+
+        <section className="rounded-3xl border border-slate-800 bg-slate-900/80 p-5 shadow-xl md:p-6">
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold">
+                المباريات
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-400">
+                اختر مباراة لعرض التحليل
+                الكامل والتوقعات.
+              </p>
+            </div>
+
+            <span className="rounded-full bg-slate-800 px-4 py-2 text-sm text-slate-300">
+              {matches.length} مباراة
+            </span>
+          </div>
+
+          {visibleMatches.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-700 p-10 text-center text-slate-400">
+              تعذر تحميل المباريات من
+              الـBackend.
+            </div>
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-2">
+              {visibleMatches.map(
+                (match) => (
+                  <a
+                    key={match.id}
+                    href={`/matches/${match.id}`}
+                    className="group rounded-2xl border border-slate-800 bg-slate-950/70 p-5 transition hover:-translate-y-1 hover:border-emerald-500/60 hover:bg-slate-900"
+                  >
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
+                        {match.status}
+                      </span>
+
+                      <span className="text-xs text-slate-500">
+                        #{match.id}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex-1 text-center">
+                        <p className="text-lg font-semibold">
+                          {match.home_team}
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl bg-slate-800 px-3 py-2 text-sm font-bold text-emerald-400">
+                        VS
+                      </div>
+
+                      <div className="flex-1 text-center">
+                        <p className="text-lg font-semibold">
+                          {match.away_team}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-5 border-t border-slate-800 pt-4 text-center text-sm text-slate-400">
+                      {formatDate(match.date)}
+                    </div>
+
+                    <p className="mt-3 text-center text-sm font-medium text-emerald-400 opacity-0 transition group-hover:opacity-100">
+                      عرض التحليل الكامل
+                    </p>
+                  </a>
+                ),
+              )}
+            </div>
+          )}
+        </section>
+      </div>
+    </main>
+  );
+}
+
+function StatCard({
+  title,
+  value,
+  subtitle,
+}: {
+  title: string;
+  value: string;
+  subtitle: string;
+}) {
+  return (
+    <article className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+      <p className="text-sm text-slate-400">
+        {title}
+      </p>
+
+      <p className="mt-3 break-words text-2xl font-bold text-white">
+        {value}
+      </p>
+
+      <p className="mt-2 text-xs text-emerald-400">
+        {subtitle}
+      </p>
+    </article>
+  );
+}
+
+function MetricCard({
+  title,
+  value,
+}: {
+  title: string;
+  value: string;
+}) {
+  return (
+    <article className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 text-center">
+      <p className="text-sm text-slate-400">
+        دقة {title}
+      </p>
+
+      <p className="mt-3 text-3xl font-bold">
+        {value}
+      </p>
+    </article>
+  );
+}
+
+========================================
+FILE: C:\Projects\football-analysis\frontend\app\admin\matches\new\page.tsx
+========================================
+
+import MatchForm from "@/components/MatchForm";
+
+export default function NewMatchPage() {
+  return (
+    <main dir="rtl" className="min-h-screen p-10">
+      <h1 className="mb-8 text-4xl font-black">
+        إضافة مباراة جديدة
+      </h1>
+
+      <MatchForm />
+    </main>
+  );
+}
+
+========================================
+FILE: C:\Projects\football-analysis\frontend\app\admin\matches\[id]\edit\page.tsx
+========================================
+
+import MatchForm from "@/components/MatchForm";
+import { notFound } from "next/navigation";
+
+type Team = {
+  id: number;
+  name: string;
+  country: string;
+  attack: number;
+  defense: number;
+  midfield: number;
+  elo: number;
+  home_advantage: number;
+  goals_scored: number;
+  goals_conceded: number;
+};
+
+type Match = {
+  id: number;
+  home_team_id: number;
+  away_team_id: number;
+  date: string;
+  status: string;
+  home_team: Team;
+  away_team: Team;
+};
+
+async function getMatch(
+  matchId: string
+): Promise<Match | null> {
+  const response = await fetch(
+    `http://127.0.0.1:8000/matches/${matchId}`,
+    {
+      cache: "no-store",
+    }
+  );
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error("تعذر تحميل بيانات المباراة");
+  }
+
+  return response.json();
+}
+
+export default async function EditMatchPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const match = await getMatch(id);
+
+  if (!match) {
+    notFound();
+  }
+
+  return (
+    <main
+      dir="rtl"
+      style={{
+        minHeight: "100vh",
+        padding: "40px",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: "900px",
+          margin: "0 auto",
+        }}
+      >
+        <h1
+          style={{
+            marginBottom: "28px",
+            fontSize: "38px",
+          }}
+        >
+          تعديل المباراة
+        </h1>
+
+        <p
+          style={{
+            marginBottom: "26px",
+            color: "#64748b",
+            fontSize: "18px",
+          }}
+        >
+          {match.home_team.name}
+          {" VS "}
+          {match.away_team.name}
+        </p>
+
+        <MatchForm match={match} />
+      </div>
+    </main>
+  );
+}
+
+========================================
+FILE: C:\Projects\football-analysis\frontend\app\admin\teams\page.tsx
+========================================
+
+"use client";
+
+import Link from "next/link";
+import {
+  ChangeEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+type Team = {
+  id: number;
+  sportmonks_id: number | null;
+  name: string;
+  country: string | null;
+  attack: number;
+  defense: number;
+  midfield: number;
+  elo: number;
+  home_advantage: number;
+  goals_scored?: number;
+  goals_conceded?: number;
+};
+
+type EditableTeam = Team & {
+  isEditing: boolean;
+  original: Team;
+};
+
+type Message =
+  | {
+      type: "success" | "error";
+      text: string;
+    }
+  | null;
+
+type NumberField =
+  | "attack"
+  | "defense"
+  | "midfield"
+  | "elo"
+  | "home_advantage";
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ??
+  "http://127.0.0.1:8000";
+
+export default function TeamsPage() {
+  const [teams, setTeams] = useState<EditableTeam[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [savingTeamId, setSavingTeamId] =
+    useState<number | null>(null);
+  const [message, setMessage] = useState<Message>(null);
+
+  const loadTeams = useCallback(async () => {
+    setIsLoading(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch(
+        `${API_URL}/teams?limit=1000`,
+        {
+          cache: "no-store",
+        },
+      );
+
+      if (!response.ok) {
+        const detail = await getErrorMessage(
+          response,
+          "تعذر تحميل الفرق.",
+        );
+
+        throw new Error(detail);
+      }
+
+      const result = (await response.json()) as Team[];
+
+      /*
+       * إخفاء البيانات التجريبية التي أضيفت من Swagger،
+       * مثل الفريق الذي اسمه string ودولته string.
+       */
+      const validTeams = result.filter((team) => {
+        const normalizedName = team.name
+          .trim()
+          .toLowerCase();
+
+        return (
+          normalizedName !== "" &&
+          normalizedName !== "string"
+        );
+      });
+
+      const preparedTeams: EditableTeam[] =
+        validTeams.map((team) => {
+          const normalizedTeam: Team = {
+            ...team,
+            sportmonks_id:
+              team.sportmonks_id ?? null,
+            country: team.country ?? "",
+            attack: Number(team.attack ?? 80),
+            defense: Number(team.defense ?? 80),
+            midfield: Number(team.midfield ?? 80),
+            elo: Number(team.elo ?? 1800),
+            home_advantage: Number(
+              team.home_advantage ?? 1.1,
+            ),
+          };
+
+          return {
+            ...normalizedTeam,
+            isEditing: false,
+            original: {
+              ...normalizedTeam,
+            },
+          };
+        });
+
+      preparedTeams.sort((firstTeam, secondTeam) =>
+        firstTeam.name.localeCompare(
+          secondTeam.name,
+          undefined,
+          {
+            sensitivity: "base",
+          },
+        ),
+      );
+
+      setTeams(preparedTeams);
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ أثناء تحميل الفرق.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadTeams();
+  }, [loadTeams]);
+
+  const filteredTeams = useMemo(() => {
+    const value = searchTerm
+      .trim()
+      .toLowerCase();
+
+    if (!value) {
+      return teams;
+    }
+
+    return teams.filter((team) => {
+      const searchableText = [
+        team.name,
+        team.country ?? "",
+        String(team.elo),
+        String(team.attack),
+        String(team.defense),
+        String(team.midfield),
+        team.sportmonks_id
+          ? String(team.sportmonks_id)
+          : "",
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return searchableText.includes(value);
+    });
+  }, [teams, searchTerm]);
+
+  const averageElo = useMemo(() => {
+    if (teams.length === 0) {
+      return 0;
+    }
+
+    const totalElo = teams.reduce(
+      (total, team) => total + team.elo,
+      0,
+    );
+
+    return Math.round(totalElo / teams.length);
+  }, [teams]);
+
+  const connectedTeamsCount = useMemo(
+    () =>
+      teams.filter(
+        (team) => team.sportmonks_id !== null,
+      ).length,
+    [teams],
+  );
+
+  const editingTeamsCount = useMemo(
+    () =>
+      teams.filter((team) => team.isEditing)
+        .length,
+    [teams],
+  );
+
+  function startEditing(teamId: number) {
+    setMessage(null);
+
+    setTeams((currentTeams) =>
+      currentTeams.map((team) => ({
+        ...team,
+
+        /*
+         * يسمح بتعديل فريق واحد فقط في الوقت نفسه.
+         */
+        isEditing: team.id === teamId,
+      })),
+    );
+  }
+
+  function cancelEditing(teamId: number) {
+    setMessage(null);
+
+    setTeams((currentTeams) =>
+      currentTeams.map((team) => {
+        if (team.id !== teamId) {
+          return team;
+        }
+
+        return {
+          ...team.original,
+          isEditing: false,
+          original: {
+            ...team.original,
+          },
+        };
+      }),
+    );
+  }
+
+  function updateTextField(
+    teamId: number,
+    field: "name" | "country",
+    value: string,
+  ) {
+    setTeams((currentTeams) =>
+      currentTeams.map((team) =>
+        team.id === teamId
+          ? {
+              ...team,
+              [field]: value,
+            }
+          : team,
+      ),
+    );
+  }
+
+  function updateNumberField(
+    teamId: number,
+    field: NumberField,
+    value: string,
+  ) {
+    const parsedValue = Number(value);
+
+    setTeams((currentTeams) =>
+      currentTeams.map((team) => {
+        if (team.id !== teamId) {
+          return team;
+        }
+
+        return {
+          ...team,
+          [field]:
+            value.trim() === "" ||
+            Number.isNaN(parsedValue)
+              ? 0
+              : parsedValue,
+        };
+      }),
+    );
+  }
+
+  function validateTeam(
+    team: EditableTeam,
+  ): string | null {
+    if (!team.name.trim()) {
+      return "اسم الفريق مطلوب.";
+    }
+
+    if (
+      team.name.trim().toLowerCase() ===
+      "string"
+    ) {
+      return "يرجى إدخال اسم فريق حقيقي بدل كلمة string.";
+    }
+
+    if (
+      !Number.isFinite(team.attack) ||
+      team.attack < 0 ||
+      team.attack > 100
+    ) {
+      return "قيمة الهجوم يجب أن تكون بين 0 و100.";
+    }
+
+    if (
+      !Number.isFinite(team.defense) ||
+      team.defense < 0 ||
+      team.defense > 100
+    ) {
+      return "قيمة الدفاع يجب أن تكون بين 0 و100.";
+    }
+
+    if (
+      !Number.isFinite(team.midfield) ||
+      team.midfield < 0 ||
+      team.midfield > 100
+    ) {
+      return "قيمة الوسط يجب أن تكون بين 0 و100.";
+    }
+
+    if (
+      !Number.isFinite(team.elo) ||
+      team.elo < 500 ||
+      team.elo > 3000
+    ) {
+      return "تصنيف ELO يجب أن يكون بين 500 و3000.";
+    }
+
+    if (
+      !Number.isFinite(
+        team.home_advantage,
+      ) ||
+      team.home_advantage < 0.5 ||
+      team.home_advantage > 2
+    ) {
+      return "أفضلية الأرض يجب أن تكون بين 0.5 و2.0.";
+    }
+
+    return null;
+  }
+
+  async function saveTeam(
+    team: EditableTeam,
+  ) {
+    setMessage(null);
+
+    const validationError =
+      validateTeam(team);
+
+    if (validationError) {
+      setMessage({
+        type: "error",
+        text: validationError,
+      });
+
+      return;
+    }
+
+    setSavingTeamId(team.id);
+
+    try {
+      const response = await fetch(
+        `${API_URL}/teams/${team.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            name: team.name.trim(),
+            country:
+              team.country?.trim() || null,
+            attack: team.attack,
+            defense: team.defense,
+            midfield: team.midfield,
+            elo: team.elo,
+            home_advantage:
+              team.home_advantage,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const detail = await getErrorMessage(
+          response,
+          "تعذر حفظ تعديلات الفريق.",
+        );
+
+        throw new Error(detail);
+      }
+
+      const updatedTeam =
+        (await response.json()) as Team;
+
+      const normalizedTeam: Team = {
+        ...updatedTeam,
+        sportmonks_id:
+          updatedTeam.sportmonks_id ?? null,
+        country: updatedTeam.country ?? "",
+        attack: Number(updatedTeam.attack),
+        defense: Number(
+          updatedTeam.defense,
+        ),
+        midfield: Number(
+          updatedTeam.midfield,
+        ),
+        elo: Number(updatedTeam.elo),
+        home_advantage: Number(
+          updatedTeam.home_advantage,
+        ),
+      };
+
+      setTeams((currentTeams) =>
+        currentTeams.map((currentTeam) => {
+          if (currentTeam.id !== team.id) {
+            return currentTeam;
+          }
+
+          return {
+            ...normalizedTeam,
+            isEditing: false,
+            original: {
+              ...normalizedTeam,
+            },
+          };
+        }),
+      );
+
+      setMessage({
+        type: "success",
+        text: `تم حفظ تعديلات فريق ${normalizedTeam.name} بنجاح.`,
+      });
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ غير متوقع أثناء الحفظ.",
+      });
+    } finally {
+      setSavingTeamId(null);
+    }
+  }
+
+  return (
+    <main
+      dir="rtl"
+      style={{
+        minHeight: "100vh",
+        padding: "36px 20px",
+        background:
+          "linear-gradient(180deg, #020617 0%, #0f172a 100%)",
+        color: "#f8fafc",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: "1400px",
+          margin: "0 auto",
+        }}
+      >
+        <header
+          style={{
+            display: "flex",
+            justifyContent:
+              "space-between",
+            alignItems: "center",
+            gap: "20px",
+            flexWrap: "wrap",
+            padding: "26px",
+            marginBottom: "22px",
+            border:
+              "1px solid #1e293b",
+            borderRadius: "24px",
+            backgroundColor:
+              "rgba(15, 23, 42, 0.92)",
+          }}
+        >
+          <div>
+            <p
+              style={{
+                margin: 0,
+                color: "#34d399",
+                fontWeight: 900,
+                fontSize: "14px",
+              }}
+            >
+              FOOTBALL ANALYSIS AI
+            </p>
+
+            <h1
+              style={{
+                margin: "9px 0 0",
+                fontSize: "36px",
+                fontWeight: 950,
+              }}
+            >
+              إدارة الفرق
+            </h1>
+
+            <p
+              style={{
+                margin: "9px 0 0",
+                color: "#94a3b8",
+                lineHeight: 1.7,
+              }}
+            >
+              تعديل قوة الفرق وتصنيف ELO
+              وأفضلية اللعب على الأرض ومراجعة
+              حالة الربط مع Sportmonks.
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => void loadTeams()}
+              disabled={isLoading}
+              style={{
+                ...refreshButtonStyle,
+                opacity: isLoading ? 0.6 : 1,
+                cursor: isLoading
+                  ? "not-allowed"
+                  : "pointer",
+              }}
+            >
+              {isLoading
+                ? "جاري التحديث..."
+                : "تحديث البيانات"}
+            </button>
+
+            <Link
+              href="/admin"
+              style={secondaryLinkStyle}
+            >
+              لوحة التحكم
+            </Link>
+
+            <Link
+              href="/admin/teams/new"
+              style={primaryLinkStyle}
+            >
+              + إضافة فريق
+            </Link>
+          </div>
+        </header>
+
+        <section
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: "14px",
+            marginBottom: "22px",
+          }}
+        >
+          <SummaryCard
+            title="عدد الفرق"
+            value={teams.length}
+          />
+
+          <SummaryCard
+            title="نتائج البحث"
+            value={filteredTeams.length}
+          />
+
+          <SummaryCard
+            title="متوسط ELO"
+            value={averageElo}
+          />
+
+          <SummaryCard
+            title="مرتبطة بـ Sportmonks"
+            value={connectedTeamsCount}
+          />
+
+          <SummaryCard
+            title="فرق قيد التعديل"
+            value={editingTeamsCount}
+          />
+        </section>
+
+        <section
+          style={{
+            padding: "20px",
+            marginBottom: "20px",
+            borderRadius: "20px",
+            border:
+              "1px solid #1e293b",
+            backgroundColor:
+              "rgba(15, 23, 42, 0.92)",
+          }}
+        >
+          <label
+            htmlFor="team-search"
+            style={{
+              display: "block",
+              marginBottom: "9px",
+              color: "#cbd5e1",
+              fontWeight: 800,
+            }}
+          >
+            البحث عن فريق
+          </label>
+
+          <input
+            id="team-search"
+            type="search"
+            value={searchTerm}
+            onChange={(
+              event: ChangeEvent<HTMLInputElement>,
+            ) =>
+              setSearchTerm(
+                event.target.value,
+              )
+            }
+            placeholder="اكتب اسم الفريق أو الدولة أو ELO أو Sportmonks ID"
+            style={{
+              width: "100%",
+              boxSizing: "border-box",
+              padding: "13px 15px",
+              borderRadius: "12px",
+              border:
+                "1px solid #334155",
+              backgroundColor: "#020617",
+              color: "#f8fafc",
+              outline: "none",
+              fontSize: "15px",
+            }}
+          />
+        </section>
+
+        {message ? (
+          <div
+            role="alert"
+            style={{
+              marginBottom: "20px",
+              padding: "14px 16px",
+              borderRadius: "13px",
+              border:
+                message.type === "success"
+                  ? "1px solid #059669"
+                  : "1px solid #dc2626",
+              backgroundColor:
+                message.type === "success"
+                  ? "#022c22"
+                  : "#450a0a",
+              color:
+                message.type === "success"
+                  ? "#6ee7b7"
+                  : "#fca5a5",
+              fontWeight: 800,
+            }}
+          >
+            {message.text}
+          </div>
+        ) : null}
+
+        {isLoading ? (
+          <LoadingBox />
+        ) : filteredTeams.length === 0 ? (
+          <EmptyBox />
+        ) : (
+          <section
+            style={{
+              overflowX: "auto",
+              borderRadius: "22px",
+              border:
+                "1px solid #1e293b",
+              backgroundColor:
+                "rgba(15, 23, 42, 0.92)",
+            }}
+          >
+            <table
+              style={{
+                width: "100%",
+                minWidth: "1450px",
+                borderCollapse: "collapse",
+              }}
+            >
+              <thead
+                style={{
+                  backgroundColor: "#020617",
+                }}
+              >
+                <tr>
+                  <th style={headerCellStyle}>
+                    الفريق
+                  </th>
+
+                  <th style={headerCellStyle}>
+                    الدولة
+                  </th>
+
+                  <th style={headerCellStyle}>
+                    Sportmonks
+                  </th>
+
+                  <th style={headerCellStyle}>
+                    الهجوم
+                  </th>
+
+                  <th style={headerCellStyle}>
+                    الدفاع
+                  </th>
+
+                  <th style={headerCellStyle}>
+                    الوسط
+                  </th>
+
+                  <th style={headerCellStyle}>
+                    ELO
+                  </th>
+
+                  <th style={headerCellStyle}>
+                    أفضلية الأرض
+                  </th>
+
+                  <th style={headerCellStyle}>
+                    الإجراءات
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredTeams.map((team) => (
+                  <tr
+                    key={team.id}
+                    style={{
+                      borderTop:
+                        "1px solid #1e293b",
+                    }}
+                  >
+                    <td style={bodyCellStyle}>
+                      {team.isEditing ? (
+                        <TextInput
+                          value={team.name}
+                          onChange={(value) =>
+                            updateTextField(
+                              team.id,
+                              "name",
+                              value,
+                            )
+                          }
+                        />
+                      ) : (
+                        <div>
+                          <strong
+                            style={{
+                              display: "block",
+                              color: "#f8fafc",
+                            }}
+                          >
+                            {team.name}
+                          </strong>
+
+                          <span
+                            style={{
+                              display: "block",
+                              marginTop: "5px",
+                              color: "#64748b",
+                              fontSize: "12px",
+                            }}
+                          >
+                            Team ID: {team.id}
+                          </span>
+                        </div>
+                      )}
+                    </td>
+
+                    <td style={bodyCellStyle}>
+                      {team.isEditing ? (
+                        <TextInput
+                          value={
+                            team.country ?? ""
+                          }
+                          onChange={(value) =>
+                            updateTextField(
+                              team.id,
+                              "country",
+                              value,
+                            )
+                          }
+                        />
+                      ) : (
+                        team.country ||
+                        "غير محددة"
+                      )}
+                    </td>
+
+                    <td style={bodyCellStyle}>
+                      {team.sportmonks_id ? (
+                        <div>
+                          <StatusBadge
+                            connected
+                            text="مرتبط"
+                          />
+
+                          <span
+                            style={{
+                              display: "block",
+                              marginTop: "6px",
+                              color: "#64748b",
+                              fontSize: "12px",
+                            }}
+                          >
+                            ID:{" "}
+                            {team.sportmonks_id}
+                          </span>
+                        </div>
+                      ) : (
+                        <StatusBadge
+                          connected={false}
+                          text="يدوي"
+                        />
+                      )}
+                    </td>
+
+                    <td style={bodyCellStyle}>
+                      {team.isEditing ? (
+                        <NumberInput
+                          value={team.attack}
+                          min={0}
+                          max={100}
+                          step={1}
+                          onChange={(value) =>
+                            updateNumberField(
+                              team.id,
+                              "attack",
+                              value,
+                            )
+                          }
+                        />
+                      ) : (
+                        <RatingBadge
+                          value={team.attack}
+                        />
+                      )}
+                    </td>
+
+                    <td style={bodyCellStyle}>
+                      {team.isEditing ? (
+                        <NumberInput
+                          value={team.defense}
+                          min={0}
+                          max={100}
+                          step={1}
+                          onChange={(value) =>
+                            updateNumberField(
+                              team.id,
+                              "defense",
+                              value,
+                            )
+                          }
+                        />
+                      ) : (
+                        <RatingBadge
+                          value={team.defense}
+                        />
+                      )}
+                    </td>
+
+                    <td style={bodyCellStyle}>
+                      {team.isEditing ? (
+                        <NumberInput
+                          value={team.midfield}
+                          min={0}
+                          max={100}
+                          step={1}
+                          onChange={(value) =>
+                            updateNumberField(
+                              team.id,
+                              "midfield",
+                              value,
+                            )
+                          }
+                        />
+                      ) : (
+                        <RatingBadge
+                          value={team.midfield}
+                        />
+                      )}
+                    </td>
+
+                    <td style={bodyCellStyle}>
+                      {team.isEditing ? (
+                        <NumberInput
+                          value={team.elo}
+                          min={500}
+                          max={3000}
+                          step={1}
+                          onChange={(value) =>
+                            updateNumberField(
+                              team.id,
+                              "elo",
+                              value,
+                            )
+                          }
+                        />
+                      ) : (
+                        <strong
+                          style={{
+                            color: "#34d399",
+                            fontSize: "16px",
+                          }}
+                        >
+                          {team.elo}
+                        </strong>
+                      )}
+                    </td>
+
+                    <td style={bodyCellStyle}>
+                      {team.isEditing ? (
+                        <NumberInput
+                          value={
+                            team.home_advantage
+                          }
+                          min={0.5}
+                          max={2}
+                          step={0.01}
+                          onChange={(value) =>
+                            updateNumberField(
+                              team.id,
+                              "home_advantage",
+                              value,
+                            )
+                          }
+                        />
+                      ) : (
+                        <div>
+                          <strong>
+                            {team.home_advantage.toFixed(
+                              2,
+                            )}
+                          </strong>
+
+                          <span
+                            style={{
+                              display: "block",
+                              marginTop: "5px",
+                              color: "#64748b",
+                              fontSize: "12px",
+                            }}
+                          >
+                            +
+                            {Math.round(
+                              (team.home_advantage -
+                                1) *
+                                100,
+                            )}
+                            %
+                          </span>
+                        </div>
+                      )}
+                    </td>
+
+                    <td style={bodyCellStyle}>
+                      {team.isEditing ? (
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent:
+                              "center",
+                            gap: "8px",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void saveTeam(team)
+                            }
+                            disabled={
+                              savingTeamId ===
+                              team.id
+                            }
+                            style={{
+                              ...saveButtonStyle,
+                              opacity:
+                                savingTeamId ===
+                                team.id
+                                  ? 0.6
+                                  : 1,
+                              cursor:
+                                savingTeamId ===
+                                team.id
+                                  ? "not-allowed"
+                                  : "pointer",
+                            }}
+                          >
+                            {savingTeamId ===
+                            team.id
+                              ? "جاري الحفظ..."
+                              : "حفظ"}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              cancelEditing(
+                                team.id,
+                              )
+                            }
+                            disabled={
+                              savingTeamId ===
+                              team.id
+                            }
+                            style={{
+                              ...cancelButtonStyle,
+                              opacity:
+                                savingTeamId ===
+                                team.id
+                                  ? 0.6
+                                  : 1,
+                            }}
+                          >
+                            إلغاء
+                          </button>
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent:
+                              "center",
+                            gap: "8px",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <Link
+                            href={`/teams/${team.id}`}
+                            style={
+                              detailsLinkStyle
+                            }
+                          >
+                            التفاصيل
+                          </Link>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              startEditing(
+                                team.id,
+                              )
+                            }
+                            style={
+                              editButtonStyle
+                            }
+                          >
+                            تعديل مباشر
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        )}
+      </div>
+    </main>
+  );
+}
+
+async function getErrorMessage(
+  response: Response,
+  fallback: string,
+): Promise<string> {
+  try {
+    const result =
+      (await response.json()) as {
+        detail?: unknown;
+      };
+
+    if (
+      typeof result.detail === "string"
+    ) {
+      return result.detail;
+    }
+
+    if (Array.isArray(result.detail)) {
+      return result.detail
+        .map((item) => {
+          if (
+            typeof item === "object" &&
+            item !== null &&
+            "msg" in item
+          ) {
+            return String(
+              (
+                item as {
+                  msg: unknown;
+                }
+              ).msg,
+            );
+          }
+
+          return String(item);
+        })
+        .join("، ");
+    }
+
+    return fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function SummaryCard({
+  title,
+  value,
+}: {
+  title: string;
+  value: number;
+}) {
+  return (
+    <article
+      style={{
+        padding: "18px",
+        borderRadius: "17px",
+        border: "1px solid #1e293b",
+        backgroundColor:
+          "rgba(15, 23, 42, 0.92)",
+      }}
+    >
+      <p
+        style={{
+          margin: 0,
+          color: "#94a3b8",
+          fontSize: "14px",
+        }}
+      >
+        {title}
+      </p>
+
+      <p
+        style={{
+          margin: "9px 0 0",
+          fontSize: "29px",
+          fontWeight: 950,
+          color: "#34d399",
+        }}
+      >
+        {value}
+      </p>
+    </article>
+  );
+}
+
+function TextInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(event) =>
+        onChange(event.target.value)
+      }
+      style={inputStyle}
+    />
+  );
+}
+
+function NumberInput({
+  value,
+  min,
+  max,
+  step,
+  onChange,
+}: {
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <input
+      type="number"
+      value={value}
+      min={min}
+      max={max}
+      step={step}
+      onChange={(event) =>
+        onChange(event.target.value)
+      }
+      style={{
+        ...inputStyle,
+        width: "92px",
+        textAlign: "center",
+      }}
+    />
+  );
+}
+
+function RatingBadge({
+  value,
+}: {
+  value: number;
+}) {
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        minWidth: "46px",
+        padding: "6px 9px",
+        borderRadius: "999px",
+        backgroundColor:
+          value >= 85
+            ? "#064e3b"
+            : value >= 75
+              ? "#1e3a8a"
+              : value >= 65
+                ? "#78350f"
+                : "#450a0a",
+        color:
+          value >= 85
+            ? "#6ee7b7"
+            : value >= 75
+              ? "#bfdbfe"
+              : value >= 65
+                ? "#fde68a"
+                : "#fca5a5",
+        fontWeight: 900,
+      }}
+    >
+      {value}
+    </span>
+  );
+}
+
+function StatusBadge({
+  connected,
+  text,
+}: {
+  connected: boolean;
+  text: string;
+}) {
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        minWidth: "62px",
+        padding: "6px 10px",
+        borderRadius: "999px",
+        backgroundColor: connected
+          ? "#064e3b"
+          : "#78350f",
+        color: connected
+          ? "#6ee7b7"
+          : "#fde68a",
+        fontSize: "12px",
+        fontWeight: 900,
+      }}
+    >
+      {text}
+    </span>
+  );
+}
+
+function LoadingBox() {
+  return (
+    <div style={stateBoxStyle}>
+      جارٍ تحميل الفرق...
+    </div>
+  );
+}
+
+function EmptyBox() {
+  return (
+    <div style={stateBoxStyle}>
+      لا توجد فرق مطابقة لنتائج البحث.
+    </div>
+  );
+}
+
+const headerCellStyle = {
+  padding: "16px",
+  textAlign: "center" as const,
+  whiteSpace: "nowrap" as const,
+  color: "#cbd5e1",
+  fontSize: "13px",
+};
+
+const bodyCellStyle = {
+  padding: "15px",
+  textAlign: "center" as const,
+  whiteSpace: "nowrap" as const,
+  color: "#cbd5e1",
+};
+
+const inputStyle = {
+  width: "100%",
+  boxSizing: "border-box" as const,
+  padding: "9px 10px",
+  borderRadius: "9px",
+  border: "1px solid #475569",
+  backgroundColor: "#020617",
+  color: "#f8fafc",
+  outline: "none",
+};
+
+const primaryLinkStyle = {
+  padding: "11px 16px",
+  borderRadius: "11px",
+  backgroundColor: "#34d399",
+  color: "#052e16",
+  textDecoration: "none",
+  fontWeight: 900,
+};
+
+const secondaryLinkStyle = {
+  padding: "11px 16px",
+  borderRadius: "11px",
+  border: "1px solid #475569",
+  color: "#f8fafc",
+  textDecoration: "none",
+  fontWeight: 900,
+};
+
+const refreshButtonStyle = {
+  padding: "11px 16px",
+  borderRadius: "11px",
+  border: "1px solid #0d9488",
+  backgroundColor: "transparent",
+  color: "#5eead4",
+  fontWeight: 900,
+};
+
+const editButtonStyle = {
+  padding: "9px 14px",
+  borderRadius: "9px",
+  border: "1px solid #3b82f6",
+  backgroundColor: "transparent",
+  color: "#93c5fd",
+  fontWeight: 850,
+  cursor: "pointer",
+};
+
+const detailsLinkStyle = {
+  padding: "9px 14px",
+  borderRadius: "9px",
+  border: "1px solid #059669",
+  backgroundColor: "transparent",
+  color: "#6ee7b7",
+  fontWeight: 850,
+  textDecoration: "none",
+};
+
+const saveButtonStyle = {
+  padding: "9px 14px",
+  borderRadius: "9px",
+  border: "none",
+  backgroundColor: "#34d399",
+  color: "#052e16",
+  fontWeight: 900,
+};
+
+const cancelButtonStyle = {
+  padding: "9px 14px",
+  borderRadius: "9px",
+  border: "1px solid #64748b",
+  backgroundColor: "transparent",
+  color: "#cbd5e1",
+  fontWeight: 850,
+  cursor: "pointer",
+};
+
+const stateBoxStyle = {
+  padding: "36px",
+  borderRadius: "20px",
+  border: "1px dashed #475569",
+  backgroundColor:
+    "rgba(15, 23, 42, 0.92)",
+  color: "#94a3b8",
+  textAlign: "center" as const,
+};
+
+========================================
+FILE: C:\Projects\football-analysis\frontend\app\admin\teams\new\page.tsx
+========================================
+
+import TeamForm from "@/components/TeamForm";
+
+export default function NewTeamPage() {
+  return (
+    <main
+      dir="rtl"
+      className="min-h-screen bg-slate-950 text-white p-10"
+    >
+      <h1 className="mb-8 text-4xl font-black">
+        إضافة فريق جديد
+      </h1>
+
+      <TeamForm />
+    </main>
+  );
+}
+
+========================================
+FILE: C:\Projects\football-analysis\frontend\app\admin\teams\[id]\page.tsx
+========================================
+
+import Link from "next/link";
+import { notFound } from "next/navigation";
+
+type Team = {
+  id: number;
+  sportmonks_id: number | null;
+  name: string;
+  country: string | null;
+  attack: number;
+  defense: number;
+  midfield: number;
+  elo: number;
+  home_advantage: number;
+  goals_scored?: number;
+  goals_conceded?: number;
+};
+
+type TeamPageProps = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ??
+  "http://127.0.0.1:8000";
+
+export default async function TeamDetailsPage({
+  params,
+}: TeamPageProps) {
+  const { id } = await params;
+  const team = await getTeam(id);
+
+  if (!team) {
+    notFound();
+  }
+
+  const overallRating = Math.round(
+    (team.attack +
+      team.defense +
+      team.midfield) /
+      3,
+  );
+
+  const homeAdvantagePercentage =
+    Math.round(
+      (team.home_advantage - 1) * 100,
+    );
+
+  return (
+    <main
+      dir="rtl"
+      style={{
+        minHeight: "100vh",
+        padding: "36px 20px",
+        background:
+          "linear-gradient(180deg, #020617 0%, #0f172a 100%)",
+        color: "#f8fafc",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: "1200px",
+          margin: "0 auto",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent:
+              "space-between",
+            alignItems: "center",
+            gap: "12px",
+            flexWrap: "wrap",
+            marginBottom: "20px",
+          }}
+        >
+          <Link
+            href="/admin/teams"
+            style={secondaryLinkStyle}
+          >
+            العودة إلى إدارة الفرق
+          </Link>
+
+          <Link
+            href="/admin"
+            style={secondaryLinkStyle}
+          >
+            لوحة التحكم
+          </Link>
+        </div>
+
+        <section
+          style={{
+            padding: "30px",
+            borderRadius: "26px",
+            border:
+              "1px solid #1e293b",
+            backgroundColor:
+              "rgba(15, 23, 42, 0.92)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "22px",
+              flexWrap: "wrap",
+            }}
+          >
+            <div
+              style={{
+                width: "100px",
+                height: "100px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent:
+                  "center",
+                borderRadius: "50%",
+                backgroundColor:
+                  "#064e3b",
+                color: "#6ee7b7",
+                fontSize: "42px",
+                fontWeight: 950,
+              }}
+            >
+              {team.name
+                .charAt(0)
+                .toUpperCase()}
+            </div>
+
+            <div>
+              <p
+                style={{
+                  margin: 0,
+                  color: "#34d399",
+                  fontSize: "14px",
+                  fontWeight: 900,
+                }}
+              >
+                TEAM PROFILE
+              </p>
+
+              <h1
+                style={{
+                  margin: "8px 0 0",
+                  fontSize: "40px",
+                  fontWeight: 950,
+                }}
+              >
+                {team.name}
+              </h1>
+
+              <p
+                style={{
+                  margin: "10px 0 0",
+                  color: "#94a3b8",
+                }}
+              >
+                {team.country ||
+                  "الدولة غير محددة"}
+              </p>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                  flexWrap: "wrap",
+                  marginTop: "14px",
+                }}
+              >
+                {team.sportmonks_id ? (
+                  <StatusBadge
+                    connected
+                    text={`مرتبط بـ Sportmonks: ${team.sportmonks_id}`}
+                  />
+                ) : (
+                  <StatusBadge
+                    connected={false}
+                    text="فريق مضاف يدويًا"
+                  />
+                )}
+
+                <StatusBadge
+                  connected
+                  text={`Team ID: ${team.id}`}
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: "16px",
+            marginTop: "22px",
+          }}
+        >
+          <StatCard
+            title="الهجوم"
+            value={team.attack}
+          />
+
+          <StatCard
+            title="الدفاع"
+            value={team.defense}
+          />
+
+          <StatCard
+            title="الوسط"
+            value={team.midfield}
+          />
+
+          <StatCard
+            title="التقييم العام"
+            value={overallRating}
+          />
+
+          <StatCard
+            title="ELO"
+            value={team.elo}
+          />
+
+          <StatCard
+            title="أفضلية الأرض"
+            value={`+${homeAdvantagePercentage}%`}
+          />
+        </section>
+
+        <section
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(300px, 1fr))",
+            gap: "20px",
+            marginTop: "22px",
+          }}
+        >
+          <RatingPanel
+            title="القوة الهجومية"
+            value={team.attack}
+          />
+
+          <RatingPanel
+            title="القوة الدفاعية"
+            value={team.defense}
+          />
+
+          <RatingPanel
+            title="قوة خط الوسط"
+            value={team.midfield}
+          />
+        </section>
+
+        <section
+          style={{
+            marginTop: "22px",
+            padding: "26px",
+            borderRadius: "22px",
+            border:
+              "1px solid #1e293b",
+            backgroundColor:
+              "rgba(15, 23, 42, 0.92)",
+          }}
+        >
+          <h2
+            style={{
+              margin: 0,
+              fontSize: "25px",
+            }}
+          >
+            آخر المباريات
+          </h2>
+
+          <p
+            style={{
+              margin: "12px 0 0",
+              color: "#94a3b8",
+              lineHeight: 1.8,
+            }}
+          >
+            في الخطوة القادمة سنربط هذا
+            القسم بآخر مباريات الفريق،
+            ونحسب عدد الانتصارات والتعادلات
+            والخسائر ومتوسط الأهداف.
+          </p>
+
+          <div
+            style={{
+              marginTop: "20px",
+              padding: "26px",
+              borderRadius: "16px",
+              border:
+                "1px dashed #475569",
+              color: "#64748b",
+              textAlign: "center",
+            }}
+          >
+            لا توجد مباريات مرتبطة بهذا
+            القسم حاليًا.
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}
+
+async function getTeam(
+  id: string,
+): Promise<Team | null> {
+  const response = await fetch(
+    `${API_URL}/teams/${id}`,
+    {
+      cache: "no-store",
+    },
+  );
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      "تعذر تحميل بيانات الفريق.",
+    );
+  }
+
+  return (await response.json()) as Team;
+}
+
+function StatCard({
+  title,
+  value,
+}: {
+  title: string;
+  value: number | string;
+}) {
+  return (
+    <article
+      style={{
+        padding: "20px",
+        borderRadius: "18px",
+        border: "1px solid #1e293b",
+        backgroundColor:
+          "rgba(15, 23, 42, 0.92)",
+      }}
+    >
+      <p
+        style={{
+          margin: 0,
+          color: "#94a3b8",
+          fontSize: "14px",
+        }}
+      >
+        {title}
+      </p>
+
+      <p
+        style={{
+          margin: "10px 0 0",
+          color: "#34d399",
+          fontSize: "30px",
+          fontWeight: 950,
+        }}
+      >
+        {value}
+      </p>
+    </article>
+  );
+}
+
+function RatingPanel({
+  title,
+  value,
+}: {
+  title: string;
+  value: number;
+}) {
+  return (
+    <article
+      style={{
+        padding: "22px",
+        borderRadius: "20px",
+        border: "1px solid #1e293b",
+        backgroundColor:
+          "rgba(15, 23, 42, 0.92)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent:
+            "space-between",
+          alignItems: "center",
+          gap: "12px",
+          marginBottom: "14px",
+        }}
+      >
+        <h3
+          style={{
+            margin: 0,
+            fontSize: "17px",
+          }}
+        >
+          {title}
+        </h3>
+
+        <strong
+          style={{
+            color: "#34d399",
+            fontSize: "20px",
+          }}
+        >
+          {value}
+        </strong>
+      </div>
+
+      <div
+        style={{
+          width: "100%",
+          height: "12px",
+          overflow: "hidden",
+          borderRadius: "999px",
+          backgroundColor: "#020617",
+        }}
+      >
+        <div
+          style={{
+            width: `${Math.min(
+              Math.max(value, 0),
+              100,
+            )}%`,
+            height: "100%",
+            borderRadius: "999px",
+            background:
+              "linear-gradient(90deg, #059669, #34d399)",
+          }}
+        />
+      </div>
+    </article>
+  );
+}
+
+function StatusBadge({
+  connected,
+  text,
+}: {
+  connected: boolean;
+  text: string;
+}) {
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        padding: "7px 11px",
+        borderRadius: "999px",
+        backgroundColor: connected
+          ? "#064e3b"
+          : "#78350f",
+        color: connected
+          ? "#6ee7b7"
+          : "#fde68a",
+        fontSize: "12px",
+        fontWeight: 900,
+      }}
+    >
+      {text}
+    </span>
+  );
+}
+
+const secondaryLinkStyle = {
+  padding: "11px 16px",
+  borderRadius: "11px",
+  border: "1px solid #475569",
+  color: "#f8fafc",
+  textDecoration: "none",
+  fontWeight: 900,
+};

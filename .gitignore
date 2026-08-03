@@ -1,0 +1,60 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+.pytest_cache/
+.mypy_cache/
+
+# Next.js
+node_modules/
+.next/
+out/
+coverage/
+
+# Logs and runtime
+*.log
+logs/
+tmp/
+temp/
+
+# Database backups
+backups/
+*.sql
+
+# Archives
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.gz
+
+# Temporary source copies
+*.bak
+*.backup
+*.tmp
+*.orig
+*.before-*
+*.backup-*
+
+# Generated learning configuration
+backend/app/config/model_weights_v11.json
+
+# Local reports
+*-audit.txt
+*-review.txt
+*-current.txt
+project-tree*.txt
+project-structure.txt
+project_audit.txt
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

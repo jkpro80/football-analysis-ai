@@ -1,0 +1,1247 @@
+{
+  "model": "Prediction V7.1",
+  "match_id": 27,
+  "prediction": {
+    "predicted_outcome": "home_win",
+    "predicted_outcome_label": "Home Win",
+    "most_likely_score": {
+      "home_goals": 1,
+      "away_goals": 1,
+      "score": "1-1",
+      "probability": 12.54
+    },
+    "expected_goals": {
+      "home_expected_goals": 1.4,
+      "away_expected_goals": 1.17,
+      "total_expected_goals": 2.58
+    },
+    "confidence": {
+      "value": 35.0,
+      "level": "Very Low",
+      "highest_probability": 42.22,
+      "probability_margin": 10.8
+    }
+  },
+  "markets": {
+    "match_result": {
+      "home_win": 42.22,
+      "draw": 26.36,
+      "away_win": 31.42
+    },
+    "double_chance": {
+      "home_or_draw_1x": 68.58,
+      "home_or_away_12": 73.64,
+      "draw_or_away_x2": 57.78
+    },
+    "draw_no_bet": {
+      "home": 57.33,
+      "away": 42.67
+    },
+    "btts": {
+      "yes": 51.96,
+      "no": 48.04
+    },
+    "totals": {
+      "0.5": {
+        "over": 92.35,
+        "under": 7.65
+      },
+      "1.5": {
+        "over": 72.68,
+        "under": 27.32
+      },
+      "2.5": {
+        "over": 47.4,
+        "under": 52.6
+      },
+      "3.5": {
+        "over": 25.75,
+        "under": 74.25
+      },
+      "4.5": {
+        "over": 11.84,
+        "under": 88.16
+      },
+      "5.5": {
+        "over": 4.68,
+        "under": 95.32
+      }
+    },
+    "team_totals": {
+      "home": {
+        "0.5": {
+          "over": 75.34,
+          "under": 24.66
+        },
+        "1.5": {
+          "over": 40.82,
+          "under": 59.18
+        },
+        "2.5": {
+          "over": 16.65,
+          "under": 83.35
+        },
+        "3.5": {
+          "over": 5.37,
+          "under": 94.63
+        }
+      },
+      "away": {
+        "0.5": {
+          "over": 68.96,
+          "under": 31.04
+        },
+        "1.5": {
+          "over": 32.65,
+          "under": 67.35
+        },
+        "2.5": {
+          "over": 11.41,
+          "under": 88.59
+        },
+        "3.5": {
+          "over": 3.12,
+          "under": 96.88
+        }
+      }
+    },
+    "clean_sheet": {
+      "home": 31.04,
+      "away": 24.66,
+      "both_0_0": 7.65
+    },
+    "win_to_nil": {
+      "home": 23.38,
+      "away": 17.01
+    },
+    "top_scores": [
+      {
+        "home_goals": 1,
+        "away_goals": 1,
+        "score": "1-1",
+        "probability": 12.54
+      },
+      {
+        "home_goals": 1,
+        "away_goals": 0,
+        "score": "1-0",
+        "probability": 10.72
+      },
+      {
+        "home_goals": 0,
+        "away_goals": 1,
+        "score": "0-1",
+        "probability": 8.95
+      },
+      {
+        "home_goals": 2,
+        "away_goals": 1,
+        "score": "2-1",
+        "probability": 8.78
+      },
+      {
+        "home_goals": 0,
+        "away_goals": 0,
+        "score": "0-0",
+        "probability": 7.65
+      },
+      {
+        "home_goals": 2,
+        "away_goals": 0,
+        "score": "2-0",
+        "probability": 7.5
+      },
+      {
+        "home_goals": 1,
+        "away_goals": 2,
+        "score": "1-2",
+        "probability": 7.33
+      },
+      {
+        "home_goals": 0,
+        "away_goals": 2,
+        "score": "0-2",
+        "probability": 5.24
+      },
+      {
+        "home_goals": 2,
+        "away_goals": 2,
+        "score": "2-2",
+        "probability": 5.13
+      },
+      {
+        "home_goals": 3,
+        "away_goals": 1,
+        "score": "3-1",
+        "probability": 4.1
+      }
+    ]
+  },
+  "analysis": {
+    "confidence_model": "Confidence Engine V1.0",
+    "confidence_factors": {
+      "probability_strength": 24.92,
+      "probability_margin": 30.86,
+      "elo_signal": 50.0,
+      "attack_signal": 50.0,
+      "defense_signal": 50.0,
+      "form_signal": 50.0,
+      "data_quality": 0.0,
+      "xg_consistency": 57.67,
+      "market_clarity": 26.43
+    },
+    "warnings": [
+      "لا توجد أفضلية احتمالية واضحة.",
+      "مستوى الثقة منخفض.",
+      "الأهداف المتوقعة متقاربة بين الفريقين.",
+      "كمية البيانات المتاحة منخفضة، لذلك يجب التعامل مع التوقع بحذر.",
+      "فورمة الفريقين متقاربة جدًا.",
+      "تصنيف Elo متقارب بين الفريقين."
+    ],
+    "ensemble": {
+      "model": "Ensemble Intelligence Engine V1.0",
+      "status": "success",
+      "recommended_outcome": "home_win",
+      "probabilities": {
+        "home_win": 42.36,
+        "draw": 26.04,
+        "away_win": 31.6
+      },
+      "probabilities_normalised": {
+        "home_win": 0.423608,
+        "draw": 0.260419,
+        "away_win": 0.315973
+      },
+      "primary_probability": 42.36,
+      "second_probability": 31.6,
+      "probability_margin": 10.76,
+      "agreement": {
+        "score": 100.0,
+        "level": "very_high"
+      },
+      "stability": {
+        "score": 99.07,
+        "level": "very_high"
+      },
+      "confidence_modifier": 99.63,
+      "weights": {
+        "poisson": 0.7143,
+        "expected_goals": 0.2857
+      },
+      "experts": {
+        "poisson": {
+          "home_win": 42.22,
+          "draw": 26.36,
+          "away_win": 31.42
+        },
+        "expected_goals": {
+          "home_win": 42.71,
+          "draw": 25.25,
+          "away_win": 32.04
+        }
+      },
+      "available_experts": [
+        "poisson",
+        "expected_goals"
+      ],
+      "unavailable_experts": [
+        "team_strength",
+        "form",
+        "elo"
+      ],
+      "expert_count": 2
+    },
+    "ai_decision": {
+      "model": "AI Decision Engine V7.0",
+      "recommended_outcome": "home_win",
+      "recommended_outcome_label": "Home Win",
+      "primary_probability": 42.22,
+      "second_probability": 31.42,
+      "probability_margin": 10.8,
+      "decision_score": 15.0,
+      "recommendation": "reject",
+      "risk": {
+        "level": "high",
+        "label": "High Risk"
+      },
+      "expected_goals": {
+        "home": 1.4,
+        "away": 1.17,
+        "total": 2.57,
+        "difference": 0.23
+      },
+      "confidence": {
+        "value": 35.0,
+        "level": "Very Low"
+      },
+      "reasons": [
+        "يوجد فارق مقبول عن أقرب نتيجة منافسة."
+      ],
+      "warnings": [
+        "لا توجد أفضلية احتمالية واضحة.",
+        "مستوى الثقة منخفض.",
+        "الأهداف المتوقعة متقاربة بين الفريقين.",
+        "كمية البيانات المتاحة منخفضة، لذلك يجب التعامل مع التوقع بحذر.",
+        "فورمة الفريقين متقاربة جدًا.",
+        "تصنيف Elo متقارب بين الفريقين."
+      ],
+      "signals": {
+        "data_quality": 0.0,
+        "form_signal": 50.0,
+        "elo_signal": 50.0
+      },
+      "feature_context_available": true
+    },
+    "explanation": {
+      "summary": "The model recommends a home win, with a leading probability of 42.2%. Expected goals are 1.40 for the home team and 1.17 for the away team. Confidence is 35.0%. The assessed risk level is high.",
+      "recommended_outcome": "home_win",
+      "strengths": [
+        "The recommendation is based on the combined V6 model output."
+      ],
+      "risks": [
+        "The probability advantage is limited and the result remains competitive.",
+        "Expected goals are closely balanced between both teams.",
+        "The AI Decision Engine classified this prediction as high risk."
+      ],
+      "factors": {
+        "probabilities": {
+          "home_win": 0.4222,
+          "draw": 0.2636,
+          "away_win": 0.3142
+        },
+        "expected_goals": {
+          "home": 1.4,
+          "away": 1.17,
+          "total": 2.57
+        },
+        "confidence": 0.35,
+        "risk_level": "high"
+      },
+      "model": "Explainable AI 1.0"
+    },
+    "recommendation": "reject",
+    "risk": {
+      "level": "high",
+      "label": "High Risk"
+    },
+    "reasons": [
+      "يوجد فارق مقبول عن أقرب نتيجة منافسة."
+    ]
+  },
+  "features": {
+    "fixture": {
+      "id": 27,
+      "sportmonks_id": 19714002,
+      "date": "2026-08-03 17:00:00",
+      "status": "scheduled",
+      "home_team_id": 11,
+      "away_team_id": 17,
+      "home_score": null,
+      "away_score": null
+    },
+    "home_team": {
+      "id": 11,
+      "sportmonks_id": 1789,
+      "name": "Odense BK",
+      "country": "Denmark",
+      "logo_url": "https://cdn.sportmonks.com/images/soccer/teams/29/1789.png",
+      "venue": "home",
+      "elo": 1760,
+      "elo_source": "elo_history",
+      "attack": 95,
+      "defense": 80,
+      "midfield": 80,
+      "home_advantage": 1.1,
+      "venue_multiplier": 1.1,
+      "matches_used": 5,
+      "wins": 1,
+      "draws": 2,
+      "losses": 2,
+      "points": 5,
+      "maximum_points": 15,
+      "form": "DLDWL",
+      "form_rating": 33.33,
+      "goals_scored": 1.0,
+      "goals_conceded": 1.8,
+      "goals_scored_total": 5,
+      "goals_conceded_total": 9,
+      "goal_difference": -4,
+      "possession": 49.0,
+      "shots": 12.0,
+      "shots_on_target": 5.0,
+      "corners": 6.0,
+      "yellow_cards": 0.0,
+      "red_cards": 0.0,
+      "clean_sheets": 30.0,
+      "failed_to_score": 20.0,
+      "xg": 1.5,
+      "xga": 1.0,
+      "statistics_rows_used": 1
+    },
+    "away_team": {
+      "id": 17,
+      "sportmonks_id": 390,
+      "name": "Sønderjyske Fodbold",
+      "country": "Denmark",
+      "logo_url": "https://cdn.sportmonks.com/images/soccer/teams/6/390.png",
+      "venue": "away",
+      "elo": 1774,
+      "elo_source": "elo_history",
+      "attack": 60,
+      "defense": 80,
+      "midfield": 80,
+      "home_advantage": 1.1,
+      "venue_multiplier": 1.0,
+      "matches_used": 5,
+      "wins": 2,
+      "draws": 0,
+      "losses": 3,
+      "points": 6,
+      "maximum_points": 15,
+      "form": "LWWLL",
+      "form_rating": 40.0,
+      "goals_scored": 0.8,
+      "goals_conceded": 2.2,
+      "goals_scored_total": 4,
+      "goals_conceded_total": 11,
+      "goal_difference": -7,
+      "possession": 36.0,
+      "shots": 12.0,
+      "shots_on_target": 5.0,
+      "corners": 2.0,
+      "yellow_cards": 1.67,
+      "red_cards": 0.0,
+      "clean_sheets": 30.0,
+      "failed_to_score": 20.0,
+      "xg": 1.5,
+      "xga": 1.0,
+      "statistics_rows_used": 3
+    },
+    "differences": {
+      "elo": -14,
+      "attack": 35.0,
+      "defense": 0.0,
+      "midfield": 0.0,
+      "form": -6.67,
+      "goals_scored": 0.2,
+      "goals_conceded": -0.4
+    },
+    "recent_limit": 5,
+    "historical_cutoff": "2026-08-03 17:00:00",
+    "data_leakage_protection": true,
+    "historical_elo_protection": true,
+    "elo_sources": {
+      "home": "elo_history",
+      "away": "elo_history"
+    }
+  },
+  "poisson": {
+    "model": "Poisson Engine V1.0",
+    "input": {
+      "home_expected_goals": 1.4,
+      "away_expected_goals": 1.17,
+      "total_expected_goals": 2.57,
+      "max_goals": 8
+    },
+    "most_likely_score": {
+      "home_goals": 1,
+      "away_goals": 1,
+      "score": "1-1",
+      "probability": 12.54
+    },
+    "top_scores": [
+      {
+        "home_goals": 1,
+        "away_goals": 1,
+        "score": "1-1",
+        "probability": 12.54
+      },
+      {
+        "home_goals": 1,
+        "away_goals": 0,
+        "score": "1-0",
+        "probability": 10.72
+      },
+      {
+        "home_goals": 0,
+        "away_goals": 1,
+        "score": "0-1",
+        "probability": 8.95
+      },
+      {
+        "home_goals": 2,
+        "away_goals": 1,
+        "score": "2-1",
+        "probability": 8.78
+      },
+      {
+        "home_goals": 0,
+        "away_goals": 0,
+        "score": "0-0",
+        "probability": 7.65
+      },
+      {
+        "home_goals": 2,
+        "away_goals": 0,
+        "score": "2-0",
+        "probability": 7.5
+      },
+      {
+        "home_goals": 1,
+        "away_goals": 2,
+        "score": "1-2",
+        "probability": 7.33
+      },
+      {
+        "home_goals": 0,
+        "away_goals": 2,
+        "score": "0-2",
+        "probability": 5.24
+      },
+      {
+        "home_goals": 2,
+        "away_goals": 2,
+        "score": "2-2",
+        "probability": 5.13
+      },
+      {
+        "home_goals": 3,
+        "away_goals": 1,
+        "score": "3-1",
+        "probability": 4.1
+      }
+    ],
+    "match_result": {
+      "home_win": 42.22,
+      "draw": 26.36,
+      "away_win": 31.42
+    },
+    "double_chance": {
+      "home_or_draw_1x": 68.58,
+      "home_or_away_12": 73.64,
+      "draw_or_away_x2": 57.78
+    },
+    "draw_no_bet": {
+      "home": 57.33,
+      "away": 42.67
+    },
+    "btts": {
+      "yes": 51.96,
+      "no": 48.04
+    },
+    "totals": {
+      "0.5": {
+        "over": 92.35,
+        "under": 7.65
+      },
+      "1.5": {
+        "over": 72.68,
+        "under": 27.32
+      },
+      "2.5": {
+        "over": 47.4,
+        "under": 52.6
+      },
+      "3.5": {
+        "over": 25.75,
+        "under": 74.25
+      },
+      "4.5": {
+        "over": 11.84,
+        "under": 88.16
+      },
+      "5.5": {
+        "over": 4.68,
+        "under": 95.32
+      }
+    },
+    "team_totals": {
+      "home": {
+        "0.5": {
+          "over": 75.34,
+          "under": 24.66
+        },
+        "1.5": {
+          "over": 40.82,
+          "under": 59.18
+        },
+        "2.5": {
+          "over": 16.65,
+          "under": 83.35
+        },
+        "3.5": {
+          "over": 5.37,
+          "under": 94.63
+        }
+      },
+      "away": {
+        "0.5": {
+          "over": 68.96,
+          "under": 31.04
+        },
+        "1.5": {
+          "over": 32.65,
+          "under": 67.35
+        },
+        "2.5": {
+          "over": 11.41,
+          "under": 88.59
+        },
+        "3.5": {
+          "over": 3.12,
+          "under": 96.88
+        }
+      }
+    },
+    "clean_sheet": {
+      "home": 31.04,
+      "away": 24.66,
+      "both_0_0": 7.65
+    },
+    "win_to_nil": {
+      "home": 23.38,
+      "away": 17.01
+    },
+    "score_matrix": [
+      {
+        "home_goals": 0,
+        "away_goals": 0,
+        "score": "0-0",
+        "probability": 7.65
+      },
+      {
+        "home_goals": 0,
+        "away_goals": 1,
+        "score": "0-1",
+        "probability": 8.95
+      },
+      {
+        "home_goals": 0,
+        "away_goals": 2,
+        "score": "0-2",
+        "probability": 5.24
+      },
+      {
+        "home_goals": 0,
+        "away_goals": 3,
+        "score": "0-3",
+        "probability": 2.04
+      },
+      {
+        "home_goals": 0,
+        "away_goals": 4,
+        "score": "0-4",
+        "probability": 0.6
+      },
+      {
+        "home_goals": 0,
+        "away_goals": 5,
+        "score": "0-5",
+        "probability": 0.14
+      },
+      {
+        "home_goals": 0,
+        "away_goals": 6,
+        "score": "0-6",
+        "probability": 0.03
+      },
+      {
+        "home_goals": 0,
+        "away_goals": 7,
+        "score": "0-7",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 0,
+        "away_goals": 8,
+        "score": "0-8",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 1,
+        "away_goals": 0,
+        "score": "1-0",
+        "probability": 10.72
+      },
+      {
+        "home_goals": 1,
+        "away_goals": 1,
+        "score": "1-1",
+        "probability": 12.54
+      },
+      {
+        "home_goals": 1,
+        "away_goals": 2,
+        "score": "1-2",
+        "probability": 7.33
+      },
+      {
+        "home_goals": 1,
+        "away_goals": 3,
+        "score": "1-3",
+        "probability": 2.86
+      },
+      {
+        "home_goals": 1,
+        "away_goals": 4,
+        "score": "1-4",
+        "probability": 0.84
+      },
+      {
+        "home_goals": 1,
+        "away_goals": 5,
+        "score": "1-5",
+        "probability": 0.2
+      },
+      {
+        "home_goals": 1,
+        "away_goals": 6,
+        "score": "1-6",
+        "probability": 0.04
+      },
+      {
+        "home_goals": 1,
+        "away_goals": 7,
+        "score": "1-7",
+        "probability": 0.01
+      },
+      {
+        "home_goals": 1,
+        "away_goals": 8,
+        "score": "1-8",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 2,
+        "away_goals": 0,
+        "score": "2-0",
+        "probability": 7.5
+      },
+      {
+        "home_goals": 2,
+        "away_goals": 1,
+        "score": "2-1",
+        "probability": 8.78
+      },
+      {
+        "home_goals": 2,
+        "away_goals": 2,
+        "score": "2-2",
+        "probability": 5.13
+      },
+      {
+        "home_goals": 2,
+        "away_goals": 3,
+        "score": "2-3",
+        "probability": 2.0
+      },
+      {
+        "home_goals": 2,
+        "away_goals": 4,
+        "score": "2-4",
+        "probability": 0.59
+      },
+      {
+        "home_goals": 2,
+        "away_goals": 5,
+        "score": "2-5",
+        "probability": 0.14
+      },
+      {
+        "home_goals": 2,
+        "away_goals": 6,
+        "score": "2-6",
+        "probability": 0.03
+      },
+      {
+        "home_goals": 2,
+        "away_goals": 7,
+        "score": "2-7",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 2,
+        "away_goals": 8,
+        "score": "2-8",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 3,
+        "away_goals": 0,
+        "score": "3-0",
+        "probability": 3.5
+      },
+      {
+        "home_goals": 3,
+        "away_goals": 1,
+        "score": "3-1",
+        "probability": 4.1
+      },
+      {
+        "home_goals": 3,
+        "away_goals": 2,
+        "score": "3-2",
+        "probability": 2.4
+      },
+      {
+        "home_goals": 3,
+        "away_goals": 3,
+        "score": "3-3",
+        "probability": 0.93
+      },
+      {
+        "home_goals": 3,
+        "away_goals": 4,
+        "score": "3-4",
+        "probability": 0.27
+      },
+      {
+        "home_goals": 3,
+        "away_goals": 5,
+        "score": "3-5",
+        "probability": 0.06
+      },
+      {
+        "home_goals": 3,
+        "away_goals": 6,
+        "score": "3-6",
+        "probability": 0.01
+      },
+      {
+        "home_goals": 3,
+        "away_goals": 7,
+        "score": "3-7",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 3,
+        "away_goals": 8,
+        "score": "3-8",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 4,
+        "away_goals": 0,
+        "score": "4-0",
+        "probability": 1.23
+      },
+      {
+        "home_goals": 4,
+        "away_goals": 1,
+        "score": "4-1",
+        "probability": 1.43
+      },
+      {
+        "home_goals": 4,
+        "away_goals": 2,
+        "score": "4-2",
+        "probability": 0.84
+      },
+      {
+        "home_goals": 4,
+        "away_goals": 3,
+        "score": "4-3",
+        "probability": 0.33
+      },
+      {
+        "home_goals": 4,
+        "away_goals": 4,
+        "score": "4-4",
+        "probability": 0.1
+      },
+      {
+        "home_goals": 4,
+        "away_goals": 5,
+        "score": "4-5",
+        "probability": 0.02
+      },
+      {
+        "home_goals": 4,
+        "away_goals": 6,
+        "score": "4-6",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 4,
+        "away_goals": 7,
+        "score": "4-7",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 4,
+        "away_goals": 8,
+        "score": "4-8",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 5,
+        "away_goals": 0,
+        "score": "5-0",
+        "probability": 0.34
+      },
+      {
+        "home_goals": 5,
+        "away_goals": 1,
+        "score": "5-1",
+        "probability": 0.4
+      },
+      {
+        "home_goals": 5,
+        "away_goals": 2,
+        "score": "5-2",
+        "probability": 0.23
+      },
+      {
+        "home_goals": 5,
+        "away_goals": 3,
+        "score": "5-3",
+        "probability": 0.09
+      },
+      {
+        "home_goals": 5,
+        "away_goals": 4,
+        "score": "5-4",
+        "probability": 0.03
+      },
+      {
+        "home_goals": 5,
+        "away_goals": 5,
+        "score": "5-5",
+        "probability": 0.01
+      },
+      {
+        "home_goals": 5,
+        "away_goals": 6,
+        "score": "5-6",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 5,
+        "away_goals": 7,
+        "score": "5-7",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 5,
+        "away_goals": 8,
+        "score": "5-8",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 6,
+        "away_goals": 0,
+        "score": "6-0",
+        "probability": 0.08
+      },
+      {
+        "home_goals": 6,
+        "away_goals": 1,
+        "score": "6-1",
+        "probability": 0.09
+      },
+      {
+        "home_goals": 6,
+        "away_goals": 2,
+        "score": "6-2",
+        "probability": 0.05
+      },
+      {
+        "home_goals": 6,
+        "away_goals": 3,
+        "score": "6-3",
+        "probability": 0.02
+      },
+      {
+        "home_goals": 6,
+        "away_goals": 4,
+        "score": "6-4",
+        "probability": 0.01
+      },
+      {
+        "home_goals": 6,
+        "away_goals": 5,
+        "score": "6-5",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 6,
+        "away_goals": 6,
+        "score": "6-6",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 6,
+        "away_goals": 7,
+        "score": "6-7",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 6,
+        "away_goals": 8,
+        "score": "6-8",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 7,
+        "away_goals": 0,
+        "score": "7-0",
+        "probability": 0.02
+      },
+      {
+        "home_goals": 7,
+        "away_goals": 1,
+        "score": "7-1",
+        "probability": 0.02
+      },
+      {
+        "home_goals": 7,
+        "away_goals": 2,
+        "score": "7-2",
+        "probability": 0.01
+      },
+      {
+        "home_goals": 7,
+        "away_goals": 3,
+        "score": "7-3",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 7,
+        "away_goals": 4,
+        "score": "7-4",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 7,
+        "away_goals": 5,
+        "score": "7-5",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 7,
+        "away_goals": 6,
+        "score": "7-6",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 7,
+        "away_goals": 7,
+        "score": "7-7",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 7,
+        "away_goals": 8,
+        "score": "7-8",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 8,
+        "away_goals": 0,
+        "score": "8-0",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 8,
+        "away_goals": 1,
+        "score": "8-1",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 8,
+        "away_goals": 2,
+        "score": "8-2",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 8,
+        "away_goals": 3,
+        "score": "8-3",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 8,
+        "away_goals": 4,
+        "score": "8-4",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 8,
+        "away_goals": 5,
+        "score": "8-5",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 8,
+        "away_goals": 6,
+        "score": "8-6",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 8,
+        "away_goals": 7,
+        "score": "8-7",
+        "probability": 0.0
+      },
+      {
+        "home_goals": 8,
+        "away_goals": 8,
+        "score": "8-8",
+        "probability": 0.0
+      }
+    ]
+  },
+  "meta": {
+    "max_goals": 8,
+    "top_scores_count": 10,
+    "execution_time_ms": 0.461,
+    "pipeline": [
+      "FeatureEngineering V2",
+      "ExpectedGoalsCalculator",
+      "PoissonEngine",
+      "ConfidenceEngine",
+      "Prediction V6.0",
+      "Ensemble Intelligence Engine V1.0",
+      "AI Decision Engine V7.0",
+      "Explainable AI 1.0",
+      "Prediction V7.1"
+    ],
+    "total_execution_time_ms": 261.058,
+    "base_model": "Prediction V6.0",
+    "ensemble_engine": "Ensemble Intelligence Engine V1.0",
+    "decision_engine": "AI Decision Engine V7.0",
+    "explanation_engine": "Explainable AI 1.0",
+    "intelligence_execution_time_ms": 0.144
+  },
+  "ensemble": {
+    "model": "Ensemble Intelligence Engine V1.0",
+    "status": "success",
+    "recommended_outcome": "home_win",
+    "probabilities": {
+      "home_win": 42.36,
+      "draw": 26.04,
+      "away_win": 31.6
+    },
+    "probabilities_normalised": {
+      "home_win": 0.423608,
+      "draw": 0.260419,
+      "away_win": 0.315973
+    },
+    "primary_probability": 42.36,
+    "second_probability": 31.6,
+    "probability_margin": 10.76,
+    "agreement": {
+      "score": 100.0,
+      "level": "very_high"
+    },
+    "stability": {
+      "score": 99.07,
+      "level": "very_high"
+    },
+    "confidence_modifier": 99.63,
+    "weights": {
+      "poisson": 0.7143,
+      "expected_goals": 0.2857
+    },
+    "experts": {
+      "poisson": {
+        "home_win": 42.22,
+        "draw": 26.36,
+        "away_win": 31.42
+      },
+      "expected_goals": {
+        "home_win": 42.71,
+        "draw": 25.25,
+        "away_win": 32.04
+      }
+    },
+    "available_experts": [
+      "poisson",
+      "expected_goals"
+    ],
+    "unavailable_experts": [
+      "team_strength",
+      "form",
+      "elo"
+    ],
+    "expert_count": 2
+  },
+  "decision": {
+    "model": "AI Decision Engine V7.0",
+    "recommended_outcome": "home_win",
+    "recommended_outcome_label": "Home Win",
+    "primary_probability": 42.22,
+    "second_probability": 31.42,
+    "probability_margin": 10.8,
+    "decision_score": 15.0,
+    "recommendation": "reject",
+    "risk": {
+      "level": "high",
+      "label": "High Risk"
+    },
+    "expected_goals": {
+      "home": 1.4,
+      "away": 1.17,
+      "total": 2.57,
+      "difference": 0.23
+    },
+    "confidence": {
+      "value": 35.0,
+      "level": "Very Low"
+    },
+    "reasons": [
+      "يوجد فارق مقبول عن أقرب نتيجة منافسة."
+    ],
+    "warnings": [
+      "لا توجد أفضلية احتمالية واضحة.",
+      "مستوى الثقة منخفض.",
+      "الأهداف المتوقعة متقاربة بين الفريقين.",
+      "كمية البيانات المتاحة منخفضة، لذلك يجب التعامل مع التوقع بحذر.",
+      "فورمة الفريقين متقاربة جدًا.",
+      "تصنيف Elo متقارب بين الفريقين."
+    ],
+    "signals": {
+      "data_quality": 0.0,
+      "form_signal": 50.0,
+      "elo_signal": 50.0
+    },
+    "feature_context_available": true
+  },
+  "explanation": {
+    "summary": "The model recommends a home win, with a leading probability of 42.2%. Expected goals are 1.40 for the home team and 1.17 for the away team. Confidence is 35.0%. The assessed risk level is high.",
+    "recommended_outcome": "home_win",
+    "strengths": [
+      "The recommendation is based on the combined V6 model output."
+    ],
+    "risks": [
+      "The probability advantage is limited and the result remains competitive.",
+      "Expected goals are closely balanced between both teams.",
+      "The AI Decision Engine classified this prediction as high risk."
+    ],
+    "factors": {
+      "probabilities": {
+        "home_win": 0.4222,
+        "draw": 0.2636,
+        "away_win": 0.3142
+      },
+      "expected_goals": {
+        "home": 1.4,
+        "away": 1.17,
+        "total": 2.57
+      },
+      "confidence": 0.35,
+      "risk_level": "high"
+    },
+    "model": "Explainable AI 1.0"
+  },
+  "pipeline": {
+    "status": "completed",
+    "match_id": 27,
+    "model": "Prediction V7.1",
+    "history_limit": 5,
+    "feature_version": "Feature Engineering V2",
+    "features_saved": true,
+    "prediction_saved": true,
+    "elapsed_ms": 293.08
+  }
+}

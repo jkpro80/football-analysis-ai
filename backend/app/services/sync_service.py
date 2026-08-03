@@ -1,0 +1,1519 @@
+import json
+import logging
+import os
+from datetime import date, datetime, timezone
+from typing import Any
+
+from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
+
+from app.database.models import (
+    Match,
+    PredictionRecord,
+    Team,
+)
+from app.services.sportmonks_service import (
+    SportmonksAPIError,
+    SportmonksService,
+)
+
+
+logger = logging.getLogger(__name__)
+
+
+class SportmonksSyncService:
+    """
+    مزامنة الفرق والمباريات من Sportmonks
+    مع قاعدة البيانات المحلية.
+    """
+
+    def __init__(
+        self,
+        db: Session,
+    ) -> None:
+        self.db = db
+        self.sportmonks = SportmonksService()
+        self._referee_name_cache: dict[
+            int,
+            str | None,
+        ] = {}
+
+    async def sync_team_and_fixtures(
+        self,
+        sportmonks_team_id: int,
+        start_date: date | str,
+        end_date: date | str,
+    ) -> dict[str, Any]:
+        """
+        مزامنة فريق واحد ومبارياته
+        بين تاريخين.
+        """
+
+        try:
+            team_response = (
+                await self.sportmonks.get_team(
+                    sportmonks_team_id=(
+                        sportmonks_team_id
+                    ),
+                    include_statistics=False,
+                )
+            )
+
+            team_data = (
+                self.sportmonks.extract_single_data(
+                    team_response
+                )
+            )
+
+            if team_data is None:
+                raise SportmonksAPIError(
+                    "Team data was not returned."
+                )
+
+            local_team = self._upsert_team(
+                team_data
+            )
+
+            fixtures_response = (
+                await self.sportmonks.get_team_fixtures(
+                    sportmonks_team_id=(
+                        sportmonks_team_id
+                    ),
+                    start_date=start_date,
+                    end_date=end_date,
+                    include_statistics=False,
+                )
+            )
+
+            fixtures = (
+                self.sportmonks.extract_data(
+                    fixtures_response
+                )
+            )
+
+            created_matches = 0
+            updated_matches = 0
+            skipped_matches = 0
+            created_teams = 0
+            updated_teams = 0
+
+            for fixture in fixtures:
+                await self._hydrate_referee_name(
+                    fixture
+                )
+
+                result = self._upsert_fixture(
+                    fixture
+                )
+
+                match_status = result[
+                    "match_status"
+                ]
+
+                if match_status == "created":
+                    created_matches += 1
+
+                elif match_status == "updated":
+                    updated_matches += 1
+
+                else:
+                    skipped_matches += 1
+
+                created_teams += int(
+                    result.get(
+                        "created_teams",
+                        0,
+                    )
+                )
+
+                updated_teams += int(
+                    result.get(
+                        "updated_teams",
+                        0,
+                    )
+                )
+
+            self.db.commit()
+
+            return {
+                "status": "success",
+                "team": {
+                    "id": local_team.id,
+                    "sportmonks_id": (
+                        local_team.sportmonks_id
+                    ),
+                    "name": local_team.name,
+                    "country": local_team.country,
+                    "logo_url": local_team.logo_url,
+                },
+                "date_range": {
+                    "start_date": str(
+                        start_date
+                    ),
+                    "end_date": str(
+                        end_date
+                    ),
+                },
+                "received_fixtures": len(
+                    fixtures
+                ),
+                "created_matches": (
+                    created_matches
+                ),
+                "updated_matches": (
+                    updated_matches
+                ),
+                "skipped_matches": (
+                    skipped_matches
+                ),
+                "created_related_teams": (
+                    created_teams
+                ),
+                "updated_related_teams": (
+                    updated_teams
+                ),
+            }
+
+        except (
+            SportmonksAPIError,
+            ValueError,
+        ):
+            self.db.rollback()
+            raise
+
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise
+
+        except Exception:
+            self.db.rollback()
+            raise
+    async def sync_all_teams(
+        self,
+        per_page: int = 50,
+    ) -> dict[str, Any]:
+        """
+        مزامنة جميع فرق Sportmonks إلى قاعدة البيانات.
+        """
+
+        safe_per_page = max(
+            1,
+            min(per_page, 100),
+        )
+
+        page = 1
+        pages_processed = 0
+        total_received = 0
+        total_created = 0
+        total_updated = 0
+
+        try:
+            while True:
+                response = (
+                    await self.sportmonks.get_all_teams(
+                        page=page,
+                        per_page=safe_per_page,
+                    )
+                )
+
+                data = response.get("data")
+
+                if isinstance(data, list):
+                    teams = data
+                elif isinstance(data, dict):
+                    teams = [data]
+                else:
+                    teams = []
+
+                if not teams:
+                    break
+
+                pages_processed += 1
+
+                for team_data in teams:
+                    sportmonks_id = self._safe_int(
+                        team_data.get("id")
+                    )
+
+                    if sportmonks_id is None:
+                        continue
+
+                    existing = (
+                        self.db.query(Team)
+                        .filter(
+                            Team.sportmonks_id
+                            == sportmonks_id
+                        )
+                        .first()
+                    )
+
+                    if existing is None:
+                        total_created += 1
+                    else:
+                        total_updated += 1
+
+                    self._upsert_team(
+                        team_data
+                    )
+                    total_received += 1
+
+                self.db.commit()
+
+                pagination = response.get("pagination", {})
+
+                if not isinstance(pagination, dict):
+                    pagination = {}
+
+                current_page = self._safe_int(
+                    pagination.get(
+                        "current_page"
+                    )
+                ) or page
+
+                total_pages = self._safe_int(
+                    pagination.get(
+                        "total_pages"
+                    )
+                )
+
+                if total_pages is None:
+                    break
+
+                if current_page >= total_pages:
+                    break
+
+                page = current_page + 1
+
+            return {
+                "status": "success",
+                "pages_processed": pages_processed,
+                "received": total_received,
+                "created": total_created,
+                "updated": total_updated,
+            }
+
+        except (
+            SportmonksAPIError,
+            ValueError,
+        ):
+            self.db.rollback()
+            raise
+
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise
+
+        except Exception:
+            self.db.rollback()
+            raise
+
+    async def sync_pending_prediction_fixtures(
+        self,
+        limit: int = 100,
+    ) -> dict[str, Any]:
+        """
+        تحديث المباريات التي لديها توقعات
+        V4.1 غير مقيمة وقد حان موعدها.
+
+        يتم جلب كل مباراة من Sportmonks،
+        ثم تحديث نتيجتها وحالتها محليًا.
+        """
+
+        safe_limit = max(
+            1,
+            min(limit, 500),
+        )
+
+        model_version = (
+            "Prediction Engine V4.1"
+        )
+
+        current_datetime = (
+            datetime.now(
+                timezone.utc
+            )
+            .replace(
+                tzinfo=None
+            )
+            .strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
+        )
+
+        statement = (
+            select(Match)
+            .join(
+                PredictionRecord,
+                PredictionRecord.match_id
+                == Match.id,
+            )
+            .where(
+                PredictionRecord.model_version
+                == model_version,
+                PredictionRecord.evaluated
+                .is_(False),
+                Match.sportmonks_id
+                .is_not(None),
+                Match.date <= current_datetime,
+            )
+            .distinct()
+            .order_by(
+                Match.date.asc(),
+                Match.id.asc(),
+            )
+            .limit(safe_limit)
+        )
+
+        matches = list(
+            self.db.scalars(
+                statement
+            ).all()
+        )
+
+        updated = 0
+        created = 0
+        skipped = 0
+        failed = 0
+
+        results: list[
+            dict[str, Any]
+        ] = []
+
+        for match in matches:
+            try:
+                sportmonks_id = (
+                    self._safe_int(
+                        match.sportmonks_id
+                    )
+                )
+
+                if sportmonks_id is None:
+                    skipped += 1
+
+                    results.append(
+                        {
+                            "match_id": match.id,
+                            "status": "skipped",
+                            "reason": (
+                                "Sportmonks fixture ID "
+                                "is missing."
+                            ),
+                        }
+                    )
+
+                    continue
+
+                response = (
+                    await self.sportmonks.get_fixture(
+                        fixture_id=(
+                            sportmonks_id
+                        ),
+                        include_statistics=False,
+                    )
+                )
+
+                fixture = (
+                    self.sportmonks
+                    .extract_single_data(
+                        response
+                    )
+                )
+
+                if fixture is None:
+                    skipped += 1
+
+                    results.append(
+                        {
+                            "match_id": match.id,
+                            "sportmonks_id": (
+                                sportmonks_id
+                            ),
+                            "status": "skipped",
+                            "reason": (
+                                "Fixture data was not "
+                                "returned by Sportmonks."
+                            ),
+                        }
+                    )
+
+                    continue
+
+                result = self._upsert_fixture(
+                    fixture
+                )
+
+                result_status = str(
+                    result.get(
+                        "match_status",
+                        "skipped",
+                    )
+                )
+
+                if result_status == "updated":
+                    updated += 1
+
+                elif result_status == "created":
+                    created += 1
+
+                else:
+                    skipped += 1
+
+                self.db.commit()
+
+                refreshed_match = (
+                    self.db.query(Match)
+                    .filter(
+                        Match.sportmonks_id
+                        == sportmonks_id
+                    )
+                    .first()
+                )
+
+                results.append(
+                    {
+                        "match_id": (
+                            refreshed_match.id
+                            if refreshed_match
+                            is not None
+                            else match.id
+                        ),
+                        "sportmonks_id": (
+                            sportmonks_id
+                        ),
+                        "status": (
+                            result_status
+                        ),
+                        "fixture_status": (
+                            refreshed_match.status
+                            if refreshed_match
+                            is not None
+                            else None
+                        ),
+                        "home_score": (
+                            refreshed_match.home_score
+                            if refreshed_match
+                            is not None
+                            else None
+                        ),
+                        "away_score": (
+                            refreshed_match.away_score
+                            if refreshed_match
+                            is not None
+                            else None
+                        ),
+                    }
+                )
+
+            except SportmonksAPIError as error:
+                self.db.rollback()
+                failed += 1
+
+                results.append(
+                    {
+                        "match_id": match.id,
+                        "sportmonks_id": (
+                            match.sportmonks_id
+                        ),
+                        "status": "failed",
+                        "error": str(error),
+                    }
+                )
+
+            except SQLAlchemyError as error:
+                self.db.rollback()
+                failed += 1
+
+                results.append(
+                    {
+                        "match_id": match.id,
+                        "sportmonks_id": (
+                            match.sportmonks_id
+                        ),
+                        "status": "failed",
+                        "error": (
+                            "Database update failed: "
+                            f"{error}"
+                        ),
+                    }
+                )
+
+            except Exception as error:
+                self.db.rollback()
+                failed += 1
+
+                results.append(
+                    {
+                        "match_id": match.id,
+                        "sportmonks_id": (
+                            match.sportmonks_id
+                        ),
+                        "status": "failed",
+                        "error": str(error),
+                    }
+                )
+
+        return {
+            "status": "success",
+            "model_version": model_version,
+            "requested_limit": safe_limit,
+            "fixtures_found": len(
+                matches
+            ),
+            "updated": updated,
+            "created": created,
+            "skipped": skipped,
+            "failed": failed,
+            "results": results,
+        }
+
+    async def _hydrate_referee_name(
+        self,
+        fixture: dict[str, Any],
+    ) -> None:
+        """
+        جلب اسم الحكم الرئيسي وإضافته
+        إلى بيانات المباراة قبل حفظها.
+        """
+
+        referees = fixture.get("referees")
+
+        if not isinstance(referees, list):
+            return
+
+        main_referee: dict[str, Any] | None = None
+
+        for referee in referees:
+            if not isinstance(referee, dict):
+                continue
+
+            referee_id = self._safe_int(
+                referee.get("referee_id")
+            )
+
+            if referee_id is None:
+                continue
+
+            if referee.get("type_id") == 6:
+                main_referee = referee
+                break
+
+            if main_referee is None:
+                main_referee = referee
+
+        if main_referee is None:
+            return
+
+        referee_id = self._safe_int(
+            main_referee.get("referee_id")
+        )
+
+        if referee_id is None:
+            return
+
+        if referee_id in self._referee_name_cache:
+            cached_name = (
+                self._referee_name_cache[referee_id]
+            )
+
+            if cached_name:
+                main_referee["name"] = cached_name
+
+            return
+
+        try:
+            response = await self.sportmonks.get_referee(
+                referee_id=referee_id,
+            )
+
+            referee_data = (
+                self.sportmonks.extract_single_data(
+                    response
+                )
+            )
+
+            referee_name: str | None = None
+
+            if isinstance(referee_data, dict):
+                raw_name = (
+                    referee_data.get("name")
+                    or referee_data.get(
+                        "display_name"
+                    )
+                    or referee_data.get(
+                        "common_name"
+                    )
+                )
+
+                if raw_name:
+                    referee_name = str(
+                        raw_name
+                    ).strip() or None
+
+            self._referee_name_cache[
+                referee_id
+            ] = referee_name
+
+            if referee_name:
+                main_referee["name"] = (
+                    referee_name
+                )
+
+        except SportmonksAPIError as error:
+            self._referee_name_cache[
+                referee_id
+            ] = None
+
+            logger.warning(
+                "Could not fetch referee %s: %s",
+                referee_id,
+                error,
+            )
+
+    def _upsert_team(
+        self,
+        team_data: dict[str, Any],
+    ) -> Team:
+        """
+        إضافة الفريق أو تحديثه حسب
+        sportmonks_id.
+        """
+
+        sportmonks_id = self._safe_int(
+            team_data.get("id")
+        )
+
+        if sportmonks_id is None:
+            raise ValueError(
+                "Sportmonks team ID is missing."
+            )
+
+        team_name = str(
+            team_data.get("name")
+            or f"Team {sportmonks_id}"
+        ).strip()
+
+        incoming_country = (
+            self._extract_country(
+                team_data
+            )
+        )
+
+        incoming_logo_url = (
+            self._extract_logo_url(
+                team_data
+            )
+        )
+
+        team = (
+            self.db.query(Team)
+            .filter(
+                Team.sportmonks_id
+                == sportmonks_id
+            )
+            .first()
+        )
+
+        if team is None:
+            team = (
+                self.db.query(Team)
+                .filter(
+                    Team.name == team_name
+                )
+                .first()
+            )
+
+        if team is None:
+            team = Team(
+                sportmonks_id=sportmonks_id,
+                name=team_name,
+                country=incoming_country,
+                logo_url=incoming_logo_url,
+                attack=80,
+                defense=80,
+                midfield=80,
+                elo=1800,
+                home_advantage=1.10,
+            )
+
+            self.db.add(team)
+            self.db.flush()
+
+            return team
+
+        team.sportmonks_id = (
+            sportmonks_id
+        )
+
+        team.name = team_name
+
+        if incoming_logo_url:
+            team.logo_url = (
+                incoming_logo_url
+            )
+
+        if incoming_country != "Unknown":
+            team.country = (
+                incoming_country
+            )
+
+        self.db.flush()
+
+        return team
+
+    def _upsert_fixture(
+        self,
+        fixture: dict[str, Any],
+    ) -> dict[str, Any]:
+        """
+        إضافة مباراة أو تحديثها.
+        """
+
+        fixture_id = self._safe_int(
+            fixture.get("id")
+        )
+
+        if fixture_id is None:
+            return {
+                "match_status": "skipped",
+                "created_teams": 0,
+                "updated_teams": 0,
+            }
+
+        participants = fixture.get(
+            "participants"
+        )
+
+        if not isinstance(
+            participants,
+            list,
+        ):
+            return {
+                "match_status": "skipped",
+                "created_teams": 0,
+                "updated_teams": 0,
+            }
+
+        home_data = self._find_participant(
+            participants=participants,
+            location="home",
+        )
+
+        away_data = self._find_participant(
+            participants=participants,
+            location="away",
+        )
+
+        if (
+            home_data is None
+            or away_data is None
+        ):
+            return {
+                "match_status": "skipped",
+                "created_teams": 0,
+                "updated_teams": 0,
+            }
+
+        home_team, home_created = (
+            self._upsert_participant_team(
+                home_data
+            )
+        )
+
+        away_team, away_created = (
+            self._upsert_participant_team(
+                away_data
+            )
+        )
+
+        home_score, away_score = (
+            self._extract_scores(
+                fixture.get("scores")
+            )
+        )
+
+        match_date = (
+            self._extract_fixture_date(
+                fixture
+            )
+        )
+
+        self._debug_fixture(fixture)
+
+        match_status = (
+            self._extract_fixture_status(
+                fixture
+            )
+        )
+
+        league = self._extract_relation_dict(
+            fixture,
+            "league",
+        )
+        season = self._extract_relation_dict(
+            fixture,
+            "season",
+        )
+        round_data = self._extract_relation_dict(
+            fixture,
+            "round",
+        )
+        stage = self._extract_relation_dict(
+            fixture,
+            "stage",
+        )
+        venue = self._extract_relation_dict(
+            fixture,
+            "venue",
+        )
+        referee_name = self._extract_referee_name(
+            fixture
+        )
+
+        existing_match = (
+            self.db.query(Match)
+            .filter(
+                Match.sportmonks_id
+                == fixture_id
+            )
+            .first()
+        )
+
+        if existing_match is None:
+            existing_match = Match(
+                sportmonks_id=fixture_id,
+                home_team_id=home_team.id,
+                away_team_id=away_team.id,
+                date=match_date,
+                status=match_status,
+                home_score=home_score,
+                away_score=away_score,
+                league_name=league.get("name"),
+                league_logo=league.get(
+                    "image_path"
+                ),
+                season_name=season.get("name"),
+                round_name=round_data.get("name"),
+                stage_name=stage.get("name"),
+                venue_name=venue.get("name"),
+                venue_city=venue.get("city_name"),
+                venue_capacity=self._safe_int(
+                    venue.get("capacity")
+                ),
+                venue_image=venue.get(
+                    "image_path"
+                ),
+                referee_name=referee_name,
+            )
+
+            self.db.add(
+                existing_match
+            )
+
+            self.db.flush()
+
+            result_status = "created"
+
+        else:
+            existing_match.home_team_id = (
+                home_team.id
+            )
+
+            existing_match.away_team_id = (
+                away_team.id
+            )
+
+            existing_match.date = (
+                match_date
+            )
+
+            existing_match.status = (
+                match_status
+            )
+
+            existing_match.home_score = (
+                home_score
+            )
+
+            existing_match.away_score = (
+                away_score
+            )
+
+            existing_match.league_name = (
+                self._prefer_incoming(
+                    league.get("name"),
+                    existing_match.league_name,
+                )
+            )
+
+            existing_match.league_logo = (
+                self._prefer_incoming(
+                    league.get("image_path"),
+                    existing_match.league_logo,
+                )
+            )
+
+            existing_match.season_name = (
+                self._prefer_incoming(
+                    season.get("name"),
+                    existing_match.season_name,
+                )
+            )
+
+            existing_match.round_name = (
+                self._prefer_incoming(
+                    round_data.get("name"),
+                    existing_match.round_name,
+                )
+            )
+
+            existing_match.stage_name = (
+                self._prefer_incoming(
+                    stage.get("name"),
+                    existing_match.stage_name,
+                )
+            )
+
+            existing_match.venue_name = (
+                self._prefer_incoming(
+                    venue.get("name"),
+                    existing_match.venue_name,
+                )
+            )
+
+            existing_match.venue_city = (
+                self._prefer_incoming(
+                    venue.get("city_name"),
+                    existing_match.venue_city,
+                )
+            )
+
+            incoming_capacity = self._safe_int(
+                venue.get("capacity")
+            )
+            existing_match.venue_capacity = (
+                incoming_capacity
+                if incoming_capacity is not None
+                else existing_match.venue_capacity
+            )
+
+            existing_match.venue_image = (
+                self._prefer_incoming(
+                    venue.get("image_path"),
+                    existing_match.venue_image,
+                )
+            )
+
+            existing_match.referee_name = (
+                self._prefer_incoming(
+                    referee_name,
+                    existing_match.referee_name,
+                )
+            )
+
+            self.db.flush()
+
+            result_status = "updated"
+
+        return {
+            "match_status": (
+                result_status
+            ),
+            "created_teams": (
+                int(home_created)
+                + int(away_created)
+            ),
+            "updated_teams": (
+                int(not home_created)
+                + int(not away_created)
+            ),
+        }
+
+    @staticmethod
+    def _debug_fixture(
+        fixture: dict[str, Any],
+    ) -> None:
+        """طباعة بيانات المباراة كاملة لأغراض التشخيص."""
+        print("\n" + "=" * 100)
+        print("DEBUG FIXTURE")
+        print("=" * 100)
+        print(
+            json.dumps(
+                fixture,
+                indent=2,
+                ensure_ascii=False,
+                default=str,
+            )
+        )
+        print("=" * 100 + "\n")
+
+    @staticmethod
+    def _extract_relation_dict(
+        fixture: dict[str, Any],
+        relation_name: str,
+    ) -> dict[str, Any]:
+        """
+        استخراج علاقة مفردة سواء كانت مباشرة
+        أو داخل data/relationships.
+        """
+
+        direct_value = fixture.get(relation_name)
+
+        if isinstance(direct_value, dict):
+            nested_data = direct_value.get("data")
+            if isinstance(nested_data, dict):
+                return nested_data
+            return direct_value
+
+        relationships = fixture.get("relationships")
+        if not isinstance(relationships, dict):
+            return {}
+
+        relation = relationships.get(relation_name)
+        if not isinstance(relation, dict):
+            return {}
+
+        relation_data = relation.get("data")
+        if isinstance(relation_data, dict):
+            return relation_data
+
+        return {}
+
+    @staticmethod
+    def _extract_referee_name(
+        fixture: dict[str, Any],
+    ) -> str | None:
+        """استخراج اسم أول حكم متاح."""
+
+        referees: Any = fixture.get("referees")
+
+        if isinstance(referees, dict):
+            referees = referees.get("data")
+
+        if referees is None:
+            relationships = fixture.get("relationships")
+            if isinstance(relationships, dict):
+                relation = relationships.get("referees")
+                if isinstance(relation, dict):
+                    referees = relation.get("data")
+
+        if isinstance(referees, dict):
+            referees = [referees]
+
+        if not isinstance(referees, list):
+            return None
+
+        for referee in referees:
+            if not isinstance(referee, dict):
+                continue
+
+            name = referee.get("name")
+            if isinstance(name, str) and name.strip():
+                return name.strip()
+
+        return None
+
+    @staticmethod
+    def _prefer_incoming(
+        incoming: Any,
+        existing: Any,
+    ) -> Any:
+        """
+        استخدام القيمة الجديدة عندما تكون مفيدة،
+        وإلا الاحتفاظ بالقيمة الموجودة.
+        """
+
+        if incoming is None:
+            return existing
+
+        if isinstance(incoming, str):
+            clean_value = incoming.strip()
+            return clean_value if clean_value else existing
+
+        return incoming
+
+    def _upsert_participant_team(
+        self,
+        participant: dict[str, Any],
+    ) -> tuple[Team, bool]:
+        """
+        حفظ فريق مشارك في المباراة.
+        """
+
+        sportmonks_id = self._safe_int(
+            participant.get("id")
+        )
+
+        if sportmonks_id is None:
+            raise ValueError(
+                "Participant team ID is missing."
+            )
+
+        existing_team = (
+            self.db.query(Team)
+            .filter(
+                Team.sportmonks_id
+                == sportmonks_id
+            )
+            .first()
+        )
+
+        was_created = (
+            existing_team is None
+        )
+
+        team = self._upsert_team(
+            participant
+        )
+
+        return team, was_created
+
+    @staticmethod
+    def _find_participant(
+        participants: list[Any],
+        location: str,
+    ) -> dict[str, Any] | None:
+        """
+        تحديد صاحب الأرض أو الفريق الضيف.
+        """
+
+        for participant in participants:
+            if not isinstance(
+                participant,
+                dict,
+            ):
+                continue
+
+            meta = participant.get(
+                "meta"
+            )
+
+            if isinstance(meta, dict):
+                participant_location = (
+                    meta.get("location")
+                )
+
+                if (
+                    participant_location
+                    == location
+                ):
+                    return participant
+
+            participant_location = (
+                participant.get("location")
+            )
+
+            if (
+                participant_location
+                == location
+            ):
+                return participant
+
+        return None
+
+    @staticmethod
+    def _extract_scores(
+        scores_data: Any,
+    ) -> tuple[
+        int | None,
+        int | None,
+    ]:
+        """
+        استخراج النتيجة الحالية أو النهائية.
+        """
+
+        if not isinstance(
+            scores_data,
+            list,
+        ):
+            return None, None
+
+        home_score: int | None = None
+        away_score: int | None = None
+
+        preferred_descriptions = {
+            "CURRENT",
+            "FT_SCORE",
+            "2ND_HALF",
+        }
+
+        preferred_scores: list[
+            dict[str, Any]
+        ] = []
+
+        fallback_scores: list[
+            dict[str, Any]
+        ] = []
+
+        for score_item in scores_data:
+            if not isinstance(
+                score_item,
+                dict,
+            ):
+                continue
+
+            fallback_scores.append(
+                score_item
+            )
+
+            description = str(
+                score_item.get(
+                    "description",
+                    "",
+                )
+            ).upper()
+
+            if (
+                description
+                in preferred_descriptions
+            ):
+                preferred_scores.append(
+                    score_item
+                )
+
+        selected_scores = (
+            preferred_scores
+            if preferred_scores
+            else fallback_scores
+        )
+
+        for score_item in selected_scores:
+            if not isinstance(
+                score_item,
+                dict,
+            ):
+                continue
+
+            score = score_item.get(
+                "score"
+            )
+
+            participant = ""
+            goals: int | None = None
+
+            if isinstance(score, dict):
+                participant = str(
+                    score.get(
+                        "participant",
+                        "",
+                    )
+                ).lower()
+
+                goals = (
+                    SportmonksSyncService
+                    ._safe_int(
+                        score.get("goals")
+                    )
+                )
+
+            elif score is not None:
+                participant = str(
+                    score_item.get(
+                        "participant",
+                        "",
+                    )
+                ).lower()
+
+                goals = (
+                    SportmonksSyncService
+                    ._safe_int(score)
+                )
+
+            if participant == "home":
+                home_score = goals
+
+            elif participant == "away":
+                away_score = goals
+
+        return home_score, away_score
+
+    @staticmethod
+    def _extract_fixture_date(
+        fixture: dict[str, Any],
+    ) -> str:
+        """
+        استخراج تاريخ المباراة.
+        """
+
+        value = (
+            fixture.get("starting_at")
+            or fixture.get("date")
+            or fixture.get(
+                "starting_at_timestamp"
+            )
+        )
+
+        if value is None:
+            return "Unknown"
+
+        return str(value)
+
+    @staticmethod
+    def _extract_fixture_status(
+        fixture: dict[str, Any],
+    ) -> str:
+        """
+        استخراج حالة المباراة من أكثر
+        من شكل محتمل في Sportmonks.
+        """
+
+        state = fixture.get("state")
+
+        if isinstance(state, dict):
+            developer_name = state.get(
+                "developer_name"
+            )
+
+            if developer_name:
+                return str(
+                    developer_name
+                ).lower()
+
+            short_name = state.get(
+                "short_name"
+            )
+
+            if short_name:
+                return str(
+                    short_name
+                ).lower()
+
+            name = state.get("name")
+
+            if name:
+                return str(
+                    name
+                ).lower()
+
+            state_id = state.get("id")
+
+            if state_id is not None:
+                return str(state_id)
+
+        status = fixture.get("status")
+
+        if isinstance(status, dict):
+            developer_name = status.get(
+                "developer_name"
+            )
+
+            if developer_name:
+                return str(
+                    developer_name
+                ).lower()
+
+            name = status.get("name")
+
+            if name:
+                return str(
+                    name
+                ).lower()
+
+        if status is not None:
+            return str(status).lower()
+
+        state_id = fixture.get(
+            "state_id"
+        )
+
+        if state_id is not None:
+            return str(state_id)
+
+        return "scheduled"
+
+    @staticmethod
+    def _extract_country(
+        team_data: dict[str, Any],
+    ) -> str:
+        """
+        استخراج اسم الدولة إن كان متاحًا.
+        """
+
+        country = team_data.get(
+            "country"
+        )
+
+        if isinstance(country, dict):
+            country_name = country.get(
+                "name"
+            )
+
+            if country_name:
+                return str(country_name)
+
+        if isinstance(country, str):
+            return country
+
+        country_name = team_data.get(
+            "country_name"
+        )
+
+        if country_name:
+            return str(country_name)
+
+        return "Unknown"
+
+    @staticmethod
+    def _extract_logo_url(
+        team_data: dict[str, Any],
+    ) -> str | None:
+        """
+        استخراج رابط شعار الفريق
+        من بيانات Sportmonks.
+        """
+
+        possible_keys = (
+            "image_path",
+            "logo_path",
+            "image_url",
+            "logo_url",
+            "image",
+            "logo",
+        )
+
+        for key in possible_keys:
+            value = team_data.get(key)
+
+            if isinstance(value, str):
+                clean_value = value.strip()
+
+                if clean_value:
+                    return clean_value
+
+            if isinstance(value, dict):
+                nested_value = (
+                    value.get("path")
+                    or value.get("url")
+                    or value.get("image_path")
+                )
+
+                if isinstance(
+                    nested_value,
+                    str,
+                ):
+                    clean_nested_value = (
+                        nested_value.strip()
+                    )
+
+                    if clean_nested_value:
+                        return (
+                            clean_nested_value
+                        )
+
+        return None
+
+    @staticmethod
+    def _safe_int(
+        value: Any,
+    ) -> int | None:
+        try:
+            if value is None:
+                return None
+
+            return int(value)
+
+        except (
+            TypeError,
+            ValueError,
+        ):
+            return None

@@ -1,0 +1,32 @@
+{
+  "source_model_version": "Prediction Engine V3",
+  "model_version": "Prediction Engine V3.1",
+  "enabled": true,
+  "sample_size": 31,
+  "home_goal_multiplier": 0.9,
+  "away_goal_multiplier": 0.9,
+  "total_goal_multiplier": 0.9,
+  "attack_multiplier": 0.9,
+  "home_advantage_multiplier": 0.95,
+  "accuracy_snapshot": {
+    "match_result": 25.81,
+    "over_2_5": 54.84,
+    "btts": 48.39,
+    "exact_score": 12.9
+  },
+  "goal_averages_snapshot": {
+    "predicted_home": 1.402,
+    "actual_home": 1.129,
+    "predicted_away": 1.226,
+    "actual_away": 0.806,
+    "predicted_total": 2.628,
+    "actual_total": 1.935
+  },
+  "mean_absolute_error_snapshot": {
+    "home_goals": 1.141,
+    "away_goals": 0.844,
+    "total_goals": 1.613
+  },
+  "created_at": "2026-07-14T19:17:54.987727+00:00",
+  "updated_at": "2026-07-14T19:17:54.987727+00:00"
+}

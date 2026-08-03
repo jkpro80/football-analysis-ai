@@ -1,0 +1,35 @@
+
+app\admin\page.tsx:22:async function getTeams(): Promise<Team[]> {
+app\admin\page.tsx:23:  const response = await fetch(
+app\admin\page.tsx:37:async function getMatches(): Promise<Match[]> {
+app\admin\page.tsx:38:  const response = await fetch(
+app\admin\page.tsx:137:export default async function AdminDashboardPage() {
+app\admin\page.tsx:447:                      href={`/predictions/${match.id}`}
+app\admin\matches\page.tsx:26:  evaluated_predictions: number;
+app\admin\matches\page.tsx:41:const API_URL =
+app\admin\matches\page.tsx:42:  process.env.NEXT_PUBLIC_API_URL ??
+app\admin\matches\page.tsx:45:async function fetchJson<T>(
+app\admin\matches\page.tsx:49:    const response = await fetch(
+app\admin\matches\page.tsx:50:      `${API_URL}${path}`,
+app\admin\matches\page.tsx:66:async function getMatches(): Promise<Match[]> {
+app\admin\matches\page.tsx:147:export default async function HomePage() {
+app\admin\matches\page.tsx:207:              accuracy?.evaluated_predictions ??
+app\admin\matches\[id]\edit\page.tsx:27:async function getMatch(
+app\admin\matches\[id]\edit\page.tsx:30:  const response = await fetch(
+app\admin\matches\[id]\edit\page.tsx:48:export default async function EditMatchPage({
+app\admin\teams\page.tsx:45:const API_URL =
+app\admin\teams\page.tsx:46:  process.env.NEXT_PUBLIC_API_URL ??
+app\admin\teams\page.tsx:57:  const loadTeams = useCallback(async () => {
+app\admin\teams\page.tsx:62:      const response = await fetch(
+app\admin\teams\page.tsx:63:        `${API_URL}/teams?limit=1000`,
+app\admin\teams\page.tsx:340:  async function saveTeam(
+app\admin\teams\page.tsx:360:      const response = await fetch(
+app\admin\teams\page.tsx:361:        `${API_URL}/teams/${team.id}`,
+app\admin\teams\page.tsx:1072:async function getErrorMessage(
+app\admin\teams\[id]\page.tsx:24:const API_URL =
+app\admin\teams\[id]\page.tsx:25:  process.env.NEXT_PUBLIC_API_URL ??
+app\admin\teams\[id]\page.tsx:28:export default async function TeamDetailsPage({
+app\admin\teams\[id]\page.tsx:311:async function getTeam(
+app\admin\teams\[id]\page.tsx:314:  const response = await fetch(
+app\admin\teams\[id]\page.tsx:315:    `${API_URL}/teams/${id}`,
+

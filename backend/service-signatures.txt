@@ -1,0 +1,84 @@
+================================================================================
+app\services\prediction_v7_service.py
+================================================================================
+
+CLASS: PredictionV7Service
+  def __init__(self, feature_engine, max_goals, top_scores_count)
+  def predict_match(self, match_id, history_limit, max_goals, top_scores_count)
+  def predict_from_features(cls, features, match_id, max_goals, top_scores_count)
+  def _upgrade_v6_result(cls, v6_result, total_started_at)
+  def _extract_features(prediction)
+  def _build_pipeline(cls, existing_pipeline)
+
+================================================================================
+app\services\feature_store_service.py
+================================================================================
+
+CLASS: FeatureStoreService
+  def __init__(self, database_path)
+  def _connect(self)
+  def _initialize_database(self)
+  def save_features(self, match_id, features, feature_version, replace_existing)
+  def get_features(self, match_id, feature_version)
+  def list_feature_records(self, limit, feature_version)
+  def delete_features(self, match_id, feature_version)
+  def get_summary(self)
+  def _extract_feature_values(self, features)
+  def _row_to_dict(self, row)
+  def _count_features(self, value)
+  def _first_number(self, source, keys)
+  def _first_int(self, source, keys)
+  def _first_text(self, source, keys)
+  def _to_float(self, value)
+  def _utc_now(self)
+
+================================================================================
+app\services\prediction_tracking_service.py
+================================================================================
+
+CLASS: PredictionTrackingService
+  def __init__(self, database_path)
+  def _connect(self)
+  def _initialize_database(self)
+  def save_prediction(self, prediction, match_id)
+  def record_actual_result(self, prediction_id, actual_home_goals, actual_away_goals)
+  def record_result_by_match_id(self, match_id, actual_home_goals, actual_away_goals)
+  def get_prediction(self, prediction_id)
+  def list_predictions(self, limit, status, match_id)
+  def get_accuracy_summary(self, model_version)
+  def _extract_prediction_data(self, prediction)
+  def _extract_probabilities(self, prediction, ensemble)
+  def _extract_expected_goals(self, prediction, decision)
+  def _extract_recommendation(self, decision, ensemble)
+  def _extract_confidence(self, decision, prediction)
+  def _extract_risk_level(self, decision)
+  def _extract_match_data(self, prediction)
+  def _resolve_match_id(self, prediction, match_id)
+  def _row_to_dict(self, row)
+  def _outcome_from_score(self, home_goals, away_goals)
+  def _normalise_outcome(self, value)
+  def _percentage(self, value)
+  def _nested_number(self, source, keys)
+  def _first_number(self, source, keys)
+  def _first_value(self, source, keys)
+  def _team_name(self, value)
+  def _as_dict(self, value)
+  def _round_optional(self, value, digits)
+  def _to_float(self, value)
+  def _utc_now(self)
+
+================================================================================
+app\services\prediction_v6_service.py
+================================================================================
+
+CLASS: PredictionV6Service
+  def __init__(self, feature_engine, max_goals, top_scores_count)
+  def predict_match(self, match_id, history_limit, max_goals, top_scores_count)
+  def predict_from_features(cls, features, match_id, max_goals, top_scores_count)
+  def _build_response(cls, match_id, features, expected_goals, poisson_result, confidence, max_goals, top_scores_count, execution_time_ms)
+  def _build_features(self, match_id, history_limit)
+  def _highest_outcome(match_result)
+  def _outcome_label(outcome)
+  def _sanitize_max_goals(value)
+  def _sanitize_top_scores_count(value)
+  def _number(value, default)

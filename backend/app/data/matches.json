@@ -1,0 +1,16 @@
+[
+  {
+    "id": 1,
+    "home_team_id": 1,
+    "away_team_id": 2,
+    "date": "2026-07-20",
+    "status": "scheduled"
+  },
+  {
+    "id": 2,
+    "home_team_id": 3,
+    "away_team_id": 4,
+    "date": "2026-07-21",
+    "status": "scheduled"
+  }
+]

@@ -1,0 +1,885 @@
+==========================================================================================
+.env
+1: DATABASE_URL=postgresql+psycopg://postgres:jkpro80@localhost:5432/football_analysis
+5: DEBUG_SPORTMONKS_FIXTURES=true
+==========================================================================================
+create_tables.py
+1: from app.database import Base, engine
+4: import app.database.models  # noqa: F401
+==========================================================================================
+project-structure.txt
+29: alembic\versions\7ac4915725cb_clean_team_null_statistics.py
+30: alembic\versions\84d10db5983c_add_match_statistics_table.py
+39: app\database
+42: app\providers
+63: app\api\standings.py
+66: app\api\team_statistics.py
+73: app\data\providers
+79: app\data\providers\__init__.py
+80: app\data\providers\base.py
+81: app\data\providers\football_data_org.py
+84: app\database\__init__.py
+85: app\database\base.py
+86: app\database\database.py
+87: app\database\init_db.py
+88: app\database\models.py
+89: app\database\seed.py
+90: app\database\session.py
+113: app\providers\__init__.py
+114: app\providers\fixtures_provider.py
+115: app\providers\injuries_provider.py
+116: app\providers\lineups_provider.py
+117: app\providers\players_provider.py
+118: app\providers\sportmonks_client.py
+119: app\providers\standings_provider.py
+120: app\providers\statistics_provider.py
+121: app\providers\teams_provider.py
+123: app\repositories\match_repository.py
+124: app\repositories\statistics_repository.py
+165: app\services\statistics_sync_service.py
+168: app\services\team_statistics_service.py
+186: tests\test_team_statistics_service.py
+==========================================================================================
+project-tree.txt
+19: |   |   |   7ac4915725cb_clean_team_null_statistics.py
+20: |   |   |   84d10db5983c_add_match_statistics_table.py
+30: |   |           7ac4915725cb_clean_team_null_statistics.cpython-314.pyc
+31: |   |           84d10db5983c_add_match_statistics_table.cpython-314.pyc
+62: |   |   |   team_statistics.py
+80: |   |           team_statistics.cpython-314.pyc
+97: |   |   +---providers
+106: |   +---database
+108: |   |   |   database.py
+117: |   |           database.cpython-314.pyc
+152: |   +---providers
+153: |   |   |   fixtures_provider.py
+154: |   |   |   injuries_provider.py
+155: |   |   |   lineups_provider.py
+156: |   |   |   players_provider.py
+158: |   |   |   standings_provider.py
+159: |   |   |   statistics_provider.py
+160: |   |   |   teams_provider.py
+165: |   |           statistics_provider.cpython-314.pyc
+170: |   |   |   match_repository.py
+171: |   |   |   statistics_repository.py
+176: |   |           match_repository.cpython-314.pyc
+177: |   |           statistics_repository.cpython-314.pyc
+237: |   |   |   statistics_service.py
+238: |   |   |   statistics_sync_service.py
+285: |   |           statistics_sync_service.cpython-314.pyc
+360: |   |       |   |   |   sqlite.py
+371: |   |       |   |           sqlite.cpython-314.pyc
+466: |   |       |   |   |   fixtures.py
+489: |   |       |   |   |   |   _autogen_fixtures.py
+500: |   |       |   |   |           _autogen_fixtures.cpython-314.pyc
+506: |   |       |   |           fixtures.cpython-314.pyc
+1254: |   |       +---httpx
+1309: |   |       +---httpx-0.28.1.dist-info
+1400: |   |       |   |   |   fixtures.py
+1409: |   |       |   |           fixtures.cpython-314.pyc
+1740: |   |       |   |   |   |   |   provider.py
+1751: |   |       |   |   |   |           provider.cpython-314.pyc
+2173: |   |       |   |   |   |   providers.py
+2194: |   |       |   |   |           providers.cpython-314.pyc
+==========================================================================================
+project_audit.txt
+19: app\api\team_statistics.py
+30: app\data\providers\__init__.py
+31: app\data\providers\base.py
+32: app\data\providers\football_data_org.py
+35: app\database\__init__.py
+36: app\database\base.py
+37: app\database\database.py
+38: app\database\init_db.py
+39: app\database\models.py
+40: app\database\seed.py
+41: app\database\session.py
+64: app\providers\__init__.py
+65: app\providers\fixtures_provider.py
+66: app\providers\injuries_provider.py
+67: app\providers\lineups_provider.py
+68: app\providers\players_provider.py
+69: app\providers\sportmonks_client.py
+70: app\providers\standings_provider.py
+71: app\providers\statistics_provider.py
+72: app\providers\teams_provider.py
+74: app\repositories\match_repository.py
+75: app\repositories\statistics_repository.py
+115: app\services\statistics_sync_service.py
+118: app\services\team_statistics_service.py
+136: tests\test_team_statistics_service.py
+180: tests/test_team_rating_service.py::test_service_requires_database
+182: tests/test_team_statistics_service.py::test_extract_home_team_score
+183: tests/test_team_statistics_service.py::test_extract_away_team_score
+184: tests/test_team_statistics_service.py::test_completed_statuses
+185: tests/test_team_statistics_service.py::test_percentage
+190: C:\Projects\football-analysis\backend\venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+200: C:\Projects\football-analysis\backend\venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+223: from app.database.base import Base
+244: from app.database.base import Base
+280: from app.database.base import Base
+303: from app.database.base import Base
+1142: from app.database.models import (
+1195: "in the local database."
+1595: "statistics_rows_used": int(
+1597: "statistics_rows_used"
+==========================================================================================
+requirements.txt
+12: httpx==0.28.1
+==========================================================================================
+service-signatures.txt
+18: def __init__(self, database_path)
+20: def _initialize_database(self)
+40: def __init__(self, database_path)
+42: def _initialize_database(self)
+==========================================================================================
+test_db.py
+1: from app.database import engine
+==========================================================================================
+v6-audit.txt
+421: from app.database.models import Match
+1043: from app.database.database import get_db
+1245: from app.database.database import SessionLocal
+1258: from app.api.standings import router as standings_router
+1260: from app.api.team_statistics import router as team_statistics_router
+1269: "Football match analysis, statistics, "
+1290: app.include_router(team_statistics_router)
+1296: app.include_router(standings_router)
+1344: database_status = "disconnected"
+1349: database_status = "connected"
+1352: database_status = "disconnected"
+1359: if database_status == "connected"
+1364: if database_status == "connected"
+1371: "database": database_status,
+1507: FILE: app\database\models.py
+1523: from app.database.database import Base
+1920: __tablename__ = "match_statistics"
+1983: raw_statistics = Column(
+==========================================================================================
+alembic\env.py
+8: from app.database.database import Base
+9: import app.database.models
+17: # قراءة DATABASE_URL من ملف .env
+18: database_url = os.getenv("DATABASE_URL")
+19: if not database_url:
+20: raise RuntimeError("DATABASE_URL is missing from the .env file")
+24: database_url.replace("%", "%%"),
+==========================================================================================
+app\main.py
+11: from app.database.database import SessionLocal
+24: from app.api.standings import router as standings_router
+26: from app.api.team_statistics import router as team_statistics_router
+35: "Football match analysis, statistics, "
+56: app.include_router(team_statistics_router)
+62: app.include_router(standings_router)
+110: database_status = "disconnected"
+115: database_status = "connected"
+118: database_status = "disconnected"
+125: if database_status == "connected"
+130: if database_status == "connected"
+137: "database": database_status,
+==========================================================================================
+tests\test_prediction_data_builder.py
+21: from app.services.team_statistics_service import (
+22: TeamStatistics,
+23: TeamStatisticsService,
+31: When a database session is available, recent completed matches
+44: statistics_limit: int = 10,
+62: self.statistics_limit = max(
+64: min(statistics_limit, 100),
+67: self.statistics_service = (
+68: TeamStatisticsService(db)
+81: statistics = self.get_team_statistics(
+88: statistics=statistics,
+95: statistics=statistics,
+102: statistics=statistics,
+119: "historical_statistics": (
+120: self._statistics_to_dict(
+121: statistics
+126: if statistics is not None
+140: home_statistics = (
+141: self.get_team_statistics(
+146: away_statistics = (
+147: self.get_team_statistics(
+152: home_scores = self._build_team_scores_with_statistics(
+154: statistics=home_statistics,
+157: away_scores = self._build_team_scores_with_statistics(
+159: statistics=away_statistics,
+167: home_statistics=home_statistics,
+168: away_statistics=away_statistics,
+179: def _build_team_scores_with_statistics(
+182: statistics: TeamStatistics | None,
+185: Internal version that avoids querying statistics twice.
+191: statistics=statistics,
+198: statistics=statistics,
+205: statistics=statistics,
+222: "historical_statistics": (
+223: self._statistics_to_dict(
+224: statistics
+229: if statistics is not None
+234: def get_team_statistics(
+237: ) -> TeamStatistics | None:
+239: Calculate recent-match statistics when possible.
+==========================================================================================
+tests\test_team_rating_service.py
+191: "database_match_history"
+214: def test_service_requires_database():
+==========================================================================================
+tests\test_team_statistics_service.py
+3: from app.services.team_statistics_service import (
+4: TeamStatisticsService,
+36: score = TeamStatisticsService._extract_team_score(
+53: score = TeamStatisticsService._extract_team_score(
+62: assert TeamStatisticsService._is_completed(
+65: assert TeamStatisticsService._is_completed(
+68: assert not TeamStatisticsService._is_completed(
+74: assert TeamStatisticsService._percentage(
+79: assert TeamStatisticsService._percentage(
+==========================================================================================
+app\api\backtest.py
+6: from app.database.database import get_db
+==========================================================================================
+app\api\backtest_v4.py
+12: from app.database.database import get_db
+80: "data from the database."
+==========================================================================================
+app\api\backtest_v5.py
+4: from app.database.database import get_db
+==========================================================================================
+app\api\elo.py
+12: from app.database.database import get_db
+136: return service.apply_pending_fixtures(
+==========================================================================================
+app\api\features.py
+12: from app.database.database import get_db
+==========================================================================================
+app\api\matches.py
+6: from app.database.database import get_db
+7: from app.database.models import Match, Team
+==========================================================================================
+app\api\model.py
+6: from app.database.database import get_db
+==========================================================================================
+app\api\optimizer_v4.py
+12: from app.database.database import get_db
+83: "Database error while "
+==========================================================================================
+app\api\prediction.py
+6: from app.database.database import get_db
+==========================================================================================
+app\api\predictions.py
+3: from app.database.models import Match, Team
+4: from app.database.database import get_db
+14: from app.database.models import PredictionRecord
+==========================================================================================
+app\api\prediction_v4.py
+12: from app.database.database import get_db
+80: "data from the database."
+435: "Database error while running "
+==========================================================================================
+app\api\prediction_v5.py
+10: from app.database.database import get_db
+11: from app.database.models import Match, PredictionRecord, Team
+209: "Database error while creating "
+259: "Database error while saving "
+399: "Database error while generating "
+440: "Database error while loading "
+541: "Database error while loading "
+589: "Database error while evaluating "
+==========================================================================================
+app\api\sportmonks.py
+87: "/teams/{team_id}/fixtures",
+90: async def get_sportmonks_team_fixtures(
+108: return await service.get_team_fixtures(
+==========================================================================================
+app\api\standings.py
+3: from app.providers.standings_provider import StandingsProvider
+6: prefix="/standings",
+7: tags=["Standings"],
+10: provider = StandingsProvider()
+14: def get_standings(season_id: int):
+16: return provider.get_simple_table_by_season(season_id)
+==========================================================================================
+app\api\sync.py
+13: from app.database.database import get_db
+17: from app.services.statistics_sync_service import (
+18: StatisticsSyncService,
+57: return await service.sync_team_and_fixtures(
+86: f"Database synchronization failed: "
+105: "/fixture/{fixture_sportmonks_id}/statistics",
+108: def sync_fixture_statistics(
+118: service = StatisticsSyncService(
+122: return service.sync_fixture_statistics(
+149: f"Database statistics synchronization failed: "
+161: f"Unexpected fixture statistics "
+169: "/team/{sportmonks_team_id}/statistics",
+172: def sync_all_team_statistics(
+186: service = StatisticsSyncService(
+190: return service.sync_team_statistics(
+218: f"Database team statistics "
+231: f"Unexpected team statistics "
+==========================================================================================
+app\api\system_jobs.py
+4: from app.database.database import get_db
+5: from app.database.models import SystemJob
+==========================================================================================
+app\api\system_update.py
+9: from app.database.database import get_db
+10: from app.database.models import Match
+16: from app.services.statistics_sync_service import (
+17: StatisticsSyncService,
+88: statistics_limit: int = Query(
+116: 1. Sync each requested team and its fixtures.
+117: 2. Sync recent statistics for each requested team.
+135: statistics_service = StatisticsSyncService(db=db)
+137: # Step 1: teams + fixtures
+143: result = await sync_service.sync_team_and_fixtures(
+152: "step": "sync_team_and_fixtures",
+164: "step": "sync_team_and_fixtures",
+173: # Step 2: team statistics
+174: statistics_success = 0
+175: statistics_failed = 0
+179: result = statistics_service.sync_team_statistics(
+181: limit=statistics_limit,
+184: statistics_success += 1
+187: "step": "sync_team_statistics",
+196: statistics_failed += 1
+199: "step": "sync_team_statistics",
+212: ).apply_pending_fixtures(
+334: + statistics_failed
+349: "statistics_limit": statistics_limit,
+361: "statistics_updated": statistics_success,
+362: "statistics_failed": statistics_failed,
+383: Basic backend and database health status for the Admin Dashboard.
+392: "database": "connected",
+404: "Backend is online but the database "
+==========================================================================================
+app\api\teams.py
+16: from app.database.database import get_db
+17: from app.database.models import Team
+165: "from the database."
+193: "from the database."
+==========================================================================================
+app\api\team_statistics.py
+13: from app.database.database import get_db
+14: from app.database.models import (
+23: tags=["Team Statistics"],
+28: "/{team_id}/statistics",
+31: def get_team_statistics(
+215: match_statistics: list[
+220: match_statistics = (
+237: in match_statistics
+247: in match_statistics
+257: in match_statistics
+267: in match_statistics
+377: "stored_team_statistics": {
+446: "statistics from the database."
+455: "team statistics."
+==========================================================================================
+app\crud\match.py
+4: from app.database.models import Match
+==========================================================================================
+app\crud\prediction.py
+4: from app.database.models import Match
+172: # V3 statistics
+==========================================================================================
+app\crud\team.py
+4: from app.database.models import Team
+==========================================================================================
+app\data\teams.json
+43: "name": "Liverpool",
+==========================================================================================
+app\database\database.py
+9: DATABASE_URL = os.getenv("DATABASE_URL")
+11: if not DATABASE_URL:
+13: "DATABASE_URL is missing. Add it to the .env file."
+17: DATABASE_URL,
+33: database = SessionLocal()
+36: yield database
+38: database.close()
+==========================================================================================
+app\database\init_db.py
+1: from app.database.database import Base, engine
+2: from app.database import models
+5: def create_database():
+7: print("Database tables created successfully.")
+11: create_database()
+==========================================================================================
+app\database\models.py
+15: from app.database.database import Base
+412: __tablename__ = "match_statistics"
+475: raw_statistics = Column(
+==========================================================================================
+app\database\seed.py
+3: from app.database.database import SessionLocal
+4: from app.database.models import Match, Team
+7: def seed_database():
+8: database = SessionLocal()
+11: existing_team = database.scalar(
+17: "Seed skipped: database already contains teams."
+57: liverpool = Team(
+58: name="Liverpool",
+69: database.add_all(
+74: liverpool,
+78: database.flush()
+89: away_team_id=liverpool.id,
+94: database.add_all(
+101: database.commit()
+103: print("Database seeded successfully.")
+106: database.rollback()
+110: database.close()
+114: seed_database()
+==========================================================================================
+app\database\session.py
+9: DATABASE_URL = os.getenv("DATABASE_URL")
+12: DATABASE_URL,
+==========================================================================================
+app\database\__init__.py
+1: from .database import Base, SessionLocal, engine, get_db
+==========================================================================================
+app\engine\feature_engine.py
+6: from app.database.models import (
+59: "in the local database."
+465: "statistics_rows_used": int(
+467: "statistics_rows_used"
+822: "statistics_rows_used": 0,
+836: statistics = list(
+846: for item in statistics
+852: for item in statistics
+858: for item in statistics
+864: for item in statistics
+867: "statistics_rows_used": len(
+868: statistics
+==========================================================================================
+app\engine\prediction_data_builder.py
+17: The current version uses Team table statistics as a fallback.
+==========================================================================================
+app\engine\prediction_engine_v3.py
+5: from app.database.models import Match, Team
+74: print(f"Database Session   : {self.db}")
+81: print(f"Database Result    : {match}")
+==========================================================================================
+app\models\competition.py
+4: from app.database.base import Base
+==========================================================================================
+app\models\match.py
+6: from app.database.base import Base
+==========================================================================================
+app\models\season.py
+6: from app.database.base import Base
+==========================================================================================
+app\models\system_job.py
+6: from app.database.database import Base
+==========================================================================================
+app\models\team.py
+4: from app.database.base import Base
+==========================================================================================
+app\providers\fixtures_provider.py
+3: from app.providers.sportmonks_client import (
+8: class FixturesProvider:
+55: endpoint=f"fixtures/{fixture_id}",
+61: def get_fixtures_by_date(
+78: endpoint=f"fixtures/date/{date}",
+85: def get_live_fixtures(
+93: endpoint="livescores",
+100: def get_fixtures_between(
+138: f"fixtures/between/"
+335: live_values = {
+337: "LIVE",
+357: if state_name in live_values:
+358: return "live"
+444: def get_simple_fixtures_between(
+457: response = self.get_fixtures_between(
+465: fixtures = response.get(
+470: if not isinstance(fixtures, list):
+477: for fixture in fixtures
+==========================================================================================
+app\providers\sportmonks_client.py
+4: import httpx
+47: with httpx.Client(
+57: except httpx.TimeoutException as error:
+62: except httpx.HTTPStatusError as error:
+69: except httpx.RequestError as error:
+==========================================================================================
+app\providers\standings_provider.py
+3: from app.providers.sportmonks_client import (
+8: class StandingsProvider:
+23: def get_all_standings(
+41: endpoint="standings",
+58: def get_standings_by_season(
+73: f"standings/seasons/"
+99: self.get_standings_by_season(
+104: standings = response.get(
+109: if not isinstance(standings, list):
+114: for standing in standings:
+==========================================================================================
+app\providers\statistics_provider.py
+3: from app.providers.sportmonks_client import (
+8: class StatisticsProvider:
+24: def get_fixture_statistics(
+41: endpoint=f"fixtures/{fixture_id}",
+44: "statistics.type;"
+299: def get_simple_fixture_statistics(
+308: "statistics_count": 20,
+310: "mapped_statistics_count": 18,
+316: response = self.get_fixture_statistics(
+327: "statistics_count": 0,
+329: "mapped_statistics_count": 0,
+334: statistics = self.extract_collection(
+335: fixture.get("statistics")
+374: "statistics_count": len(
+375: statistics
+380: "mapped_statistics_count": 0,
+385: mapped_statistics_count = 0
+387: for statistic in statistics:
+442: mapped_statistics_count += 1
+445: "mapped_statistics_count"
+446: ] = mapped_statistics_count
+==========================================================================================
+app\providers\teams_provider.py
+3: from app.providers.sportmonks_client import (
+8: class TeamsProvider:
+==========================================================================================
+app\repositories\match_repository.py
+1: from app.database.models import Match
+==========================================================================================
+app\repositories\statistics_repository.py
+1: from app.database.models import MatchStatistic
+5: class StatisticsRepository(BaseRepository):
+7: def get_fixture_statistics(self, fixture_id: int):
+16: def get_team_statistics(
+==========================================================================================
+app\repositories\team_repository.py
+3: from app.database.models import Team
+==========================================================================================
+app\scripts\backfill_team_logos.py
+6: from app.database.database import SessionLocal
+7: from app.database.models import Team
+96: include_statistics=False,
+==========================================================================================
+app\scripts\cleanup_test_data.py
+3: from app.database.database import SessionLocal
+4: from app.database.models import (
+15: "Liverpool",
+==========================================================================================
+app\services\attack_analyzer.py
+60: def _build_statistics_index(
+62: statistics: Iterable[Any] | None,
+66: for row in statistics or []:
+84: statistics: Iterable[Any] | None = None,
+95: - `statistics` may contain MatchStatistic ORM rows or dictionaries.
+104: statistics_index = cls._build_statistics_index(statistics)
+140: statistic = statistics_index.get((int(match_id), int(team_id)))
+==========================================================================================
+app\services\auto_calibration_service.py
+6: from app.database.models import PredictionRecord
+==========================================================================================
+app\services\backtest_service.py
+6: from app.database.models import (
+==========================================================================================
+app\services\backtest_v31_service.py
+6: from app.database.models import (
+==========================================================================================
+app\services\backtest_v4_service.py
+6: from app.database.models import Match
+==========================================================================================
+app\services\backtest_v5_service.py
+8: from app.database.models import Match
+==========================================================================================
+app\services\defense_analyzer.py
+11: Uses completed historical fixtures and optional MatchStatistic rows.
+58: def _build_statistics_index(
+60: statistics: Iterable[Any] | None,
+64: for row in statistics or []:
+82: statistics: Iterable[Any] | None = None,
+90: - matches: historical fixtures, preferably newest first.
+94: - statistics: optional MatchStatistic ORM rows or dictionaries.
+105: statistics_index = cls._build_statistics_index(statistics)
+143: own_statistic = statistics_index.get(
+148: opponent_statistic = statistics_index.get(
+==========================================================================================
+app\services\elo_service.py
+6: from app.database.models import (
+131: "in the local database."
+255: "database_updated": False,
+408: "database_updated"
+413: def apply_pending_fixtures(
+==========================================================================================
+app\services\feature_store_service.py
+4: import sqlite3
+23: DEFAULT_DATABASE_PATH = Path("data/features.db")
+27: database_path: str | Path | None = None,
+29: self.database_path = Path(
+30: database_path or self.DEFAULT_DATABASE_PATH
+33: self.database_path.parent.mkdir(
+38: self._initialize_database()
+40: def _connect(self) -> sqlite3.Connection:
+41: connection = sqlite3.connect(
+42: self.database_path
+45: connection.row_factory = sqlite3.Row
+49: def _initialize_database(self) -> None:
+334: "database": str(
+335: self.database_path
+492: "database": str(
+493: self.database_path
+751: row: sqlite3.Row,
+==========================================================================================
+app\services\form_momentum_service.py
+8: from app.database.models import Match
+==========================================================================================
+app\services\head_to_head_service.py
+6: from app.database.models import Match
+==========================================================================================
+app\services\home_advantage_service.py
+6: from app.database.models import Match, Team
+33: "Fixture was not found in the local database."
+==========================================================================================
+app\services\job_manager.py
+7: from app.database.models import SystemJob
+==========================================================================================
+app\services\model_accuracy_service.py
+6: from app.database.models import PredictionRecord
+==========================================================================================
+app\services\power_rating_service.py
+5: from app.database.models import Team
+==========================================================================================
+app\services\prediction_data_service.py
+2: from app.repositories.match_repository import MatchRepository
+3: from app.repositories.statistics_repository import StatisticsRepository
+10: self.match_repository = MatchRepository(db)
+11: self.statistics_repository = StatisticsRepository(db)
+15: match = self.match_repository.get(match_id)
+23: statistics = self.statistics_repository.get_fixture_statistics(match.id)
+25: recent_home = self.match_repository.get_recent_matches(
+30: recent_away = self.match_repository.get_recent_matches(
+35: head_to_head = self.match_repository.get_head_to_head(
+45: "statistics": statistics,
+==========================================================================================
+app\services\prediction_evaluation_service.py
+6: from app.database.models import (
+==========================================================================================
+app\services\prediction_tracking_service.py
+4: import sqlite3
+12: Stores predictions and actual match results in SQLite.
+14: This database will later be used for:
+23: DEFAULT_DATABASE_PATH = Path("data/predictions.db")
+27: database_path: str | Path | None = None,
+29: self.database_path = Path(
+30: database_path or self.DEFAULT_DATABASE_PATH
+33: self.database_path.parent.mkdir(
+38: self._initialize_database()
+40: def _connect(self) -> sqlite3.Connection:
+41: connection = sqlite3.connect(
+42: self.database_path
+45: connection.row_factory = sqlite3.Row
+52: def _initialize_database(self) -> None:
+242: "database": str(self.database_path),
+955: row: sqlite3.Row,
+==========================================================================================
+app\services\prediction_v4_cycle_service.py
+89: .sync_pending_prediction_fixtures(
+135: "sync_pending_fixtures": (
+149: "fixtures_found_for_sync": int(
+151: "fixtures_found",
+156: "fixtures_updated": int(
+163: "fixtures_created": int(
+170: "fixtures_sync_skipped": int(
+==========================================================================================
+app\services\prediction_v4_evaluation_service.py
+6: from app.database.models import (
+101: "in the local database."
+==========================================================================================
+app\services\prediction_v4_performance_service.py
+6: from app.database.models import PredictionRecord
+==========================================================================================
+app\services\prediction_v4_record_service.py
+6: from app.database.models import (
+100: "in the local database."
+==========================================================================================
+app\services\prediction_v4_upcoming_service.py
+6: from app.database.models import (
+==========================================================================================
+app\services\prediction_v5_evaluation_service.py
+5: from app.database.models import Match, PredictionRecord
+==========================================================================================
+app\services\prediction_v5_record_service.py
+6: from app.database.models import (
+==========================================================================================
+app\services\prediction_v5_service.py
+5: from app.database.models import Match
+==========================================================================================
+app\services\prediction_v5_upcoming_service.py
+6: from app.database.models import (
+==========================================================================================
+app\services\prediction_v6_upcoming_service.py
+7: from app.database.models import Match
+==========================================================================================
+app\services\recent_form_service.py
+6: from app.database.models import Match
+==========================================================================================
+app\services\sportmonks_service.py
+5: import httpx
+42: self.timeout = httpx.Timeout(
+74: async with httpx.AsyncClient(
+85: except httpx.TimeoutException as error:
+90: except httpx.RequestError as error:
+216: include_statistics: bool = True,
+229: if include_statistics:
+230: params["include"] = "statistics"
+237: async def get_team_fixtures(
+242: include_statistics: bool = True,
+280: if include_statistics:
+282: "statistics.type"
+287: "fixtures/between/"
+300: include_statistics: bool = True,
+324: if include_statistics:
+326: "statistics.type"
+330: endpoint=f"fixtures/{fixture_id}",
+336: async def get_fixtures_by_date(
+339: include_statistics: bool = False,
+355: if include_statistics:
+357: "statistics.type"
+361: endpoint=f"fixtures/date/{date_value}",
+==========================================================================================
+app\services\statistics_sync_service.py
+7: from app.database.models import Match, MatchStatistic, Team
+8: from app.providers.statistics_provider import StatisticsProvider
+12: class StatisticsSyncService:
+15: مع جدول match_statistics، ثم تحديث
+21: self.provider = StatisticsProvider()
+61: def has_useful_statistics(cls, statistics: dict[str, Any]) -> bool:
+62: if not statistics:
+80: cls.get_value(statistics, key) is not None
+84: def save_team_statistics(
+88: statistics: dict[str, Any],
+105: statistics,
+110: record.corners = self.get_value(statistics, "corners")
+111: record.goals = self.get_value(statistics, "goals")
+113: statistics,
+118: statistics,
+124: statistics,
+129: statistics,
+133: record.raw_statistics = dict(statistics)
+138: def sync_fixture_statistics(
+145: raise ValueError("Fixture is not present in the local database.")
+147: response = self.provider.get_simple_fixture_statistics(
+158: "reason": "Sportmonks returned no fixture statistics.",
+159: "statistics_count": 0,
+160: "mapped_statistics_count": 0,
+161: "home_statistics_available": False,
+162: "away_statistics_available": False,
+163: "home_statistics": {},
+164: "away_statistics": {},
+176: "reason": "Sportmonks returned an invalid statistics response.",
+177: "statistics_count": 0,
+178: "mapped_statistics_count": 0,
+179: "home_statistics_available": False,
+180: "away_statistics_available": False,
+181: "home_statistics": {},
+182: "away_statistics": {},
+195: statistics_count = int(response.get("statistics_count", 0) or 0)
+196: mapped_statistics_count = int(
+197: response.get("mapped_statistics_count", 0) or 0
+200: home_has_statistics = self.has_useful_statistics(home_data)
+201: away_has_statistics = self.has_useful_statistics(away_data)
+==========================================================================================
+app\services\sync_service.py
+11: from app.database.models import (
+38: async def sync_team_and_fixtures(
+55: include_statistics=False,
+74: fixtures_response = (
+75: await self.sportmonks.get_team_fixtures(
+81: include_statistics=False,
+85: fixtures = (
+87: fixtures_response
+97: for fixture in fixtures:
+150: "received_fixtures": len(
+151: fixtures
+185: async def sync_pending_prediction_fixtures(
+286: include_statistics=False,
+409: "Database update failed: "
+434: "fixtures_found": len(
+==========================================================================================
+app\services\team_rating_service.py
+192: "source": "database_match_history",
+216: def update_team_from_recent_statistics(
+==========================================================================================
+app\services\team_statistics_service.py
+7: from app.database.models import Match
+11: class TeamStatistics:
+33: class TeamStatisticsService:
+35: Calculates team statistics from completed matches.
+38: More advanced statistics such as xG, shots, corners and cards
+59: ) -> TeamStatistics:
+61: Calculate statistics from the team's latest completed matches.
+120: return TeamStatistics(
+139: return TeamStatistics(
+225: Score availability is also checked in the database query.
+==========================================================================================
+app\data\providers\base.py
+14: class FootballDataProvider(ABC):
+40: async def get_standings(
+==========================================================================================
+app\data\providers\football_data_org.py
+7: import httpx
+10: from app.data.providers.base import FootballDataProvider
+24: """خطأ صادر من مزود football-data.org."""
+27: class FootballDataOrgProvider(FootballDataProvider):
+28: BASE_URL = "https://api.football-data.org/v4"
+43: self.client = httpx.AsyncClient(
+45: timeout=httpx.Timeout(timeout_seconds),
+60: except httpx.TimeoutException as exc:
+62: "Football data provider request timed out."
+64: except httpx.HTTPStatusError as exc:
+73: f"Provider returned HTTP {status_code}: {details}"
+75: except httpx.RequestError as exc:
+77: f"Could not connect to football data provider: {exc}"
+84: "Provider returned an invalid JSON response."
+167: async def get_standings(
+175: f"/competitions/{competition_code}/standings",
+181: for standing in payload.get("standings", []):
+247: provider_status = item.get("status", "UNKNOWN")
+249: provider_status
+250: if provider_status in known_statuses
+==========================================================================================
+app\api\latest\router.py
+6: from app.database.database import get_db
+==========================================================================================
+alembic\versions\7ac4915725cb_clean_team_null_statistics.py
+1: """clean team null statistics"""
+==========================================================================================
+alembic\versions\84d10db5983c_add_match_statistics_table.py
+1: """add match statistics table
+24: op.create_table('match_statistics',
+38: op.create_index(op.f('ix_match_statistics_fixture_id'), 'match_statistics', ['fixture_id'], unique=False)
+39: op.create_index(op.f('ix_match_statistics_id'), 'match_statistics', ['id'], unique=False)
+40: op.create_index(op.f('ix_match_statistics_team_id'), 'match_statistics', ['team_id'], unique=False)
+47: op.drop_index(op.f('ix_match_statistics_team_id'), table_name='match_statistics')
+48: op.drop_index(op.f('ix_match_statistics_id'), table_name='match_statistics')
+49: op.drop_index(op.f('ix_match_statistics_fixture_id'), table_name='match_statistics')
+50: op.drop_table('match_statistics')
+==========================================================================================
+alembic\versions\c6f8a2d91b34_expand_match_statistics_v6.py
+1: """expand match statistics v6
+23: "match_statistics",
+32: "match_statistics",
+41: "match_statistics",
+43: "raw_statistics",
+50: "match_statistics",
+61: op.drop_column("match_statistics", "updated_at")
+62: op.drop_column("match_statistics", "raw_statistics")
+64: "match_statistics",
+67: op.drop_column("match_statistics", "assists")
+==========================================================================================
+alembic\versions\d7a4f1c82e56_repair_match_statistics_columns.py
+1: """repair missing match statistics columns
+22: ALTER TABLE match_statistics
+29: ALTER TABLE match_statistics
+37: ALTER TABLE match_statistics
+38: ADD COLUMN IF NOT EXISTS raw_statistics JSONB;
+44: ALTER TABLE match_statistics
+55: ALTER TABLE match_statistics
+62: ALTER TABLE match_statistics
+63: DROP COLUMN IF EXISTS raw_statistics;
+69: ALTER TABLE match_statistics
+76: ALTER TABLE match_statistics
