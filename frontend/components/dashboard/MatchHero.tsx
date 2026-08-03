@@ -380,9 +380,3 @@ export default function MatchHero({
     </section>
   );
 }
-
-
-
-
-
-
