@@ -289,7 +289,10 @@ export default function MatchHero({
           ) : null}
         </div>
 
-        <div className="grid items-center gap-10 lg:grid-cols-[1fr_320px_1fr]">
+        <div
+          dir="ltr"
+          className="grid items-center gap-10 lg:grid-cols-[1fr_320px_1fr]"
+        >
           <TeamPanel
             team={homeTeam}
             label="الفريق المضيف"
@@ -303,11 +306,22 @@ export default function MatchHero({
             </span>
 
             <p className="mt-6 text-xs font-bold tracking-wider text-slate-500">
-              النتيجة الأكثر احتمالًا
+              أكثر نتيجة دقيقة احتمالًا
+              <span
+                dir="ltr"
+                className="mr-1 text-slate-600"
+              >
+                (Correct Score)
+              </span>
             </p>
 
-            <div className="mt-2 bg-gradient-to-l from-cyan-300 via-white to-violet-300 bg-clip-text text-7xl font-black tracking-tight text-transparent sm:text-8xl">
-              {mostLikelyScore.score}
+            <div
+              dir="ltr"
+              className="mt-3"
+            >
+              <strong className="bg-gradient-to-r from-cyan-300 via-white to-violet-300 bg-clip-text text-7xl font-black tracking-tight text-transparent sm:text-8xl">
+                {mostLikelyScore.score}
+              </strong>
             </div>
 
             <p className="mt-3 text-sm text-slate-500">
@@ -317,9 +331,13 @@ export default function MatchHero({
               </strong>
             </p>
 
+            <p className="mt-2 text-xs leading-5 text-slate-600">
+              لا تمثل هذه النتيجة وحدها الاحتمال الإجمالي للفائز.
+            </p>
+
             <div className="mt-7 grid gap-2">
               <ProbabilityItem
-                label="فوز المضيف"
+                label={`فوز ${homeTeam.name}`}
                 value={probabilities.homeWin}
                 accentClass="font-black text-cyan-300"
               />
@@ -331,7 +349,7 @@ export default function MatchHero({
               />
 
               <ProbabilityItem
-                label="فوز الضيف"
+                label={`فوز ${awayTeam.name}`}
                 value={probabilities.awayWin}
                 accentClass="font-black text-violet-300"
               />
@@ -362,6 +380,7 @@ export default function MatchHero({
     </section>
   );
 }
+
 
 
 
