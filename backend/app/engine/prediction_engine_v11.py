@@ -15,6 +15,7 @@ from app.services.match_fatigue_analyzer import (
 )
 from app.services.expected_goals_calculator import ExpectedGoalsCalculator
 from app.services.poisson_engine import PoissonEngine
+from app.engine.match_events_engine import MatchEventsEngine
 from app.services.confidence_engine import ConfidenceEngine
 from app.services.score_distribution_analyzer import (
     ScoreDistributionAnalyzer,
@@ -31,7 +32,7 @@ class PredictionEngineV11:
         result = engine.predict(match_id=1)
     """
 
-    VERSION = "11.2.0"
+    VERSION = "11.3.0"
     MODEL_NAME = "Prediction Engine V11"
 
     def __init__(
@@ -195,6 +196,19 @@ class PredictionEngineV11:
             raise PredictionEngineError(
                 stage="poisson",
                 message=f"تعذر حساب احتمالات بواسون: {exc}",
+            ) from exc
+
+        try:
+            match_events = MatchEventsEngine.calculate(
+                features
+            )
+        except Exception as exc:
+            raise PredictionEngineError(
+                stage="match_events",
+                message=(
+                    "تعذر حساب توقعات الركنيات "
+                    f"والبطاقات: {exc}"
+                ),
             ) from exc
 
         try:
@@ -384,6 +398,7 @@ class PredictionEngineV11:
                 "win_to_nil",
                 {},
             ),
+            "match_events": match_events,
             "confidence": confidence,
         }
 
