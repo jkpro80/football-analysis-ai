@@ -66,6 +66,7 @@ class MatchEventsEngine:
             features
         )
         shots = cls._calculate_shots(features)
+        possession = cls._calculate_possession(features)
 
         return {
             "corners": corners,
@@ -74,6 +75,7 @@ class MatchEventsEngine:
             "shots_on_target": shots[
                 "shots_on_target"
             ],
+            "possession": possession,
             "data_quality": cls._data_quality(
                 features
             ),
@@ -677,6 +679,132 @@ class MatchEventsEngine:
         }
 
     @classmethod
+    def _calculate_possession(
+        cls,
+        features: dict[str, Any],
+    ) -> dict[str, Any]:
+        home_base = cls._clamp(
+            cls._number(
+                features.get("home_possession"),
+                default=50.0,
+            ),
+            25.0,
+            75.0,
+        )
+        away_base = cls._clamp(
+            cls._number(
+                features.get("away_possession"),
+                default=50.0,
+            ),
+            25.0,
+            75.0,
+        )
+
+        home_attack = cls._number(
+            features.get("home_attack_rating"),
+            default=50.0,
+        )
+        away_attack = cls._number(
+            features.get("away_attack_rating"),
+            default=50.0,
+        )
+        home_shots = cls._number(
+            features.get("home_shots"),
+            default=12.0,
+        )
+        away_shots = cls._number(
+            features.get("away_shots"),
+            default=12.0,
+        )
+        home_form = cls._number(
+            features.get("home_form_points"),
+            default=5.0,
+        )
+        away_form = cls._number(
+            features.get("away_form_points"),
+            default=5.0,
+        )
+
+        strength_difference = (
+            (home_attack - away_attack) * 0.10
+            + (home_shots - away_shots) * 0.35
+            + (home_form - away_form) * 0.18
+        )
+
+        home_score = home_base + strength_difference
+        away_score = away_base - strength_difference
+
+        total_score = home_score + away_score
+
+        if total_score <= 0:
+            home_expected = 50.0
+        else:
+            home_expected = (
+                home_score / total_score
+            ) * 100.0
+
+        home_expected = cls._clamp(
+            home_expected,
+            25.0,
+            75.0,
+        )
+        away_expected = 100.0 - home_expected
+
+        home_expected = round(home_expected, 2)
+        away_expected = round(
+            100.0 - home_expected,
+            2,
+        )
+
+        difference = round(
+            abs(home_expected - away_expected),
+            2,
+        )
+
+        if difference < 3.0:
+            dominant_team = "balanced"
+            dominance_level = "balanced"
+        elif home_expected > away_expected:
+            dominant_team = "home"
+            dominance_level = (
+                cls._possession_dominance_level(
+                    difference
+                )
+            )
+        else:
+            dominant_team = "away"
+            dominance_level = (
+                cls._possession_dominance_level(
+                    difference
+                )
+            )
+
+        return {
+            "home_expected": home_expected,
+            "away_expected": away_expected,
+            "total": round(
+                home_expected + away_expected,
+                2,
+            ),
+            "difference": difference,
+            "dominant_team": dominant_team,
+            "dominance_level": dominance_level,
+            "normalized": True,
+        }
+
+    @staticmethod
+    def _possession_dominance_level(
+        difference: float,
+    ) -> str:
+        if difference < 3.0:
+            return "balanced"
+        if difference < 8.0:
+            return "slight"
+        if difference < 15.0:
+            return "moderate"
+        return "strong"
+
+    @classmethod
     def _calculate_yellow_cards(
         cls,
         features: dict[str, Any],
@@ -937,6 +1065,11 @@ class MatchEventsEngine:
             features.get("away_shots_on_target"),
         )
 
+        possession_values = (
+            features.get("home_possession"),
+            features.get("away_possession"),
+        )
+
         corners_complete = all(
             value is not None
             for value in corner_values
@@ -957,6 +1090,11 @@ class MatchEventsEngine:
             for value in shots_on_target_values
         )
 
+        possession_complete = all(
+            value is not None
+            for value in possession_values
+        )
+
         return {
             "corners_complete": (
                 corners_complete
@@ -967,6 +1105,9 @@ class MatchEventsEngine:
             "shots_complete": shots_complete,
             "shots_on_target_complete": (
                 shots_on_target_complete
+            ),
+            "possession_complete": (
+                possession_complete
             ),
             "uses_referee_profile": False,
         }

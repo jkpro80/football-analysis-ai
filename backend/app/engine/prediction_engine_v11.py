@@ -32,7 +32,7 @@ class PredictionEngineV11:
         result = engine.predict(match_id=1)
     """
 
-    VERSION = "11.3.0"
+    VERSION = "11.4.0"
     MODEL_NAME = "Prediction Engine V11"
 
     def __init__(
