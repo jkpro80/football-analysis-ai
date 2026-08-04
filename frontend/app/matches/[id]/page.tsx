@@ -1,5 +1,6 @@
 import LatestMatchHero from "@/components/prediction/LatestMatchHero";
 import ConfidenceGauge from "@/components/prediction/ConfidenceGauge";
+import ScoreMatrixHeatmap from "@/components/prediction/ScoreMatrixHeatmap";
 import { apiFetch } from "@/lib/api";
 
 type Score = {
@@ -7,6 +8,28 @@ type Score = {
   away_goals: number;
   score: string;
   probability: number;
+  outcome?: string;
+};
+
+type ScoreDistribution = {
+  model?: string;
+  normalized_entropy: number;
+  score_margin: number;
+  concentration: {
+    top_1: number;
+    top_3: number;
+    top_5: number;
+  };
+  dominant_outcome: string;
+  predicted_outcome?: string | null;
+  outcome_consistency: {
+    dominant_matches_prediction: boolean;
+    top_score_matches_prediction: boolean;
+    top_score_outcome: string;
+  };
+  most_likely_score: Score;
+  recommended_score: Score;
+  top_scores: Score[];
 };
 
 type Team = {
@@ -114,6 +137,8 @@ type LatestPredictionResponse = {
     predicted_outcome: string;
     predicted_outcome_label: string;
     most_likely_score: Score;
+    recommended_score: Score;
+    score_distribution: ScoreDistribution | null;
     expected_goals: {
       home_expected_goals: number;
       away_expected_goals: number;
@@ -156,6 +181,7 @@ type LatestPredictionResponse = {
       away: number;
     };
     top_scores: Score[];
+    score_matrix: Score[];
   };
   analysis: {
     confidence_model: string;
@@ -221,7 +247,10 @@ type OfficialPredictionResponse = {
   };
 
   most_likely_score: Score;
+  recommended_score?: Score | null;
+  score_distribution?: ScoreDistribution | null;
   top_scores: Score[];
+  score_matrix?: Score[] | null;
 
   btts: {
     yes?: number;
@@ -325,7 +354,7 @@ async function getPrediction(
     ),
 
     apiFetch<OfficialPredictionResponse>(
-      `/predictions/${matchId}`,
+      `/predictions/${matchId}?include_score_matrix=true`,
     ),
   ]);
 
@@ -360,6 +389,30 @@ async function getPrediction(
       safeNumber(
         prediction.most_likely_score?.probability,
       ),
+  };
+
+  const recommendedScore: Score = {
+    home_goals: safeNumber(
+      prediction.recommended_score?.home_goals ??
+      mostLikelyScore.home_goals,
+    ),
+
+    away_goals: safeNumber(
+      prediction.recommended_score?.away_goals ??
+      mostLikelyScore.away_goals,
+    ),
+
+    score:
+      prediction.recommended_score?.score ??
+      mostLikelyScore.score,
+
+    probability: safeNumber(
+      prediction.recommended_score?.probability ??
+      mostLikelyScore.probability,
+    ),
+
+    outcome:
+      prediction.recommended_score?.outcome,
   };
 
   return {
@@ -443,6 +496,12 @@ async function getPrediction(
 
       most_likely_score:
         mostLikelyScore,
+
+      recommended_score:
+        recommendedScore,
+
+      score_distribution:
+        prediction.score_distribution ?? null,
 
       expected_goals: {
         home_expected_goals:
@@ -603,6 +662,16 @@ async function getPrediction(
                   safeNumber(score.probability),
               }),
             )
+          : [],
+
+      score_matrix:
+        Array.isArray(prediction.score_matrix)
+          ? prediction.score_matrix.map((score) => ({
+              home_goals: safeNumber(score.home_goals),
+              away_goals: safeNumber(score.away_goals),
+              score: score.score ?? "0-0",
+              probability: safeNumber(score.probability),
+            }))
           : [],
     },
 
@@ -1242,6 +1311,77 @@ export default async function MatchPage({
           />
         </section>
 
+        <section className="rounded-[32px] border border-cyan-500/25 bg-gradient-to-l from-cyan-950/20 to-violet-950/20 p-6 sm:p-8">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-2xl font-black">
+                قراءة النتيجة الدقيقة
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                مقارنة بين أعلى نتيجة منفردة والنتيجة الأكثر اتساقًا مع توقع الفائز.
+              </p>
+            </div>
+
+            <span className="rounded-full border border-slate-700 bg-slate-950/50 px-3 py-1 text-xs text-slate-400">
+              Score Distribution
+            </span>
+          </div>
+
+          <div className="mt-7 grid gap-5 md:grid-cols-2">
+            <div className="rounded-3xl border border-violet-500/25 bg-violet-950/15 p-6">
+              <p className="text-sm font-bold text-slate-400">
+                أعلى نتيجة منفردة
+              </p>
+
+              <p dir="ltr" className="mt-3 text-5xl font-black text-violet-300">
+                {data.prediction.most_likely_score.score}
+              </p>
+
+              <p className="mt-3 text-sm text-slate-400">
+                الاحتمال{" "}
+                <strong className="text-violet-300">
+                  {pct(
+                    data.prediction.most_likely_score.probability,
+                  )}
+                </strong>
+              </p>
+            </div>
+
+            <div className="rounded-3xl border border-emerald-500/25 bg-emerald-950/15 p-6">
+              <p className="text-sm font-bold text-slate-400">
+                النتيجة المتوافقة مع توقع الفائز
+              </p>
+
+              <p dir="ltr" className="mt-3 text-5xl font-black text-emerald-300">
+                {data.prediction.recommended_score.score}
+              </p>
+
+              <p className="mt-3 text-sm text-slate-400">
+                الاحتمال{" "}
+                <strong className="text-emerald-300">
+                  {pct(
+                    data.prediction.recommended_score.probability,
+                  )}
+                </strong>
+              </p>
+            </div>
+          </div>
+
+          {data.prediction.score_distribution &&
+          !data.prediction.score_distribution.outcome_consistency
+            .top_score_matches_prediction ? (
+            <p className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-950/15 p-4 text-sm leading-6 text-amber-100/80">
+              أعلى نتيجة منفردة لا تطابق فئة النتيجة الأقوى في احتمالات
+              المباراة. لذلك يعرض النموذج نتيجة ثانية أكثر اتساقًا مع
+              توقع الفائز، من دون تغيير الاحتمالات الأصلية.
+            </p>
+          ) : (
+            <p className="mt-5 rounded-2xl border border-emerald-500/20 bg-emerald-950/15 p-4 text-sm leading-6 text-emerald-100/80">
+              النتيجة الدقيقة الأعلى متوافقة مع توقع الفائز.
+            </p>
+          )}
+        </section>
+
         <section>
           <h2 className="mb-5 text-2xl font-black">
             أهم أسواق التوقع
@@ -1293,6 +1433,28 @@ export default async function MatchPage({
             </table>
           </div>
         </section>
+
+        <ScoreMatrixHeatmap
+          matrix={data.markets.score_matrix}
+          mostLikelyScore={
+            data.prediction.most_likely_score.score
+          }
+          recommendedScore={
+            data.prediction.recommended_score.score
+          }
+          homeWin={data.markets.match_result.home_win}
+          draw={data.markets.match_result.draw}
+          awayWin={data.markets.match_result.away_win}
+          entropy={
+            data.prediction.score_distribution
+              ?.normalized_entropy ?? null
+          }
+          topFiveConcentration={
+            data.prediction.score_distribution
+              ?.concentration.top_5 ?? null
+          }
+          maxGoals={6}
+        />
 
         <section className="rounded-[32px] border border-slate-800 bg-[#050b1e] p-6 sm:p-8">
           <h2 className="text-2xl font-black">

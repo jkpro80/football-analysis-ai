@@ -29,6 +29,7 @@ router = APIRouter(
 )
 def get_prediction(
     match_id: int,
+    include_score_matrix: bool = False,
     db: Session = Depends(get_db),
 ) -> PredictionResponse:
     """
@@ -39,7 +40,10 @@ def get_prediction(
 
     try:
         engine = PredictionEngineV11(db=db)
-        result = engine.predict(match_id=match_id)
+        result = engine.predict(
+            match_id=match_id,
+            include_score_matrix=include_score_matrix,
+        )
 
         return PredictionResponse.model_validate(result)
 

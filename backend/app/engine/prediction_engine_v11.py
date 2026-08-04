@@ -10,6 +10,9 @@ from app.services.feature_engineering import FeatureEngineering
 from app.services.expected_goals_calculator import ExpectedGoalsCalculator
 from app.services.poisson_engine import PoissonEngine
 from app.services.confidence_engine import ConfidenceEngine
+from app.services.score_distribution_analyzer import (
+    ScoreDistributionAnalyzer,
+)
 
 
 class PredictionEngineV11:
@@ -118,6 +121,28 @@ class PredictionEngineV11:
                 message=f"تعذر حساب مستوى الثقة: {exc}",
             ) from exc
 
+        try:
+            score_distribution = (
+                ScoreDistributionAnalyzer.analyze(
+                    poisson_result.get(
+                        "score_matrix",
+                        [],
+                    ),
+                    predicted_outcome=confidence.get(
+                        "predicted_outcome"
+                    ),
+                    top_limit=top_scores_count,
+                )
+            )
+        except Exception as exc:
+            raise PredictionEngineError(
+                stage="score_distribution",
+                message=(
+                    "تعذر تحليل توزيع النتائج الدقيقة: "
+                    f"{exc}"
+                ),
+            ) from exc
+
         return self._build_response(
             match_id=validated_match_id,
             raw_data=raw_data,
@@ -125,6 +150,7 @@ class PredictionEngineV11:
             expected_goals=expected_goals,
             poisson_result=poisson_result,
             confidence=confidence,
+            score_distribution=score_distribution,
             include_features=include_features,
             include_score_matrix=include_score_matrix,
             include_raw_data=include_raw_data,
@@ -138,6 +164,7 @@ class PredictionEngineV11:
         expected_goals: Dict[str, Any],
         poisson_result: Dict[str, Any],
         confidence: Dict[str, Any],
+        score_distribution: Dict[str, Any],
         include_features: bool,
         include_score_matrix: bool,
         include_raw_data: bool,
@@ -241,6 +268,11 @@ class PredictionEngineV11:
             "top_scores": poisson_result.get(
                 "top_scores",
                 [],
+            ),
+            "score_distribution": score_distribution,
+            "recommended_score": score_distribution.get(
+                "recommended_score",
+                {},
             ),
             "btts": poisson_result.get("btts", {}),
             "totals": poisson_result.get("totals", {}),
