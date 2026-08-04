@@ -5,6 +5,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    BigInteger,
     Integer,
     String,
 )
@@ -676,7 +677,7 @@ class FixtureLineup(Base):
     )
 
     sportmonks_lineup_id = Column(
-        Integer,
+        BigInteger,
         unique=True,
         nullable=False,
         index=True,

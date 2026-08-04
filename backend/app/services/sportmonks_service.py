@@ -351,6 +351,42 @@ class SportmonksService:
         )
 
 
+    async def get_fixture_context(
+        self,
+        fixture_id: int,
+    ) -> dict[str, Any]:
+        """
+        جلب سياق المباراة المطلوب لتحليل ما قبل المباراة:
+
+        - المشاركون
+        - التشكيلات
+        - الخطط
+        - الإصابات والإيقافات
+        - حالة الطقس
+        """
+
+        if fixture_id <= 0:
+            raise ValueError(
+                "Fixture ID must be positive."
+            )
+
+        includes = [
+            "participants",
+            "lineups.player",
+            "lineups.position",
+            "formations",
+            "sidelined.player",
+            "sidelined.type",
+            "weatherReport",
+        ]
+
+        return await self._request(
+            endpoint=f"fixtures/{fixture_id}",
+            params={
+                "include": ";".join(includes),
+            },
+        )
+
     async def get_referee(
         self,
         referee_id: int,
