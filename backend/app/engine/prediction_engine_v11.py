@@ -7,6 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.services.prediction_data_service import PredictionDataService
 from app.services.feature_engineering import FeatureEngineering
+from app.services.fixture_context_analyzer import (
+    FixtureContextAnalyzer,
+)
 from app.services.expected_goals_calculator import ExpectedGoalsCalculator
 from app.services.poisson_engine import PoissonEngine
 from app.services.confidence_engine import ConfidenceEngine
@@ -25,7 +28,7 @@ class PredictionEngineV11:
         result = engine.predict(match_id=1)
     """
 
-    VERSION = "11.0.1"
+    VERSION = "11.1.0"
     MODEL_NAME = "Prediction Engine V11"
 
     def __init__(
@@ -79,6 +82,45 @@ class PredictionEngineV11:
             raise PredictionEngineError(
                 stage="feature_engineering",
                 message="FeatureEngineering.build يجب أن يعيد قاموسًا.",
+            )
+
+        context_analysis = None
+
+        try:
+            context_analysis = FixtureContextAnalyzer(
+                db=self.db
+            ).analyze(
+                fixture_id=validated_match_id
+            )
+
+            context_features = context_analysis.get(
+                "features",
+                {},
+            )
+
+            if isinstance(context_features, dict):
+                features.update(context_features)
+
+            features["fixture_context_available"] = True
+            features["fixture_context_warnings"] = (
+                context_analysis.get("warnings", [])
+            )
+
+        except Exception:
+            # Context data is optional. Prediction must remain
+            # available when lineups, absences, or weather are missing.
+            features.update(
+                {
+                    "home_availability_factor": 1.0,
+                    "away_availability_factor": 1.0,
+                    "weather_attack_factor": 1.0,
+                    "weather_fatigue_factor": 1.0,
+                    "weather_severity": 0.0,
+                    "fixture_context_available": False,
+                    "fixture_context_warnings": [
+                        "Fixture context could not be analyzed."
+                    ],
+                }
             )
 
         try:
