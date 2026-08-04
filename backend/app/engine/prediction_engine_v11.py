@@ -10,6 +10,9 @@ from app.services.feature_engineering import FeatureEngineering
 from app.services.fixture_context_analyzer import (
     FixtureContextAnalyzer,
 )
+from app.services.match_fatigue_analyzer import (
+    MatchFatigueAnalyzer,
+)
 from app.services.expected_goals_calculator import ExpectedGoalsCalculator
 from app.services.poisson_engine import PoissonEngine
 from app.services.confidence_engine import ConfidenceEngine
@@ -28,7 +31,7 @@ class PredictionEngineV11:
         result = engine.predict(match_id=1)
     """
 
-    VERSION = "11.1.0"
+    VERSION = "11.2.0"
     MODEL_NAME = "Prediction Engine V11"
 
     def __init__(
@@ -119,6 +122,49 @@ class PredictionEngineV11:
                     "fixture_context_available": False,
                     "fixture_context_warnings": [
                         "Fixture context could not be analyzed."
+                    ],
+                }
+            )
+
+        try:
+            fatigue_analysis = MatchFatigueAnalyzer(
+                db=self.db
+            ).analyze(
+                fixture_id=validated_match_id
+            )
+
+            fatigue_features = fatigue_analysis.get(
+                "features",
+                {},
+            )
+
+            if isinstance(fatigue_features, dict):
+                features.update(fatigue_features)
+
+            features["fatigue_context_available"] = True
+            features["fatigue_context_warnings"] = (
+                fatigue_analysis.get("warnings", [])
+            )
+
+        except Exception:
+            # Fatigue context is optional. Missing historical
+            # matches must not make the prediction unavailable.
+            features.update(
+                {
+                    "home_rest_days": None,
+                    "away_rest_days": None,
+                    "home_matches_last_7_days": 0,
+                    "away_matches_last_7_days": 0,
+                    "home_matches_last_14_days": 0,
+                    "away_matches_last_14_days": 0,
+                    "home_fatigue_factor": 1.0,
+                    "away_fatigue_factor": 1.0,
+                    "home_congestion_level": "unknown",
+                    "away_congestion_level": "unknown",
+                    "rest_advantage_days": None,
+                    "fatigue_context_available": False,
+                    "fatigue_context_warnings": [
+                        "Match fatigue context could not be analyzed."
                     ],
                 }
             )

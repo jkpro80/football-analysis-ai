@@ -206,16 +206,40 @@ class ExpectedGoalsCalculator:
             1.03,
         )
 
+        home_fatigue_factor = cls._clamp(
+            cls._number(
+                features.get(
+                    "home_fatigue_factor"
+                ),
+                default=1.0,
+            ),
+            0.88,
+            1.02,
+        )
+
+        away_fatigue_factor = cls._clamp(
+            cls._number(
+                features.get(
+                    "away_fatigue_factor"
+                ),
+                default=1.0,
+            ),
+            0.88,
+            1.02,
+        )
+
         home_expected_goals *= (
             home_availability_factor
             * weather_attack_factor
             * weather_fatigue_factor
+            * home_fatigue_factor
         )
 
         away_expected_goals *= (
             away_availability_factor
             * weather_attack_factor
             * weather_fatigue_factor
+            * away_fatigue_factor
         )
 
         home_expected_goals *= weights[
