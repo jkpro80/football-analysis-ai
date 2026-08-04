@@ -664,3 +664,283 @@ class SystemJob(Base):
         DateTime(timezone=True),
         nullable=True,
     )
+
+
+class FixtureLineup(Base):
+    __tablename__ = "fixture_lineups"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    sportmonks_lineup_id = Column(
+        Integer,
+        unique=True,
+        nullable=False,
+        index=True,
+    )
+
+    fixture_id = Column(
+        Integer,
+        ForeignKey(
+            "matches.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    team_id = Column(
+        Integer,
+        ForeignKey(
+            "teams.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    player_id = Column(
+        Integer,
+        nullable=False,
+        index=True,
+    )
+
+    player_name = Column(
+        String(200),
+        nullable=False,
+    )
+
+    player_image = Column(
+        String(500),
+        nullable=True,
+    )
+
+    position_id = Column(
+        Integer,
+        nullable=True,
+    )
+
+    position_name = Column(
+        String(100),
+        nullable=True,
+    )
+
+    jersey_number = Column(
+        Integer,
+        nullable=True,
+    )
+
+    lineup_type_id = Column(
+        Integer,
+        nullable=False,
+        index=True,
+    )
+
+    formation_field = Column(
+        String(20),
+        nullable=True,
+    )
+
+    formation_position = Column(
+        Integer,
+        nullable=True,
+    )
+
+    formation = Column(
+        String(30),
+        nullable=True,
+    )
+
+    is_predicted = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
+
+    synced_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+
+class FixtureAbsence(Base):
+    __tablename__ = "fixture_absences"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    sportmonks_absence_id = Column(
+        Integer,
+        unique=True,
+        nullable=False,
+        index=True,
+    )
+
+    fixture_id = Column(
+        Integer,
+        ForeignKey(
+            "matches.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    team_id = Column(
+        Integer,
+        ForeignKey(
+            "teams.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    player_id = Column(
+        Integer,
+        nullable=False,
+        index=True,
+    )
+
+    player_name = Column(
+        String(200),
+        nullable=False,
+    )
+
+    player_image = Column(
+        String(500),
+        nullable=True,
+    )
+
+    position_id = Column(
+        Integer,
+        nullable=True,
+    )
+
+    absence_type_id = Column(
+        Integer,
+        nullable=True,
+        index=True,
+    )
+
+    absence_name = Column(
+        String(200),
+        nullable=True,
+    )
+
+    absence_code = Column(
+        String(150),
+        nullable=True,
+    )
+
+    absence_category = Column(
+        String(50),
+        nullable=False,
+        default="injury",
+    )
+
+    synced_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+
+class FixtureWeather(Base):
+    __tablename__ = "fixture_weather"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    fixture_id = Column(
+        Integer,
+        ForeignKey(
+            "matches.id",
+            ondelete="CASCADE",
+        ),
+        unique=True,
+        nullable=False,
+        index=True,
+    )
+
+    sportmonks_weather_id = Column(
+        Integer,
+        nullable=True,
+        index=True,
+    )
+
+    venue_id = Column(
+        Integer,
+        nullable=True,
+    )
+
+    temperature = Column(
+        Float,
+        nullable=True,
+    )
+
+    feels_like = Column(
+        Float,
+        nullable=True,
+    )
+
+    wind_speed = Column(
+        Float,
+        nullable=True,
+    )
+
+    wind_direction = Column(
+        Integer,
+        nullable=True,
+    )
+
+    humidity = Column(
+        Float,
+        nullable=True,
+    )
+
+    pressure = Column(
+        Integer,
+        nullable=True,
+    )
+
+    clouds = Column(
+        Float,
+        nullable=True,
+    )
+
+    description = Column(
+        String(200),
+        nullable=True,
+    )
+
+    icon_url = Column(
+        String(500),
+        nullable=True,
+    )
+
+    report_type = Column(
+        String(50),
+        nullable=True,
+    )
+
+    metric = Column(
+        String(30),
+        nullable=True,
+    )
+
+    synced_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )

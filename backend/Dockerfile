@@ -19,4 +19,4 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "python -m app.database.init_db && python -m alembic stamp head && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2"]
+CMD ["sh", "-c", "python -m alembic upgrade head && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2"]
