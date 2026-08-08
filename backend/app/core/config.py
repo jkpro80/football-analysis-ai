@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     database_url: str
     admin_api_key: str
 
+    jwt_secret_key: str
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60
+    refresh_token_expire_days: int = 30
     sportmonks_api_key: str | None = None
     sportmonks_api_token: str | None = None
     sportmonks_base_url: str | None = None

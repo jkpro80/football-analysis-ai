@@ -65,6 +65,10 @@ class TeamStatisticsService:
             "yellowcards",
             "yellow_cards",
         ),
+        "fouls": (
+            "fouls",
+            "fouls_committed",
+        ),
         "red_cards": (
             "redcards",
             "red_cards",
@@ -245,6 +249,7 @@ class TeamStatisticsService:
             "shots_on_target",
             "corners",
             "yellow_cards",
+            "fouls",
             "red_cards",
             "xg",
             "xga",
@@ -280,6 +285,7 @@ class TeamStatisticsService:
             "shots_on_target": team.shots_on_target,
             "corners": team.corners,
             "yellow_cards": team.yellow_cards,
+            "fouls": team.fouls,
             "red_cards": team.red_cards,
             "xg": team.xg,
             "xga": team.xga,
@@ -348,6 +354,11 @@ class TeamStatisticsService:
                 values["yellow_cards"],
                 record.yellow_cards,
                 self._extract_stat(raw, "yellow_cards"),
+            )
+            self._append_value(
+                values["fouls"],
+                record.fouls,
+                self._extract_stat(raw, "fouls"),
             )
             self._append_value(
                 values["red_cards"],

@@ -127,6 +127,11 @@ class StatisticsSyncService:
             "yellowcards",
             "yellow_cards",
         )
+        record.fouls = self.get_value(
+            statistics,
+            "fouls",
+            "fouls_committed",
+        )
         record.red_cards = self.get_value(
             statistics,
             "redcards",

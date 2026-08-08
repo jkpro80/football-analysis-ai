@@ -1,11 +1,11 @@
-from collections.abc import Iterable
+﻿from collections.abc import Iterable
 from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.engine.elo_rating_engine import EloRatingEngine
-from app.models.match import Match
+from app.database.models import Match
 
 
 class TeamRatingService:
@@ -235,3 +235,4 @@ class TeamRatingService:
             "matches_used": limit,
             "status": "success",
         }
+

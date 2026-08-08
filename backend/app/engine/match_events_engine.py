@@ -266,6 +266,93 @@ class MatchEventsEngine:
             "over_probabilities": (
                 over_probabilities
             ),
+            "explanation": {
+                "method": "multiplicative_factors",
+                "distribution": "poisson",
+                "home": {
+                    "base_average": round(
+                        home_base,
+                        3,
+                    ),
+                    "shots": round(
+                        home_shots,
+                        3,
+                    ),
+                    "possession": round(
+                        home_possession,
+                        3,
+                    ),
+                    "fatigue_factor": round(
+                        home_fatigue,
+                        4,
+                    ),
+                    "factors": {
+                        "shots": round(
+                            home_shot_factor,
+                            4,
+                        ),
+                        "possession": round(
+                            home_possession_factor,
+                            4,
+                        ),
+                        "fatigue": round(
+                            home_fatigue,
+                            4,
+                        ),
+                        "weather": round(
+                            weather_factor,
+                            4,
+                        ),
+                        "venue": 1.03,
+                    },
+                },
+                "away": {
+                    "base_average": round(
+                        away_base,
+                        3,
+                    ),
+                    "shots": round(
+                        away_shots,
+                        3,
+                    ),
+                    "possession": round(
+                        away_possession,
+                        3,
+                    ),
+                    "fatigue_factor": round(
+                        away_fatigue,
+                        4,
+                    ),
+                    "factors": {
+                        "shots": round(
+                            away_shot_factor,
+                            4,
+                        ),
+                        "possession": round(
+                            away_possession_factor,
+                            4,
+                        ),
+                        "fatigue": round(
+                            away_fatigue,
+                            4,
+                        ),
+                        "weather": round(
+                            weather_factor,
+                            4,
+                        ),
+                        "venue": 0.97,
+                    },
+                },
+                "weather_severity": round(
+                    weather_severity,
+                    4,
+                ),
+                "formula": (
+                    "base_average * shots_factor * "
+                    "possession_factor * fatigue_factor * "
+                    "weather_factor * venue_factor"
+                ),
+            },
             "most_likely_range": (
                 cls._expected_range(
                     total_expected,
@@ -962,6 +1049,65 @@ class MatchEventsEngine:
             "over_probabilities": (
                 over_probabilities
             ),
+            "explanation": {
+                "method": "multiplicative_factors",
+                "distribution": "poisson",
+                "home": {
+                    "base_average": round(
+                        home_base,
+                        3,
+                    ),
+                    "possession": round(
+                        home_possession,
+                        3,
+                    ),
+                    "fatigue_factor": round(
+                        home_fatigue,
+                        4,
+                    ),
+                    "factors": {
+                        "low_possession": round(
+                            home_low_possession_factor,
+                            4,
+                        ),
+                        "fatigue": round(
+                            home_fatigue_card_factor,
+                            4,
+                        ),
+                        "venue": 0.98,
+                    },
+                },
+                "away": {
+                    "base_average": round(
+                        away_base,
+                        3,
+                    ),
+                    "possession": round(
+                        away_possession,
+                        3,
+                    ),
+                    "fatigue_factor": round(
+                        away_fatigue,
+                        4,
+                    ),
+                    "factors": {
+                        "low_possession": round(
+                            away_low_possession_factor,
+                            4,
+                        ),
+                        "fatigue": round(
+                            away_fatigue_card_factor,
+                            4,
+                        ),
+                        "venue": 1.02,
+                    },
+                },
+                "referee_adjusted": False,
+                "formula": (
+                    "base_average * low_possession_factor * "
+                    "fatigue_card_factor * venue_factor"
+                ),
+            },
             "most_likely_range": (
                 cls._expected_range(
                     total_expected,

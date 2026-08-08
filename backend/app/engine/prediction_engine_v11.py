@@ -300,6 +300,30 @@ class PredictionEngineV11:
                     "match_date",
                     "scheduled_at",
                 ),
+                "status": self._get_value(
+                    match,
+                    "status",
+                ),
+                "home_score": self._get_value(
+                    match,
+                    "home_score",
+                ),
+                "away_score": self._get_value(
+                    match,
+                    "away_score",
+                ),
+                "is_finished": (
+                    self._get_value(
+                        match,
+                        "home_score",
+                    )
+                    is not None
+                    and self._get_value(
+                        match,
+                        "away_score",
+                    )
+                    is not None
+                ),
                 "competition": self._get_value(
                     match,
                     "competition",
@@ -313,6 +337,64 @@ class PredictionEngineV11:
                 ),
                 "home_team": self._team_summary(home_team),
                 "away_team": self._team_summary(away_team),
+                "actual_outcome": (
+                    "home_win"
+                    if (
+                        self._get_value(
+                            match,
+                            "home_score",
+                        )
+                        is not None
+                        and self._get_value(
+                            match,
+                            "away_score",
+                        )
+                        is not None
+                        and self._get_value(
+                            match,
+                            "home_score",
+                        )
+                        > self._get_value(
+                            match,
+                            "away_score",
+                        )
+                    )
+                    else "away_win"
+                    if (
+                        self._get_value(
+                            match,
+                            "home_score",
+                        )
+                        is not None
+                        and self._get_value(
+                            match,
+                            "away_score",
+                        )
+                        is not None
+                        and self._get_value(
+                            match,
+                            "home_score",
+                        )
+                        < self._get_value(
+                            match,
+                            "away_score",
+                        )
+                    )
+                    else "draw"
+                    if (
+                        self._get_value(
+                            match,
+                            "home_score",
+                        )
+                        is not None
+                        and self._get_value(
+                            match,
+                            "away_score",
+                        )
+                        is not None
+                    )
+                    else None
+                ),
             },
             "expected_goals": {
                 "home": round(
@@ -401,8 +483,76 @@ class PredictionEngineV11:
                 {},
             ),
             "match_events": match_events,
+            "markets": {
+                "match_result": match_result,
+                "btts": poisson_result.get(
+                    "btts",
+                    {},
+                ),
+                "totals": poisson_result.get(
+                    "totals",
+                    {},
+                ),
+                "team_totals": poisson_result.get(
+                    "team_totals",
+                    {},
+                ),
+                "double_chance": poisson_result.get(
+                    "double_chance",
+                    {},
+                ),
+                "draw_no_bet": poisson_result.get(
+                    "draw_no_bet",
+                    {},
+                ),
+                "clean_sheet": poisson_result.get(
+                    "clean_sheet",
+                    {},
+                ),
+                "win_to_nil": poisson_result.get(
+                    "win_to_nil",
+                    {},
+                ),
+                "corners": match_events.get(
+                    "corners",
+                    {},
+                ),
+                "yellow_cards": match_events.get(
+                    "yellow_cards",
+                    {},
+                ),
+                "shots": match_events.get(
+                    "shots",
+                    {},
+                ),
+                "shots_on_target": match_events.get(
+                    "shots_on_target",
+                    {},
+                ),
+                "possession": match_events.get(
+                    "possession",
+                    {},
+                ),
+                "match_events": match_events,
+            },
             "confidence": confidence,
         }
+
+        response["evaluation"] = self._build_evaluation(
+            match=match,
+            predicted_outcome=confidence.get(
+                "predicted_outcome"
+            ),
+            most_likely_score=most_likely_score,
+            btts=poisson_result.get(
+                "btts",
+                {},
+            ),
+            totals=poisson_result.get(
+                "totals",
+                {},
+            ),
+        )
 
         if include_score_matrix:
             response["score_matrix"] = poisson_result.get(
@@ -417,6 +567,205 @@ class PredictionEngineV11:
             response["raw_data"] = self._serialize_value(raw_data)
 
         return response
+
+    @classmethod
+    def _build_evaluation(
+        cls,
+        match: Any,
+        predicted_outcome: Any,
+        most_likely_score: Dict[str, Any],
+        btts: Dict[str, Any],
+        totals: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        home_score = cls._get_value(
+            match,
+            "home_score",
+        )
+        away_score = cls._get_value(
+            match,
+            "away_score",
+        )
+
+        if home_score is None or away_score is None:
+            return {
+                "available": False,
+                "reason": "match_not_finished",
+                "correct_checks": 0,
+                "total_checks": 0,
+                "accuracy_percentage": None,
+            }
+
+        actual_home = int(home_score)
+        actual_away = int(away_score)
+        actual_total = actual_home + actual_away
+
+        if actual_home > actual_away:
+            actual_outcome = "home_win"
+        elif actual_home < actual_away:
+            actual_outcome = "away_win"
+        else:
+            actual_outcome = "draw"
+
+        normalized_predicted_outcome = (
+            str(predicted_outcome).strip().lower()
+            if predicted_outcome is not None
+            else None
+        )
+
+        predicted_home = most_likely_score.get(
+            "home_goals"
+        )
+        predicted_away = most_likely_score.get(
+            "away_goals"
+        )
+
+        exact_score_available = (
+            predicted_home is not None
+            and predicted_away is not None
+        )
+
+        exact_score_correct = (
+            exact_score_available
+            and int(predicted_home) == actual_home
+            and int(predicted_away) == actual_away
+        )
+
+        btts_yes_probability = cls._number(
+            btts.get("yes")
+        )
+        btts_no_probability = cls._number(
+            btts.get("no")
+        )
+
+        predicted_btts = (
+            exact_score_available
+            and int(predicted_home) > 0
+            and int(predicted_away) > 0
+        )
+        actual_btts = (
+            actual_home > 0
+            and actual_away > 0
+        )
+
+        totals_2_5 = totals.get("2.5", {})
+
+        if not isinstance(totals_2_5, dict):
+            totals_2_5 = {}
+
+        over_2_5_probability = cls._number(
+            totals_2_5.get("over")
+        )
+        under_2_5_probability = cls._number(
+            totals_2_5.get("under")
+        )
+
+        predicted_over_2_5 = (
+            exact_score_available
+            and (
+                int(predicted_home)
+                + int(predicted_away)
+            ) > 2.5
+        )
+        actual_over_2_5 = actual_total > 2.5
+
+        winner_correct = (
+            normalized_predicted_outcome
+            == actual_outcome
+        )
+
+        btts_correct = (
+            predicted_btts
+            == actual_btts
+        )
+
+        over_2_5_correct = (
+            predicted_over_2_5
+            == actual_over_2_5
+        )
+
+        checks = [
+            winner_correct,
+            bool(exact_score_correct),
+            btts_correct,
+            over_2_5_correct,
+        ]
+
+        correct_checks = sum(
+            1 for value in checks if value
+        )
+        total_checks = len(checks)
+
+        accuracy_percentage = round(
+            (
+                correct_checks
+                / total_checks
+            )
+            * 100.0,
+            2,
+        )
+
+        return {
+            "available": True,
+            "actual_score": {
+                "home": actual_home,
+                "away": actual_away,
+                "total": actual_total,
+            },
+            "predicted_score": {
+                "home": (
+                    int(predicted_home)
+                    if predicted_home is not None
+                    else None
+                ),
+                "away": (
+                    int(predicted_away)
+                    if predicted_away is not None
+                    else None
+                ),
+                "score": most_likely_score.get(
+                    "score"
+                ),
+            },
+            "actual_outcome": actual_outcome,
+            "predicted_outcome": (
+                normalized_predicted_outcome
+            ),
+            "winner_correct": winner_correct,
+            "exact_score_correct": bool(
+                exact_score_correct
+            ),
+            "btts": {
+                "predicted": predicted_btts,
+                "actual": actual_btts,
+                "correct": btts_correct,
+                "yes_probability": round(
+                    btts_yes_probability,
+                    2,
+                ),
+                "no_probability": round(
+                    btts_no_probability,
+                    2,
+                ),
+            },
+            "over_2_5": {
+                "predicted": predicted_over_2_5,
+                "actual": actual_over_2_5,
+                "correct": over_2_5_correct,
+                "over_probability": round(
+                    over_2_5_probability,
+                    2,
+                ),
+                "under_probability": round(
+                    under_2_5_probability,
+                    2,
+                ),
+            },
+            "correct_checks": correct_checks,
+            "total_checks": total_checks,
+            "accuracy_percentage": (
+                accuracy_percentage
+            ),
+        }
 
     @classmethod
     def _team_summary(cls, team: Any) -> Dict[str, Any]:

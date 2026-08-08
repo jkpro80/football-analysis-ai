@@ -1,8 +1,11 @@
 import os
+from collections.abc import Generator
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
-from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
+
+from app.database.base import Base
 
 load_dotenv()
 
@@ -15,21 +18,19 @@ if not DATABASE_URL:
 
 engine = create_engine(
     DATABASE_URL,
-    echo=True,
+    echo=False,
+    pool_pre_ping=True,
 )
 
 SessionLocal = sessionmaker(
     bind=engine,
     autoflush=False,
     autocommit=False,
+    expire_on_commit=False,
 )
 
 
-class Base(DeclarativeBase):
-    pass
-
-
-def get_db():
+def get_db() -> Generator[Session, None, None]:
     database = SessionLocal()
 
     try:

@@ -11,9 +11,57 @@ export type LatestHeroTeam = {
   [key: string]: unknown;
 };
 
+type PredictionEvaluation = {
+  available: boolean;
+  reason?: string | null;
+
+  actual_score?: {
+    home?: number;
+    away?: number;
+    total?: number;
+  } | null;
+
+  predicted_score?: {
+    home?: number | null;
+    away?: number | null;
+    score?: string | null;
+  } | null;
+
+  actual_outcome?: string | null;
+  predicted_outcome?: string | null;
+
+  winner_correct?: boolean | null;
+  exact_score_correct?: boolean | null;
+
+  btts?: {
+    predicted?: boolean;
+    actual?: boolean;
+    correct?: boolean;
+    yes_probability?: number;
+    no_probability?: number;
+  };
+
+  over_2_5?: {
+    predicted?: boolean;
+    actual?: boolean;
+    correct?: boolean;
+    over_probability?: number;
+    under_probability?: number;
+  };
+
+  correct_checks?: number;
+  total_checks?: number;
+  accuracy_percentage?: number | null;
+};
+
 type LatestMatchHeroProps = {
   matchId: number;
   status: string;
+  homeScore?: number | null;
+  awayScore?: number | null;
+  isFinished?: boolean;
+  actualOutcome?: string | null;
+  evaluation?: PredictionEvaluation;
   engineVersion: string;
   matchDate: string;
   leagueName?: string | null;
@@ -68,6 +116,11 @@ function translateMatchStatus(status: string): string {
 export default function LatestMatchHero({
   matchId,
   status,
+  homeScore,
+  awayScore,
+  isFinished,
+  actualOutcome,
+  evaluation,
   engineVersion,
   matchDate,
   leagueName,
@@ -106,6 +159,10 @@ export default function LatestMatchHero({
           id: matchId,
           date: matchDate,
           status: translatedStatus,
+          home_score: homeScore,
+          away_score: awayScore,
+          is_finished: isFinished,
+          actual_outcome: actualOutcome,
           league: leagueName,
           venue: venueName,
         }}
@@ -125,11 +182,9 @@ export default function LatestMatchHero({
           score: mostLikelyScore,
           probability: scoreProbability,
         }}
+        evaluation={evaluation}
         model={engineVersion}
       />
     </section>
   );
 }
-
-
-

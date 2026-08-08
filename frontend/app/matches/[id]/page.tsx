@@ -1,7 +1,9 @@
-import LatestMatchHero from "@/components/prediction/LatestMatchHero";
+﻿import LatestMatchHero from "@/components/prediction/LatestMatchHero";
 import ConfidenceGauge from "@/components/prediction/ConfidenceGauge";
-import ScoreMatrixHeatmap from "@/components/prediction/ScoreMatrixHeatmap";
+import ProScoreMatrix from "@/components/prediction/ProScoreMatrix";
 import { apiFetch } from "@/lib/api";
+
+import PredictionSummaryCard from "../../../components/prediction/PredictionSummaryCard";
 
 type Score = {
   home_goals: number;
@@ -48,6 +50,7 @@ type Team = {
   shots_on_target?: number;
   corners?: number;
   yellow_cards?: number;
+  fouls?: number;
   points?: number;
   goal_difference?: number;
   statistics_rows_used?: number;
@@ -116,15 +119,44 @@ type RefereeInfo = {
   name: string | null;
 };
 
+type MatchEventExplanationTeam = {
+  base_average: number;
+  shots?: number;
+  possession: number;
+  fatigue_factor: number;
+  factors: Record<string, number>;
+};
+
+type MatchEventExplanation = {
+  method: string;
+  distribution: string;
+  home: MatchEventExplanationTeam;
+  away: MatchEventExplanationTeam;
+  weather_severity?: number;
+  referee_adjusted?: boolean;
+  formula: string;
+};
+
 type LatestPredictionResponse = {
   api_version: string;
   engine_version: string;
   match: {
     id: number;
+    home_team_id: number | null;
+    away_team_id: number | null;
     home_team: string;
     away_team: string;
+    home_logo: string | null;
+    away_logo: string | null;
+    home_country: string | null;
+    away_country: string | null;
     date: string | null;
     status: string;
+
+    home_score: number | null;
+    away_score: number | null;
+    is_finished: boolean;
+    actual_outcome: string | null;
   };
 
   league?: LeagueInfo | null;
@@ -151,6 +183,42 @@ type LatestPredictionResponse = {
       probability_margin: number;
     };
   };
+
+  evaluation?: PredictionEvaluation;
+
+  match_events: {
+    corners: {
+      home_expected: number;
+      away_expected: number;
+      total_expected: number;
+      over_probabilities: Record<string, number>;
+      most_likely_range?: {
+        minimum: number;
+        maximum: number;
+      };
+      explanation?: MatchEventExplanation;
+    } | null;
+
+    yellow_cards: {
+      home_expected: number;
+      away_expected: number;
+      total_expected: number;
+      over_probabilities: Record<string, number>;
+      most_likely_range?: {
+        minimum: number;
+        maximum: number;
+      };
+      referee_adjusted?: boolean;
+      explanation?: MatchEventExplanation;
+    } | null;
+
+    data_quality: {
+      corners_complete?: boolean;
+      yellow_cards_complete?: boolean;
+      uses_referee_profile?: boolean;
+    };
+  };
+
   markets: {
     match_result: {
       home_win: number;
@@ -204,6 +272,51 @@ type PageProps = {
   params: Promise<{ id: string }>;
 };
 
+type PredictionEvaluation = {
+  available: boolean;
+  reason?: string | null;
+
+  actual_score?: {
+    home?: number;
+    away?: number;
+    total?: number;
+  } | null;
+
+  predicted_score?: {
+    home?: number | null;
+    away?: number | null;
+    score?: string | null;
+  } | null;
+
+  actual_outcome?: string | null;
+  predicted_outcome?: string | null;
+
+  winner_correct?: boolean | null;
+  exact_score_correct?: boolean | null;
+
+  btts?: {
+    predicted?: boolean;
+    actual?: boolean;
+    correct?: boolean;
+    yes_probability?: number;
+    no_probability?: number;
+  };
+
+  over_2_5?: {
+    predicted?: boolean;
+    actual?: boolean;
+    correct?: boolean;
+    over_probability?: number;
+    under_probability?: number;
+  };
+
+  correct_checks?: number;
+  total_checks?: number;
+  accuracy_percentage?: number | null;
+
+  evaluation?: PredictionEvaluation;
+};
+
 type OfficialPredictionResponse = {
   success: boolean;
 
@@ -216,6 +329,13 @@ type OfficialPredictionResponse = {
   match: {
     id: number;
     date?: string | null;
+
+    status?: string | null;
+    home_score?: number | null;
+    away_score?: number | null;
+    is_finished?: boolean;
+    actual_outcome?: string | null;
+
     competition?: string | null;
     venue?: string | null;
     home_team?: {
@@ -297,10 +417,63 @@ type OfficialPredictionResponse = {
     warnings?: string[];
   };
 
+  evaluation?: PredictionEvaluation;
+
+  match_events?: {
+    corners?: {
+      home_expected: number;
+      away_expected: number;
+      total_expected: number;
+      over_probabilities: Record<string, number>;
+      most_likely_range?: {
+        minimum: number;
+        maximum: number;
+      };
+      explanation?: MatchEventExplanation;
+    };
+
+    yellow_cards?: {
+      home_expected: number;
+      away_expected: number;
+      total_expected: number;
+      over_probabilities: Record<string, number>;
+      most_likely_range?: {
+        minimum: number;
+        maximum: number;
+      };
+      referee_adjusted?: boolean;
+      explanation?: MatchEventExplanation;
+    };
+
+    data_quality?: {
+      corners_complete?: boolean;
+      yellow_cards_complete?: boolean;
+      uses_referee_profile?: boolean;
+    };
+  } | null;
+
   features?: {
     home_team?: Team;
     away_team?: Team;
     differences?: Record<string, number>;
+
+    home_possession?: number;
+    away_possession?: number;
+
+    home_shots?: number;
+    away_shots?: number;
+
+    home_shots_on_target?: number;
+    away_shots_on_target?: number;
+
+    home_corners?: number;
+    away_corners?: number;
+
+    home_yellow_cards?: number;
+    away_yellow_cards?: number;
+
+    home_fouls?: number;
+    away_fouls?: number;
   } | null;
 };
 
@@ -354,7 +527,7 @@ async function getPrediction(
     ),
 
     apiFetch<OfficialPredictionResponse>(
-      `/predictions/${matchId}?include_score_matrix=true`,
+      `/predictions/${matchId}`,
     ),
   ]);
 
@@ -364,11 +537,6 @@ async function getPrediction(
   const predictionAway =
     prediction.match.away_team ?? {};
 
-  const featureHome =
-    (prediction.features?.home_team ?? {}) as Partial<Team>;
-
-  const featureAway =
-    (prediction.features?.away_team ?? {}) as Partial<Team>;
 
   const mostLikelyScore: Score = {
     home_goals:
@@ -422,7 +590,19 @@ async function getPrediction(
       `${prediction.engine.name} ${prediction.engine.version}`,
 
     match: {
-      id: match.id,
+  id: match.id,
+  home_team_id:
+    match.home_team_id ?? null,
+  away_team_id:
+    match.away_team_id ?? null,
+  home_logo:
+    match.home_logo ?? null,
+  away_logo:
+    match.away_logo ?? null,
+  home_country:
+    match.home_country ?? null,
+  away_country:
+    match.away_country ?? null,
 
       home_team:
         match.home_team ??
@@ -441,6 +621,18 @@ async function getPrediction(
 
       status:
         String(match.status ?? "scheduled"),
+
+      home_score:
+        prediction.match.home_score ?? null,
+
+      away_score:
+        prediction.match.away_score ?? null,
+
+      is_finished:
+        prediction.match.is_finished ?? false,
+
+      actual_outcome:
+        prediction.match.actual_outcome ?? null,
     },
 
     league: {
@@ -541,6 +733,20 @@ async function getPrediction(
           ),
       },
     },
+
+    match_events: {
+      corners:
+        prediction.match_events?.corners ?? null,
+
+      yellow_cards:
+        prediction.match_events?.yellow_cards ?? null,
+
+      data_quality:
+        prediction.match_events?.data_quality ?? {},
+    },
+
+    evaluation:
+      prediction.evaluation ?? undefined,
 
     markets: {
       match_result: {
@@ -700,67 +906,42 @@ async function getPrediction(
 
     features: {
       home_team: {
-        ...featureHome,
-
         id:
-          featureHome.id ??
           match.home_team_id ??
           predictionHome.id ??
           0,
-
         name:
-          featureHome.name ??
           match.home_team ??
           predictionHome.name ??
-          "الفريق المضيف",
-
+          "Home Team",
         country:
-          featureHome.country ??
           match.home_country ??
           predictionHome.country ??
           undefined,
-
         logo:
-          featureHome.logo ??
-          featureHome.logo_url ??
-          featureHome.image_path ??
           match.home_logo ??
           predictionHome.logo ??
           null,
       },
-
       away_team: {
-        ...featureAway,
-
         id:
-          featureAway.id ??
           match.away_team_id ??
           predictionAway.id ??
           0,
-
         name:
-          featureAway.name ??
           match.away_team ??
           predictionAway.name ??
-          "الفريق الضيف",
-
+          "Away Team",
         country:
-          featureAway.country ??
           match.away_country ??
           predictionAway.country ??
           undefined,
-
         logo:
-          featureAway.logo ??
-          featureAway.logo_url ??
-          featureAway.image_path ??
           match.away_logo ??
           predictionAway.logo ??
           null,
       },
-
-      differences:
-        {},
+      differences: {},
     },
 
     meta: {
@@ -1049,8 +1230,8 @@ export default async function MatchPage({
     );
   }
 
-  const homeTeamId = data.features.home_team.id;
-  const awayTeamId = data.features.away_team.id;
+  const homeTeamId = Number(data.match.home_team_id);
+  const awayTeamId = Number(data.match.away_team_id);
 
   if (
     !Number.isInteger(homeTeamId) ||
@@ -1074,23 +1255,21 @@ export default async function MatchPage({
     ]);
 
   const home: Team = {
-    ...data.features.home_team,
 
     id: homeTeamId,
 
     name:
       data.match.home_team ??
       homeTeamStatistics.team_name ??
-      data.features.home_team.name,
+      "Home Team",
 
     country:
+      data.match.home_country ??
       homeTeamStatistics.country ??
-      data.features.home_team.country,
+      undefined,
 
     logo:
-      data.features.home_team.logo ??
-      data.features.home_team.logo_url ??
-      data.features.home_team.image_path ??
+      data.match.home_logo ??
       null,
 
     elo:
@@ -1131,23 +1310,21 @@ export default async function MatchPage({
   };
 
   const away: Team = {
-    ...data.features.away_team,
 
     id: awayTeamId,
 
     name:
       data.match.away_team ??
       awayTeamStatistics.team_name ??
-      data.features.away_team.name,
+      "Away Team",
 
     country:
+      data.match.away_country ??
       awayTeamStatistics.country ??
-      data.features.away_team.country,
+      undefined,
 
     logo:
-      data.features.away_team.logo ??
-      data.features.away_team.logo_url ??
-      data.features.away_team.image_path ??
+      data.match.away_logo ??
       null,
 
     elo:
@@ -1199,6 +1376,33 @@ export default async function MatchPage({
   const totals25 = data.markets.totals["2.5"];
   const totals35 = data.markets.totals["3.5"];
 
+  const cornersForecast =
+    data.match_events.corners;
+
+  const yellowCardsForecast =
+    data.match_events.yellow_cards;
+
+  const cornersExplanation =
+    cornersForecast?.explanation ?? null;
+
+  const yellowCardsExplanation =
+    yellowCardsForecast?.explanation ?? null;
+
+  const cornerLines = Object.entries(
+    cornersForecast?.over_probabilities ?? {},
+  );
+
+  const yellowCardLines = Object.entries(
+    yellowCardsForecast?.over_probabilities ?? {},
+  );
+
+  const marketLineLabel = (
+    key: string,
+  ): string =>
+    key
+      .replace("over_", "أكثر من ")
+      .replaceAll("_", ".");
+
   const marketCards = [
     ["تسجيل الفريقين", data.markets.btts.yes, `لا: ${pct(data.markets.btts.no)}`],
     ["المضيف أو التعادل 1X", data.markets.double_chance.home_or_draw_1x, ""],
@@ -1222,9 +1426,21 @@ export default async function MatchPage({
     ["الأهداف المسجلة", home.goals_scored, away.goals_scored],
     ["الأهداف المستقبلة", home.goals_conceded, away.goals_conceded],
     ["الاستحواذ", home.possession, away.possession],
+    ["التسديدات", home.shots, away.shots],
+    [
+      "التسديدات على المرمى",
+      home.shots_on_target,
+      away.shots_on_target,
+    ],
+    ["الركنيات", home.corners, away.corners],
+    ["الأخطاء", home.fouls, away.fouls],
+    [
+      "البطاقات الصفراء",
+      home.yellow_cards,
+      away.yellow_cards,
+    ],
     ["النقاط", home.points, away.points],
     ["فارق الأهداف", home.goal_difference, away.goal_difference],
-    ["الركنيات", home.corners, away.corners],
   ] as const;
 
   return (
@@ -1236,8 +1452,15 @@ export default async function MatchPage({
         <LatestMatchHero
           matchId={data.match.id}
           status={data.match.status}
+          homeScore={data.match.home_score}
+          awayScore={data.match.away_score}
+          isFinished={data.match.is_finished}
+          actualOutcome={data.match.actual_outcome}
+          evaluation={data.evaluation}
           engineVersion={data.engine_version}
           matchDate={formatDate(data.match.date)}
+          leagueName={data.league?.name ?? null}
+          venueName={data.venue?.name ?? null}
           homeTeam={home}
           awayTeam={away}
           homeExpectedGoals={xg.home_expected_goals}
@@ -1254,14 +1477,93 @@ export default async function MatchPage({
           }
         />
 
-        <MatchInfoCard
-          league={data.league}
-          season={data.season}
-          round={data.round}
-          stage={data.stage}
-          venue={data.venue}
-          referee={data.referee}
-        />
+        <section className="rounded-[28px] border border-slate-800 bg-[#050b1e] p-5 sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold text-cyan-400">
+                نظرة سريعة
+              </p>
+
+              <h2 className="mt-1 text-lg font-black text-white">
+                ملخص توقعات المباراة
+              </h2>
+            </div>
+
+            <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-bold text-slate-400">
+              قبل المباراة
+            </span>
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.045] p-4">
+              <p className="text-xs text-slate-500">
+                إجمالي الأهداف المتوقعة
+              </p>
+
+              <strong className="mt-2 block text-2xl font-black text-cyan-300">
+                {Number(
+                  xg.total_expected_goals ?? 0,
+                ).toFixed(2)}
+              </strong>
+
+              <span className="mt-1 block text-xs text-slate-600">
+                هدف
+              </span>
+            </div>
+
+            <div className="rounded-2xl border border-violet-400/15 bg-violet-400/[0.045] p-4">
+              <p className="text-xs text-slate-500">
+                الركنيات المتوقعة
+              </p>
+
+              <strong className="mt-2 block text-2xl font-black text-violet-300">
+                {cornersForecast?.total_expected != null
+                  ? Number(
+                      cornersForecast.total_expected,
+                    ).toFixed(2)
+                  : "غير متوفر"}
+              </strong>
+
+              <span className="mt-1 block text-xs text-slate-600">
+                ركنية
+              </span>
+            </div>
+
+            <div className="rounded-2xl border border-amber-400/15 bg-amber-400/[0.045] p-4">
+              <p className="text-xs text-slate-500">
+                البطاقات الصفراء المتوقعة
+              </p>
+
+              <strong className="mt-2 block text-2xl font-black text-amber-300">
+                {yellowCardsForecast?.total_expected != null
+                  ? Number(
+                      yellowCardsForecast.total_expected,
+                    ).toFixed(2)
+                  : "غير متوفر"}
+              </strong>
+
+              <span className="mt-1 block text-xs text-slate-600">
+                بطاقة
+              </span>
+            </div>
+
+            <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/[0.045] p-4">
+              <p className="text-xs text-slate-500">
+                ثقة التوقع
+              </p>
+
+              <strong className="mt-2 block text-2xl font-black text-emerald-300">
+                {Number(
+                  confidence.value ?? 0,
+                ).toFixed(0)}%
+              </strong>
+
+              <span className="mt-1 block text-xs text-slate-600">
+                مستوى ثقة المحرك
+              </span>
+            </div>
+          </div>
+        </section>
 
         <section>
           <h2 className="mb-5 text-2xl font-black">
@@ -1399,6 +1701,191 @@ export default async function MatchPage({
         </section>
 
         <section className="rounded-[32px] border border-slate-800 bg-[#050b1e] p-6 sm:p-8">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-2xl font-black">
+                توقع أحداث المباراة
+              </h2>
+
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                توقعات المباراة الفعلية، وليست مجرد متوسطات الفرق
+                التاريخية.
+              </p>
+            </div>
+
+            <span className="rounded-full border border-cyan-500/25 bg-cyan-950/20 px-3 py-1 text-xs font-bold text-cyan-300">
+              Match Events Forecast
+            </span>
+          </div>
+
+          <div className="mt-7 grid gap-6 xl:grid-cols-2">
+            <article className="rounded-3xl border border-cyan-500/25 bg-cyan-950/10 p-5">
+              <h3 className="text-xl font-black text-cyan-300">
+                الركنيات المتوقعة
+              </h3>
+
+              {cornersExplanation && (
+                <details className="mt-4 rounded-2xl border border-cyan-500/20 bg-slate-900/40 p-4">
+                  <summary className="cursor-pointer font-bold text-cyan-300">
+                    كيف تم حساب توقع الركنيات؟
+                  </summary>
+
+                  <div className="mt-4 space-y-2 text-sm text-slate-300">
+                    <p>
+                      <strong>طريقة الحساب:</strong>{" "}
+                      {cornersExplanation.method}
+                    </p>
+
+                    <p>
+                      <strong>التوزيع الإحصائي:</strong>{" "}
+                      {cornersExplanation.distribution}
+                    </p>
+
+                    <p className="break-words">
+                      <strong>المعادلة:</strong>{" "}
+                      {cornersExplanation.formula}
+                    </p>
+                  </div>
+                </details>
+              )}
+
+              {cornersForecast ? (
+                <>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                    <StatCard
+                      title={home.name}
+                      value={
+                        cornersForecast.home_expected.toFixed(2)
+                      }
+                      note="ركنيات متوقعة"
+                    />
+
+                    <StatCard
+                      title={away.name}
+                      value={
+                        cornersForecast.away_expected.toFixed(2)
+                      }
+                      note="ركنيات متوقعة"
+                    />
+
+                    <StatCard
+                      title="إجمالي المباراة"
+                      value={
+                        cornersForecast.total_expected.toFixed(2)
+                      }
+                      note={
+                        cornersForecast.most_likely_range
+                          ? `النطاق المرجح: ${cornersForecast.most_likely_range.minimum} - ${cornersForecast.most_likely_range.maximum}`
+                          : "الإجمالي المتوقع"
+                      }
+                    />
+                  </div>
+
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    {cornerLines.map(([key, value]) => (
+                      <ProgressCard
+                        key={key}
+                        title={`${marketLineLabel(key)} ركنية`}
+                        value={Number(value)}
+                      />
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-950/15 p-4 text-sm text-amber-100/80">
+                  توقع الركنيات غير متاح لهذه المباراة.
+                </p>
+              )}
+            </article>
+
+            <article className="rounded-3xl border border-amber-500/25 bg-amber-950/10 p-5">
+              <h3 className="text-xl font-black text-amber-300">
+                البطاقات الصفراء المتوقعة
+              </h3>
+
+              {yellowCardsExplanation && (
+                <details className="mt-4 rounded-2xl border border-amber-500/20 bg-slate-900/40 p-4">
+                  <summary className="cursor-pointer font-bold text-amber-300">
+                    كيف تم حساب توقع البطاقات؟
+                  </summary>
+
+                  <div className="mt-4 space-y-2 text-sm text-slate-300">
+                    <p>
+                      <strong>طريقة الحساب:</strong>{" "}
+                      {yellowCardsExplanation.method}
+                    </p>
+
+                    <p>
+                      <strong>التوزيع الإحصائي:</strong>{" "}
+                      {yellowCardsExplanation.distribution}
+                    </p>
+
+                    <p className="break-words">
+                      <strong>المعادلة:</strong>{" "}
+                      {yellowCardsExplanation.formula}
+                    </p>
+                  </div>
+                </details>
+              )}
+
+              {yellowCardsForecast ? (
+                <>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                    <StatCard
+                      title={home.name}
+                      value={
+                        yellowCardsForecast.home_expected.toFixed(2)
+                      }
+                      note="بطاقات متوقعة"
+                    />
+
+                    <StatCard
+                      title={away.name}
+                      value={
+                        yellowCardsForecast.away_expected.toFixed(2)
+                      }
+                      note="بطاقات متوقعة"
+                    />
+
+                    <StatCard
+                      title="إجمالي المباراة"
+                      value={
+                        yellowCardsForecast.total_expected.toFixed(2)
+                      }
+                      note={
+                        yellowCardsForecast.most_likely_range
+                          ? `النطاق المرجح: ${yellowCardsForecast.most_likely_range.minimum} - ${yellowCardsForecast.most_likely_range.maximum}`
+                          : "الإجمالي المتوقع"
+                      }
+                    />
+                  </div>
+
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    {yellowCardLines.map(([key, value]) => (
+                      <ProgressCard
+                        key={key}
+                        title={`${marketLineLabel(key)} بطاقة`}
+                        value={Number(value)}
+                      />
+                    ))}
+                  </div>
+
+                  <p className="mt-4 text-xs text-slate-500">
+                    {yellowCardsForecast.referee_adjusted
+                      ? "تم تطبيق تأثير الحكم على التوقع."
+                      : "لم يُطبق تأثير حكم مخصص على التوقع."}
+                  </p>
+                </>
+              ) : (
+                <p className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-950/15 p-4 text-sm text-amber-100/80">
+                  توقع البطاقات غير متاح لهذه المباراة.
+                </p>
+              )}
+            </article>
+          </div>
+        </section>
+
+        <section className="rounded-[32px] border border-slate-800 bg-[#050b1e] p-6 sm:p-8">
           <h2 className="text-2xl font-black">
             مقارنة الفريقين
           </h2>
@@ -1434,8 +1921,17 @@ export default async function MatchPage({
           </div>
         </section>
 
-        <ScoreMatrixHeatmap
-          matrix={data.markets.score_matrix}
+        <MatchInfoCard
+          league={data.league}
+          season={data.season}
+          round={data.round}
+          stage={data.stage}
+          venue={data.venue}
+          referee={data.referee}
+        />
+
+        <ProScoreMatrix
+          matchId={matchId}
           mostLikelyScore={
             data.prediction.most_likely_score.score
           }
@@ -1445,15 +1941,6 @@ export default async function MatchPage({
           homeWin={data.markets.match_result.home_win}
           draw={data.markets.match_result.draw}
           awayWin={data.markets.match_result.away_win}
-          entropy={
-            data.prediction.score_distribution
-              ?.normalized_entropy ?? null
-          }
-          topFiveConcentration={
-            data.prediction.score_distribution
-              ?.concentration.top_5 ?? null
-          }
-          maxGoals={6}
         />
 
         <section className="rounded-[32px] border border-slate-800 bg-[#050b1e] p-6 sm:p-8">
@@ -1533,9 +2020,6 @@ export default async function MatchPage({
     </main>
   );
 }
-
-
-
 
 
 

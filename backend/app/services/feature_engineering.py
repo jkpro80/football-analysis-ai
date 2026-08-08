@@ -261,6 +261,19 @@ class FeatureEngineering:
             ),
 
             # =====================================
+            # Fouls
+            # =====================================
+
+            "home_fouls": self._number(
+                getattr(home, "fouls", None),
+                11.0,
+            ),
+            "away_fouls": self._number(
+                getattr(away, "fouls", None),
+                11.0,
+            ),
+
+            # =====================================
             # Defensive Stats
             # =====================================
 

@@ -21,11 +21,24 @@ class TeamSummary(BaseModel):
 class MatchSummary(BaseModel):
     id: int
     date: Optional[Any] = None
+
+    status: Optional[str] = None
+    home_score: Optional[int] = Field(
+        default=None,
+        ge=0,
+    )
+    away_score: Optional[int] = Field(
+        default=None,
+        ge=0,
+    )
+    is_finished: bool = False
+    actual_outcome: Optional[str] = None
+
     competition: Optional[str] = None
     venue: Optional[str] = None
+
     home_team: TeamSummary
     away_team: TeamSummary
-
 
 class ExpectedGoalsResponse(BaseModel):
     home: float = Field(ge=0)
@@ -80,6 +93,41 @@ class ConfidenceResponse(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
+class PredictionEvaluationResponse(BaseModel):
+    available: bool = False
+    reason: Optional[str] = None
+
+    actual_score: Optional[Dict[str, Any]] = None
+    predicted_score: Optional[Dict[str, Any]] = None
+
+    actual_outcome: Optional[str] = None
+    predicted_outcome: Optional[str] = None
+
+    winner_correct: Optional[bool] = None
+    exact_score_correct: Optional[bool] = None
+
+    btts: Dict[str, Any] = Field(
+        default_factory=dict
+    )
+    over_2_5: Dict[str, Any] = Field(
+        default_factory=dict
+    )
+
+    correct_checks: int = Field(
+        default=0,
+        ge=0,
+    )
+    total_checks: int = Field(
+        default=0,
+        ge=0,
+    )
+    accuracy_percentage: Optional[float] = Field(
+        default=None,
+        ge=0,
+        le=100,
+    )
+
+
 class PredictionResponse(BaseModel):
     """
     الاستجابة النهائية لمحرك Prediction Engine V11.
@@ -105,6 +153,9 @@ class PredictionResponse(BaseModel):
     win_to_nil: Dict[str, Any] = Field(default_factory=dict)
 
     confidence: ConfidenceResponse
+    evaluation: Optional[
+        PredictionEvaluationResponse
+    ] = None
 
     score_matrix: Optional[Any] = None
     features: Optional[Dict[str, Any]] = None

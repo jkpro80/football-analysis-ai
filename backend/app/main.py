@@ -1,4 +1,4 @@
-from app.core.config import settings
+﻿from app.core.config import settings
 from app.core.logging import logger
 
 from fastapi import FastAPI
@@ -6,6 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.api.auth import router as auth_router
+from app.api.subscriptions import router as subscriptions_router
 from app.api.system_update import router as system_update_router
 from app.database.database import SessionLocal
 from app.api.backtest import router as backtest_router
@@ -45,6 +47,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# Authentication APIs
+app.include_router(auth_router)
+app.include_router(subscriptions_router)
 
 # Core data APIs
 app.include_router(teams_router)
@@ -93,8 +99,8 @@ def health() -> dict[str, str]:
 )
 def system_status() -> dict[str, str]:
     """
-    فحص حالة الـBackend وقاعدة البيانات
-    ومحرك التوقعات.
+    ÙØ­Øµ Ø­Ø§Ù„Ø© Ø§Ù„Ù€Backend ÙˆÙ‚Ø§Ø¹Ø¯Ø© Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª
+    ÙˆÙ…Ø­Ø±Ùƒ Ø§Ù„ØªÙˆÙ‚Ø¹Ø§Øª.
     """
 
     database_status = "disconnected"
@@ -127,6 +133,8 @@ def system_status() -> dict[str, str]:
         "database": database_status,
         "prediction_engine": prediction_engine_status,
     }
+
+
 
 
 

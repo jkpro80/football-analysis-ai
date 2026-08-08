@@ -1,4 +1,5 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
+import { AuthProvider } from "@/context/auth-context";
 import type { ReactNode } from "react";
 import "./globals.css";
 
@@ -18,9 +19,10 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl">
       <body className="min-h-screen bg-slate-950 text-slate-100">
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );
 }
+
 
