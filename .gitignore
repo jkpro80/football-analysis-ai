@@ -58,3 +58,8 @@ project_audit.txt
 .idea/
 .DS_Store
 Thumbs.db
+
+# Local patch/repair backups
+*.bak-*
+*.bak_*
+*.encoding-backup

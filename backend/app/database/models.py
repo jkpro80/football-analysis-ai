@@ -8,6 +8,7 @@ from sqlalchemy import (
     BigInteger,
     Integer,
     String,
+UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
@@ -1120,6 +1121,22 @@ class UserSubscription(Base):
         nullable=False,
         default=False,
     )
+    billing_status = Column(
+        String(30),
+        nullable=False,
+        default="current",
+        index=True,
+    )
+    last_invoice_id = Column(
+        String(255),
+        nullable=True,
+        index=True,
+    )
+    last_payment_failed_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+    )
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -1139,6 +1156,163 @@ class UserSubscription(Base):
         "SubscriptionPlan",
         back_populates="subscriptions",
     )
+class ProviderWebhookEvent(Base):
+    __tablename__ = "provider_webhook_events"
+    __table_args__ = (
+        UniqueConstraint(
+            "provider",
+            "event_id",
+            name="uq_provider_webhook_events_provider_event_id",
+        ),
+    )
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    provider = Column(
+        String(50),
+        nullable=False,
+        index=True,
+    )
+
+    event_id = Column(
+        String(255),
+        nullable=False,
+        index=True,
+    )
+
+    event_type = Column(
+        String(100),
+        nullable=False,
+        index=True,
+    )
+
+    status = Column(
+        String(30),
+        nullable=False,
+        default="received",
+        index=True,
+    )
+
+    received_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    processed_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+    )
+
+
+class Payment(Base):
+    __tablename__ = "payments"
+    __table_args__ = (
+        UniqueConstraint(
+            "provider",
+            "provider_payment_id",
+            name="uq_payments_provider_payment_id",
+        ),
+    )
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+    user_id = Column(
+        Integer,
+        ForeignKey(
+            "users.id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+        index=True,
+    )
+    plan_id = Column(
+        Integer,
+        ForeignKey(
+            "subscription_plans.id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+        index=True,
+    )
+    provider = Column(
+        String(50),
+        nullable=False,
+        index=True,
+    )
+    provider_payment_id = Column(
+        String(255),
+        nullable=True,
+    )
+    provider_customer_id = Column(
+        String(255),
+        nullable=True,
+        index=True,
+    )
+    provider_subscription_id = Column(
+        String(255),
+        nullable=True,
+        index=True,
+    )
+    status = Column(
+        String(30),
+        nullable=False,
+        default="pending",
+        index=True,
+    )
+    amount_minor = Column(
+        BigInteger,
+        nullable=False,
+    )
+    currency = Column(
+        String(10),
+        nullable=False,
+        default="USD",
+    )
+    idempotency_key = Column(
+        String(255),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    failure_code = Column(
+        String(100),
+        nullable=True,
+    )
+    failure_message = Column(
+        String(500),
+        nullable=True,
+    )
+    paid_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+    )
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+    user = relationship(
+        "User",
+    )
+    plan = relationship(
+        "SubscriptionPlan",
+    )
+
 class AnalysisUsage(Base):
     __tablename__ = "analysis_usage"
     id = Column(
@@ -1177,5 +1351,7 @@ class AnalysisUsage(Base):
     match = relationship(
         "Match",
     )
+
+
 
 

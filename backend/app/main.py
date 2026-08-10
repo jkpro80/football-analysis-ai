@@ -8,6 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.auth import router as auth_router
 from app.api.subscriptions import router as subscriptions_router
+from app.api.payments import router as payments_router
 from app.api.system_update import router as system_update_router
 from app.database.database import SessionLocal
 from app.api.backtest import router as backtest_router
@@ -51,6 +52,7 @@ app.add_middleware(
 # Authentication APIs
 app.include_router(auth_router)
 app.include_router(subscriptions_router)
+app.include_router(payments_router)
 
 # Core data APIs
 app.include_router(teams_router)
@@ -133,6 +135,7 @@ def system_status() -> dict[str, str]:
         "database": database_status,
         "prediction_engine": prediction_engine_status,
     }
+
 
 
 

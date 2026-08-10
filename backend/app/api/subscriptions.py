@@ -1,20 +1,4 @@
-﻿from calendar import monthrange
 from calendar import monthrange
-
-from app.services.analysis_usage_service import AnalysisUsageService
-
-from app.schemas.subscription import (
-    SubscriptionChangeRequest,
-    SubscriptionUsageResponse,
-)
-from app.schemas.subscription import (
-    SubscriptionChangeRequest,
-    SubscriptionUsageResponse,
-)
-
-from app.services.analysis_usage_service import (
-    AnalysisUsageService,
-)
 from datetime import datetime, timezone
 from fastapi import (
     APIRouter,
@@ -27,17 +11,32 @@ from app.database.database import get_db
 from app.database.models import (
     SubscriptionPlan,
     User,
-    UserSubscription,
 )
 from app.dependencies.auth import get_current_user
+from app.payments.base import (
+    PaymentProviderConfigurationError,
+    PaymentProviderError,
+)
 from app.schemas.auth import (
     SubscriptionPlanResponse,
     UserSubscriptionResponse,
 )
 from app.schemas.subscription import (
     SubscriptionChangeRequest,
+    SubscriptionUsageResponse,
+)
+from app.services.analysis_usage_service import (
+    AnalysisUsageService,
 )
 from app.services.auth_service import AuthService
+from app.services.billing_service import (
+    BillingService,
+    PaymentConflictError,
+)
+from app.services.subscription_service import (
+    SubscriptionService,
+)
+
 router = APIRouter(
     prefix="/subscriptions",
     tags=["Subscriptions"],
@@ -155,9 +154,9 @@ def change_subscription(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Subscription plan not found.",
         )
-    service = AuthService(db)
+    subscription_service = SubscriptionService(db)
     current_subscription = (
-        service.get_active_subscription(
+        subscription_service.get_active_subscription(
             current_user.id,
         )
     )
@@ -174,33 +173,38 @@ def change_subscription(
                 f"the {plan.name} plan."
             ),
         )
-    now = datetime.now(timezone.utc)
+    return subscription_service.activate_plan(
+        user_id=current_user.id,
+        plan=plan,
+        auto_renew=False,
+    )
+
+@router.post(
+    "/cancel",
+    response_model=UserSubscriptionResponse,
+    status_code=status.HTTP_200_OK,
+)
+def cancel_subscription(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    billing = BillingService(db)
     try:
-        active_subscriptions = (
-            db.query(UserSubscription)
-            .filter(
-                UserSubscription.user_id
-                == current_user.id,
-                UserSubscription.status == "active",
-            )
-            .all()
+        return billing.cancel_active_subscription(
+            current_user.id,
         )
-        for subscription in active_subscriptions:
-            subscription.status = "cancelled"
-            subscription.ends_at = now
-            subscription.auto_renew = False
-        new_subscription = UserSubscription(
-            user_id=current_user.id,
-            plan_id=plan.id,
-            status="active",
-            starts_at=now,
-            ends_at=None,
-            auto_renew=False,
-        )
-        db.add(new_subscription)
-        db.commit()
-        db.refresh(new_subscription)
-        return new_subscription
-    except Exception:
-        db.rollback()
-        raise
+    except PaymentProviderConfigurationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Payment provider is not configured.",
+        ) from exc
+    except PaymentProviderError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Subscription cancellation failed.",
+        ) from exc
+    except PaymentConflictError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc

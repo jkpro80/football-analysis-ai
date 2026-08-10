@@ -1,4 +1,4 @@
-﻿const API_BASE =
+const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost/api";
 export interface RegisterRequest {
   full_name: string;
@@ -59,11 +59,11 @@ async function request<T>(
   options?: RequestInit,
 ): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
+    ...options,
     headers: {
       "Content-Type": "application/json",
       ...(options?.headers ?? {}),
     },
-    ...options,
   });
   if (!response.ok) {
     let message = "Request failed";
@@ -163,3 +163,63 @@ export function getSubscriptionUsage(
 }
 
 
+
+export interface CheckoutResponse {
+  payment_id: number;
+  provider: string;
+  checkout_url: string;
+}
+
+export interface PaymentReconcileResponse {
+  payment_id: number;
+  status: string;
+  provider_subscription_id: string | null;
+}
+export function reconcilePayment(
+  accessToken: string,
+  paymentId: number,
+) {
+  return request<PaymentReconcileResponse>(
+    `/payments/${paymentId}/reconcile`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+}
+export function cancelSubscription(
+  accessToken: string,
+) {
+  return request<UserSubscription>(
+    "/subscriptions/cancel",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+}
+export function createCheckout(
+  accessToken: string,
+  planCode: string,
+  successUrl: string,
+  cancelUrl: string,
+) {
+  return request<CheckoutResponse>(
+    "/payments/checkout",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        plan_code: planCode,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+      }),
+    },
+  );
+}

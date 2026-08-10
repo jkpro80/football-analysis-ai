@@ -1,4 +1,4 @@
-from functools import lru_cache
+﻿from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -22,6 +22,11 @@ class Settings(BaseSettings):
 
     debug_sportmonks_fixtures: bool = False
 
+    stripe_secret_key: str | None = None
+    stripe_webhook_secret: str | None = None
+    stripe_pro_price_id: str | None = None
+    stripe_premium_price_id: str | None = None
+
     allowed_origins: list[str] = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
@@ -40,3 +45,7 @@ def get_settings():
 
 
 settings = get_settings()
+
+
+
+

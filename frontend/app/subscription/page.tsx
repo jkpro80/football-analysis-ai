@@ -1,9 +1,11 @@
-﻿"use client";
+"use client";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/auth-context";
 import {
+  cancelSubscription,
   changeSubscription,
+  createCheckout,
   getSubscriptionPlans,
   getSubscriptionUsage,
   type SubscriptionPlan,
@@ -27,7 +29,7 @@ function getPlanDescription(
   if (code === "premium") {
     return "الخطة الأعلى للمستخدم الذي يريد جميع الميزات والتحليلات المتقدمة.";
   }
-  return "خطة اشتراك في منصة Football Analysis AI.";
+  return "خطة اشتراك للوصول إلى ميزات Football Analysis AI.";
 }
 function getFeatures(
   plan: SubscriptionPlan,
@@ -75,6 +77,8 @@ export default function SubscriptionPage() {
     useState<string | null>(null);
   const [changingPlan, setChangingPlan] =
     useState<string | null>(null);
+const [cancellingSubscription, setCancellingSubscription] =
+  useState(false);
   const [actionMessage, setActionMessage] =
     useState<string | null>(null);
   useEffect(() => {
@@ -168,14 +172,33 @@ export default function SubscriptionPage() {
     setActionMessage(null);
     setError(null);
     try {
-      await changeSubscription(
+    if (Number(plan.monthly_price) > 0) {
+      const origin = window.location.origin;
+
+      const checkout = await createCheckout(
         accessToken,
         plan.code,
+        `${origin}/billing/success`,
+        `${origin}/billing/cancel`,
       );
-      await reloadUser();
-      setActionMessage(
-        `تم تحديث الاشتراك إلى ${plan.name}.`,
+
+      window.location.assign(
+        checkout.checkout_url,
       );
+
+      return;
+    }
+
+    await changeSubscription(
+      accessToken,
+      plan.code,
+    );
+
+    await reloadUser();
+
+    setActionMessage(
+      `تم تحديث الاشتراك إلى ${plan.name}.`,
+    );
     } catch (caughtError) {
       const message =
         caughtError instanceof Error
@@ -186,6 +209,46 @@ export default function SubscriptionPage() {
       setChangingPlan(null);
     }
   }
+
+  async function handleCancelSubscription(): Promise<void> {
+    if (!user) {
+      window.location.href = "/login";
+      return;
+    }
+
+    const accessToken =
+      window.localStorage.getItem(
+        "football_ai_access_token",
+      );
+
+    if (!accessToken) {
+      window.location.href = "/login";
+      return;
+    }
+
+    setCancellingSubscription(true);
+    setActionMessage(null);
+    setError(null);
+
+    try {
+      await cancelSubscription(accessToken);
+
+      await reloadUser();
+
+      setActionMessage(
+        "تم إيقاف التجديد التلقائي. ستبقى خطتك فعالة حتى نهاية الفترة المدفوعة الحالية.",
+      );
+    } catch (caughtError) {
+      setActionMessage(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "تعذر إلغاء الاشتراك.",
+      );
+    } finally {
+      setCancellingSubscription(false);
+    }
+  }
+
   return (
     <main
       dir="rtl"
@@ -200,7 +263,7 @@ export default function SubscriptionPage() {
             الاشتراكات
           </h1>
           <p className="mt-4 max-w-3xl leading-8 text-slate-400">
-            اختر الخطة المناسبة لك واستفد من
+            اختر الخطة المناسبة لك واستفد من المزيد من
             تحليلات Football Analysis AI.
           </p>
           {!authLoading && user ? (
@@ -336,13 +399,27 @@ export default function SubscriptionPage() {
                     )}
                   </ul>
                   {isCurrent ? (
-                    <button
-                      type="button"
-                      disabled
-                      className="mt-7 w-full cursor-default rounded-xl border border-cyan-500/30 bg-cyan-950/20 px-5 py-3 font-black text-cyan-300"
-                    >
-                      الخطة الحالية
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        disabled
+                        className="mt-7 w-full cursor-default rounded-xl border border-cyan-500/30 bg-cyan-950/20 px-5 py-3 font-black text-cyan-300"
+                      >
+                        الخطة الحالية
+                      </button>
+                      {!isFree ? (
+                        <button
+                          type="button"
+                          onClick={handleCancelSubscription}
+                          disabled={cancellingSubscription}
+                          className="mt-3 w-full rounded-xl border border-red-500/30 bg-red-950/20 px-5 py-3 font-black text-red-300 transition hover:bg-red-950/40 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {cancellingSubscription
+                            ? "جارٍ إلغاء الاشتراك..."
+                            : "إلغاء الاشتراك"}
+                        </button>
+                      ) : null}
+                    </>
                   ) : user ? (
                     <button
                       type="button"
@@ -386,8 +463,8 @@ export default function SubscriptionPage() {
           <p className="mt-3 leading-7 text-slate-500">
             الخطط والأسعار المعروضة في هذه الصفحة
             تأتي الآن مباشرة من قاعدة البيانات.
-            عملية الدفع والترقية الفعلية ستتم إضافتها
-            في المرحلة التالية.
+            عملية الدفع والترقية وإدارة الاشتراك
+            مرتبطة بمنظومة الاشتراكات الحالية.
           </p>
         </section>
         <footer className="mt-10 flex flex-wrap gap-4 border-t border-slate-800 py-7">
@@ -408,6 +485,7 @@ export default function SubscriptionPage() {
     </main>
   );
 }
+
 
 
 
