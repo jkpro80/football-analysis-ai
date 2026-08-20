@@ -1,4 +1,5 @@
-﻿from datetime import datetime
+from datetime import datetime
+
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -6,29 +7,39 @@ from pydantic import (
     Field,
     field_validator,
 )
+
+
 class RegisterRequest(BaseModel):
     email: EmailStr
+
     username: str = Field(
         min_length=3,
         max_length=100,
         pattern=r"^[A-Za-z0-9_.-]+$",
     )
+
     full_name: str = Field(
         min_length=2,
         max_length=200,
     )
+
     password: str = Field(
         min_length=8,
         max_length=128,
     )
+
+    accepted_legal: bool
+
     @field_validator("email")
     @classmethod
     def normalize_email(cls, value: EmailStr) -> str:
         return str(value).strip().lower()
+
     @field_validator("username")
     @classmethod
     def normalize_username(cls, value: str) -> str:
         return value.strip().lower()
+
     @field_validator("full_name")
     @classmethod
     def normalize_full_name(cls, value: str) -> str:
@@ -36,6 +47,7 @@ class RegisterRequest(BaseModel):
         if not normalized:
             raise ValueError("Full name is required.")
         return normalized
+
     @field_validator("password")
     @classmethod
     def validate_password(cls, value: str) -> str:
@@ -43,15 +55,33 @@ class RegisterRequest(BaseModel):
             raise ValueError(
                 "Password must include a lowercase letter."
             )
+
         if not any(character.isupper() for character in value):
             raise ValueError(
                 "Password must include an uppercase letter."
             )
+
         if not any(character.isdigit() for character in value):
             raise ValueError(
                 "Password must include a number."
             )
+
         return value
+
+    @field_validator("accepted_legal")
+    @classmethod
+    def validate_accepted_legal(
+        cls,
+        value: bool,
+    ) -> bool:
+        if value is not True:
+            raise ValueError(
+                "Terms and Privacy Policy must be accepted."
+            )
+
+        return value
+
+
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 
@@ -159,3 +189,6 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int
     user: AuthUserResponse
+
+
+

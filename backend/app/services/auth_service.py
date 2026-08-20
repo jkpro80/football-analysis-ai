@@ -1,4 +1,4 @@
-﻿from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import uuid4
 import hashlib
@@ -193,6 +193,9 @@ class AuthService:
             role="user",
             is_active=True,
             is_verified=False,
+            terms_accepted_at=self._utc_now(),
+            terms_version="2026-08-20",
+            privacy_version="2026-08-20",
         )
         try:
             self.db.add(user)
@@ -433,3 +436,5 @@ class AuthService:
             )
             .first()
         )
+
+

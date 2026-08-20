@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import GlobalBackButton from "@/components/GlobalBackButton";
+import LegalFooter from "@/components/layout/LegalFooter";
 import { AuthProvider } from "@/context/auth-context";
 import { LocaleProvider } from "@/context/locale-context";
 import {
@@ -42,9 +43,13 @@ export default async function RootLayout({
           <AuthProvider>
             <GlobalBackButton />
             {children}
+            <LegalFooter />
           </AuthProvider>
         </LocaleProvider>
       </body>
     </html>
   );
 }
+
+
+

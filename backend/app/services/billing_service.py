@@ -269,6 +269,8 @@ class BillingService:
         provider_customer_id: str | None = None,
         provider_subscription_id: str | None = None,
         status: str = "pending",
+        subscription_terms_accepted_at=None,
+        subscription_terms_version: str | None = None,
     ) -> Payment:
         user_id = self._positive_integer(
             user_id,
@@ -333,6 +335,12 @@ class BillingService:
             amount_minor=amount_minor,
             currency=currency,
             idempotency_key=idempotency_key,
+            subscription_terms_accepted_at=(
+                subscription_terms_accepted_at
+            ),
+            subscription_terms_version=(
+                subscription_terms_version
+            ),
             failure_code=None,
             failure_message=None,
             paid_at=(
@@ -1140,5 +1148,6 @@ class BillingService:
             field_name=field_name,
             max_length=max_length,
         )
+
 
 

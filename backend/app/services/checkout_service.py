@@ -84,6 +84,14 @@ class CheckoutService:
             f"user:{user.id}:plan:{plan.id}:"
             f"{uuid4().hex}"
         )
+        consent_accepted_at = self.billing._utc_now()
+        consent_version = "2026-08-20"
+
+        user.subscription_terms_accepted_at = (
+            consent_accepted_at
+        )
+        user.subscription_terms_version = consent_version
+
         payment = self.billing.create_payment(
             user_id=user.id,
             plan_id=plan.id,
@@ -92,6 +100,12 @@ class CheckoutService:
             currency=currency,
             idempotency_key=idempotency_key,
             status="pending",
+            subscription_terms_accepted_at=(
+                consent_accepted_at
+            ),
+            subscription_terms_version=(
+                consent_version
+            ),
         )
         success_parts = urlsplit(success_url)
         success_query = dict(
@@ -200,3 +214,5 @@ class CheckoutService:
                 f"{field_name} exceeds maximum length.",
             )
         return normalized
+
+

@@ -20,6 +20,9 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] =
     useState("");
+
+  const [acceptedLegal, setAcceptedLegal] =
+    useState(false);
   const [isSubmitting, setIsSubmitting] = useState(
     false,
   );
@@ -40,6 +43,13 @@ export default function RegisterPage() {
   ) {
     event.preventDefault();
     setError(null);
+    if (!acceptedLegal) {
+      setError(
+        "يجب الموافقة على الشروط والأحكام وسياسة الخصوصية قبل إنشاء الحساب.",
+      );
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError("كلمتا المرور غير متطابقتين.");
       return;
@@ -51,6 +61,7 @@ export default function RegisterPage() {
         username,
         email,
         password,
+        accepted_legal: acceptedLegal,
       });
       router.replace("/");
       router.refresh();
@@ -225,6 +236,38 @@ export default function RegisterPage() {
                 className="w-full rounded-xl border border-slate-700 bg-[#071023] px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-400"
               />
             </label>
+            <label className="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+              <input
+                type="checkbox"
+                checked={acceptedLegal}
+                onChange={(event) => {
+                  setAcceptedLegal(event.target.checked);
+                }}
+                required
+                className="mt-1 h-4 w-4 accent-cyan-400"
+              />
+
+              <span className="text-sm leading-7 text-slate-400">
+                أوافق على{" "}
+                <Link
+                  href="/terms"
+                  target="_blank"
+                  className="font-bold text-cyan-300 hover:text-cyan-200"
+                >
+                  الشروط والأحكام
+                </Link>
+                {" "}و{" "}
+                <Link
+                  href="/privacy"
+                  target="_blank"
+                  className="font-bold text-cyan-300 hover:text-cyan-200"
+                >
+                  سياسة الخصوصية
+                </Link>
+                .
+              </span>
+            </label>
+
             {error ? (
               <div
                 role="alert"
@@ -241,7 +284,8 @@ export default function RegisterPage() {
                 username.trim().length < 3 ||
                 email.trim().length === 0 ||
                 password.length < 8 ||
-                confirmPassword.length < 8
+                confirmPassword.length < 8 ||
+                !acceptedLegal
               }
               className="w-full rounded-xl bg-cyan-400 px-5 py-3 font-black text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -272,4 +316,6 @@ export default function RegisterPage() {
     </main>
   );
 }
+
+
 

@@ -5,6 +5,8 @@ export interface RegisterRequest {
   username: string;
   email: string;
   password: string;
+  accepted_legal: boolean;
+
 }
 export interface LoginRequest {
   identifier: string;
@@ -262,6 +264,8 @@ export function createCheckout(
   planCode: string,
   successUrl: string,
   cancelUrl: string,
+  acceptedSubscriptionTerms: boolean,
+
 ) {
   return request<CheckoutResponse>(
     "/payments/checkout",
@@ -274,8 +278,17 @@ export function createCheckout(
         plan_code: planCode,
         success_url: successUrl,
         cancel_url: cancelUrl,
+        accepted_subscription_terms:
+          acceptedSubscriptionTerms,
+
       }),
     },
   );
 }
+
+
+
+
+
+
 

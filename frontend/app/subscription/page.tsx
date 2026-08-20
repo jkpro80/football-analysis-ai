@@ -50,6 +50,18 @@ function getText(locale: Locale) {
         `الترقية إلى ${name}`,
       createAccount: "إنشاء حساب",
 
+      legalPrefix:
+        "قبل الاشتراك المدفوع، أؤكد أنني قرأت ووافقت على",
+      subscriptionTermsLink:
+        "شروط الاشتراك والإلغاء",
+      legalAnd: "و",
+      generalTermsLink:
+        "الشروط والأحكام",
+      immediateAccess:
+        "وأطلب بدء الوصول إلى الخدمة فور إتمام الدفع. أفهم أن بدء الخدمة قد يؤثر على حق الانسحاب وفق القانون المطبق، دون المساس بحقوقي القانونية الإلزامية.",
+      legalRequired:
+        "يجب الموافقة على شروط الاشتراك والشروط والأحكام قبل المتابعة إلى الدفع.",
+
       updateSuccess: (name: string) =>
         `تم تحديث الاشتراك إلى ${name}.`,
       changeError: "تعذر تغيير الاشتراك.",
@@ -100,6 +112,18 @@ function getText(locale: Locale) {
       upgradeTo: (name: string) =>
         `Uppgradera till ${name}`,
       createAccount: "Skapa konto",
+
+      legalPrefix:
+        "Innan jag tecknar ett betalt abonnemang bekräftar jag att jag har läst och godkänt",
+      subscriptionTermsLink:
+        "villkoren för abonnemang och uppsägning",
+      legalAnd: "och",
+      generalTermsLink:
+        "de allmänna villkoren",
+      immediateAccess:
+        "och jag begär att tjänsten börjar tillhandahållas direkt efter betalningen. Jag förstår att detta kan påverka min ångerrätt enligt tillämplig lag, utan att begränsa tvingande konsumenträttigheter.",
+      legalRequired:
+        "Du måste godkänna abonnemangsvillkoren och de allmänna villkoren innan du går vidare till betalning.",
 
       updateSuccess: (name: string) =>
         `Abonnemanget har uppdaterats till ${name}.`,
@@ -152,6 +176,18 @@ function getText(locale: Locale) {
     upgradeTo: (name: string) =>
       `Upgrade to ${name}`,
     createAccount: "Create Account",
+
+    legalPrefix:
+      "Before purchasing a paid subscription, I confirm that I have read and agree to the",
+    subscriptionTermsLink:
+      "Subscription & Cancellation Terms",
+    legalAnd: "and",
+    generalTermsLink:
+      "Terms & Conditions",
+    immediateAccess:
+      "and I request immediate access to the service after payment. I understand that commencement of the service may affect statutory withdrawal rights under applicable law, without limiting mandatory consumer rights.",
+    legalRequired:
+      "You must accept the Subscription Terms and Terms & Conditions before continuing to payment.",
 
     updateSuccess: (name: string) =>
       `Subscription updated to ${name}.`,
@@ -358,6 +394,11 @@ export default function SubscriptionPage() {
   const [actionMessage, setActionMessage] =
     useState<string | null>(null);
 
+  const [
+    acceptedSubscriptionTerms,
+    setAcceptedSubscriptionTerms,
+  ] = useState(false);
+
   useEffect(() => {
     let active = true;
 
@@ -466,6 +507,14 @@ export default function SubscriptionPage() {
       return;
     }
 
+    if (
+      Number(plan.monthly_price) > 0 &&
+      !acceptedSubscriptionTerms
+    ) {
+      setActionMessage(text.legalRequired);
+      return;
+    }
+
     setChangingPlan(plan.code);
     setActionMessage(null);
     setError(null);
@@ -481,6 +530,7 @@ export default function SubscriptionPage() {
             plan.code,
             `${origin}/billing/success`,
             `${origin}/billing/cancel`,
+            acceptedSubscriptionTerms,
           );
 
         window.location.assign(
@@ -640,6 +690,49 @@ export default function SubscriptionPage() {
             className="mt-8 rounded-3xl border border-red-500/30 bg-red-950/20 p-6 text-red-300"
           >
             {error}
+          </section>
+        ) : null}
+
+        {user && !isLoading && !error ? (
+          <section className="mt-8 rounded-2xl border border-amber-500/20 bg-amber-950/10 p-5">
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                checked={acceptedSubscriptionTerms}
+                onChange={(event) => {
+                  setAcceptedSubscriptionTerms(
+                    event.target.checked,
+                  );
+                }}
+                className="mt-1 h-4 w-4 shrink-0 accent-amber-400"
+              />
+
+              <span className="text-sm leading-7 text-slate-400">
+                {text.legalPrefix}{" "}
+
+                <Link
+                  href="/subscription-terms"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-bold text-amber-300 hover:text-amber-200"
+                >
+                  {text.subscriptionTermsLink}
+                </Link>
+
+                {" "}{text.legalAnd}{" "}
+
+                <Link
+                  href="/terms"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-bold text-amber-300 hover:text-amber-200"
+                >
+                  {text.generalTermsLink}
+                </Link>
+
+                . {text.immediateAccess}
+              </span>
+            </label>
           </section>
         ) : null}
 
@@ -840,3 +933,5 @@ function UsageCard({
     </div>
   );
 }
+
+

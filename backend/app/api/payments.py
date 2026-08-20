@@ -45,6 +45,8 @@ class CheckoutCreateRequest(BaseModel):
         min_length=1,
         max_length=1000,
     )
+
+    accepted_subscription_terms: bool
 class CheckoutCreateResponse(BaseModel):
     payment_id: int
     provider: str
@@ -60,6 +62,16 @@ def create_checkout(
     db: Session = Depends(get_db),
 ) -> CheckoutCreateResponse:
     plan_code = payload.plan_code.strip().lower()
+
+    if payload.accepted_subscription_terms is not True:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Subscription Terms and Terms & Conditions "
+                "must be accepted before checkout."
+            ),
+        )
+
     if plan_code not in {
         "pro",
         "premium",
@@ -662,3 +674,4 @@ def reconcile_payment(
             payment.provider_subscription_id
         ),
     )
+

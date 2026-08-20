@@ -1,4 +1,4 @@
-﻿from datetime import datetime, timezone
+from datetime import datetime, timezone
 from sqlalchemy import (
     Boolean,
     Column,
@@ -999,6 +999,32 @@ class User(Base):
         nullable=False,
         default=False,
     )
+
+    terms_accepted_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    terms_version = Column(
+        String(50),
+        nullable=True,
+    )
+
+    privacy_version = Column(
+        String(50),
+        nullable=True,
+    )
+
+    subscription_terms_accepted_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    subscription_terms_version = Column(
+        String(50),
+        nullable=True,
+    )
+
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -1352,6 +1378,16 @@ class Payment(Base):
         nullable=True,
         index=True,
     )
+    subscription_terms_accepted_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    subscription_terms_version = Column(
+        String(50),
+        nullable=True,
+    )
+
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -1532,3 +1568,7 @@ class FavoriteMatch(Base):
     match = relationship(
         "Match",
     )
+
+
+
+
