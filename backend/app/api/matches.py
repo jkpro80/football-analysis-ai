@@ -62,10 +62,12 @@ def serialize_match(
 )
 def get_matches(
     limit: int = 100,
+    team_id: int | None = None,
     db: Session = Depends(get_db),
 ) -> list[dict[str, Any]]:
     """
     جلب قائمة المباريات مع بيانات الفريقين.
+    يمكن تصفية النتائج حسب team_id.
     """
 
     safe_limit = max(
@@ -74,8 +76,16 @@ def get_matches(
     )
 
     try:
+        query = db.query(Match)
+
+        if team_id is not None:
+            query = query.filter(
+                (Match.home_team_id == team_id)
+                | (Match.away_team_id == team_id)
+            )
+
         matches = (
-            db.query(Match)
+            query
             .order_by(
                 Match.date.desc(),
                 Match.id.desc(),

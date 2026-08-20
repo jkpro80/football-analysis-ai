@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useAuth } from "@/context/auth-context";
+import { useLocale } from "@/context/locale-context";
+
 type NavigationItem = {
   label: string;
   href: string;
@@ -10,94 +13,154 @@ type NavigationItem = {
   badge?: string;
 };
 
-const mainNavigation: NavigationItem[] = [
-  {
-    label: "الرئيسية",
-    href: "/",
-    icon: "⌂",
-  },
-  {
-    label: "المباريات",
-    href: "/fixtures",
-    icon: "⚽",
-  },
-  {
-    label: "المباريات المباشرة",
-    href: "/live",
-    icon: "●",
-    badge: "Live",
-  },
-  {
-    label: "التوقعات",
-    href: "/predictions",
-    icon: "◉",
-  },
-  {
-    label: "أفضل الفرص",
-    href: "/value-bets",
-    icon: "★",
-  },
-];
-
-const exploreNavigation: NavigationItem[] = [
-  {
-    label: "الدوريات",
-    href: "/leagues",
-    icon: "🏆",
-  },
-  {
-    label: "الفرق",
-    href: "/teams",
-    icon: "♟",
-  },
-  {
-    label: "الإحصائيات",
-    href: "/statistics",
-    icon: "▥",
-  },
-  {
-    label: "المفضلة",
-    href: "/favorites",
-    icon: "♡",
-  },
-];
-
-const accountNavigation: NavigationItem[] = [
-  {
-    label: "الاشتراك",
-    href: "/subscription",
-    icon: "◆",
-  },
-  {
-    label: "حسابي",
-    href: "/profile",
-    icon: "👤",
-  },
-  {
-    label: "الإعدادات",
-    href: "/settings",
-    icon: "⚙",
-  },
-];
-
 export default function Sidebar() {
   const pathname = usePathname();
+  const { user } = useAuth();
+
+  const {
+    locale,
+    messages,
+    direction,
+  } = useLocale();
+
+  const isAdmin = user?.role === "admin";
+
+  const mainNavigation: NavigationItem[] = [
+    {
+      label: messages.common.home,
+      href: "/",
+      icon: "⌂",
+    },
+    {
+      label: messages.common.fixtures,
+      href: "/fixtures",
+      icon: "⚽",
+    },
+    {
+      label:
+        locale === "ar"
+          ? "المباريات المباشرة"
+          : locale === "sv"
+            ? "Live-matcher"
+            : "Live matches",
+      href: "/live",
+      icon: "●",
+      badge: "Live",
+    },
+    {
+      label: messages.common.predictions,
+      href: "/predictions",
+      icon: "◉",
+    },
+    {
+      label:
+        locale === "ar"
+          ? "أفضل الفرص"
+          : locale === "sv"
+            ? "Bästa möjligheter"
+            : "Best opportunities",
+      href: "/value-bets",
+      icon: "★",
+    },
+  ];
+
+  const exploreNavigation: NavigationItem[] = [
+    {
+      label: messages.common.leagues,
+      href: "/leagues",
+      icon: "🏆",
+    },
+    {
+      label: messages.common.teams,
+      href: "/teams",
+      icon: "♟",
+    },
+    {
+      label: messages.common.statistics,
+      href: "/statistics",
+      icon: "▥",
+    },
+    {
+      label: messages.common.favorites,
+      href: "/favorites",
+      icon: "♡",
+    },
+  ];
+
+  const accountNavigation: NavigationItem[] = [
+    {
+      label: messages.common.subscription,
+      href: "/subscription",
+      icon: "◆",
+    },
+    {
+      label:
+        locale === "ar"
+          ? "حسابي"
+          : locale === "sv"
+            ? "Mitt konto"
+            : "My account",
+      href: "/profile",
+      icon: "👤",
+    },
+    {
+      label: messages.common.settings,
+      href: "/settings",
+      icon: "⚙",
+    },
+  ];
 
   function isActive(href: string) {
     if (href === "/") {
       return pathname === "/";
     }
 
-    return pathname === href || pathname.startsWith(`${href}/`);
+    return (
+      pathname === href ||
+      pathname.startsWith(`${href}/`)
+    );
   }
+
+  const homeGroupTitle =
+    messages.common.home;
+
+  const exploreGroupTitle =
+    locale === "ar"
+      ? "الاستكشاف"
+      : locale === "sv"
+        ? "Utforska"
+        : "Explore";
+
+  const accountGroupTitle =
+    locale === "ar"
+      ? "الحساب"
+      : locale === "sv"
+        ? "Konto"
+        : "Account";
+
+  const adminLabel =
+    locale === "ar"
+      ? "دخول لوحة الإدارة"
+      : locale === "sv"
+        ? "Öppna adminpanelen"
+        : "Open admin panel";
 
   return (
     <aside
-      dir="rtl"
-      className="hidden h-screen w-64 shrink-0 border-l border-slate-800 bg-slate-950/95 lg:sticky lg:top-0 lg:flex lg:flex-col"
+      dir={direction}
+      className={[
+        "hidden h-screen w-56 shrink-0 bg-slate-950/95",
+        "lg:sticky lg:top-0 lg:flex lg:flex-col",
+        direction === "rtl"
+          ? "border-l border-slate-800"
+          : "border-r border-slate-800",
+      ].join(" ")}
     >
       <div className="border-b border-slate-800 px-6 py-6">
-        <Link href="/" className="flex items-center gap-3">
+        <Link
+          href="/"
+          className="flex items-center gap-3"
+        >
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500 text-xl font-black text-slate-950 shadow-lg shadow-cyan-500/20">
             FA
           </div>
@@ -116,51 +179,33 @@ export default function Sidebar() {
 
       <nav className="flex-1 overflow-y-auto px-4 py-5">
         <NavigationGroup
-          title="الرئيسية"
+          title={homeGroupTitle}
           items={mainNavigation}
           isActive={isActive}
         />
 
         <NavigationGroup
-          title="الاستكشاف"
+          title={exploreGroupTitle}
           items={exploreNavigation}
           isActive={isActive}
         />
 
         <NavigationGroup
-          title="الحساب"
+          title={accountGroupTitle}
           items={accountNavigation}
           isActive={isActive}
         />
       </nav>
 
       <div className="border-t border-slate-800 p-4">
-        <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-bold text-cyan-300">
-              Prediction Engine
-            </span>
-
-            <span className="rounded-full bg-cyan-400/15 px-2 py-1 text-xs font-semibold text-cyan-300">
-              Active
-            </span>
-          </div>
-
-          <p className="mt-2 text-xs leading-5 text-slate-400">
-            الإصدار الحالي للمحرك
-          </p>
-
-          <p className="mt-1 font-bold text-white">
-            Prediction V11 11.0.1
-          </p>
-        </div>
-
-        <Link
-          href="/admin"
-          className="mt-3 flex items-center justify-center rounded-xl border border-slate-800 px-3 py-2.5 text-xs font-semibold text-slate-500 transition hover:border-slate-700 hover:bg-slate-900 hover:text-white"
-        >
-          دخول لوحة الإدارة
-        </Link>
+        {isAdmin ? (
+          <Link
+            href="/admin"
+            className="mt-3 flex items-center justify-center rounded-xl border border-slate-800 px-3 py-2.5 text-xs font-semibold text-slate-500 transition hover:border-slate-700 hover:bg-slate-900 hover:text-white"
+          >
+            {adminLabel}
+          </Link>
+        ) : null}
       </div>
     </aside>
   );
@@ -183,7 +228,8 @@ function NavigationGroup({
 
       <div className="space-y-1">
         {items.map((item) => {
-          const active = isActive(item.href);
+          const active =
+            isActive(item.href);
 
           return (
             <Link

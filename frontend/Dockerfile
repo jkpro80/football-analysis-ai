@@ -13,6 +13,9 @@ WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
+ARG NEXT_PUBLIC_API_URL=/api
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 
@@ -37,3 +40,4 @@ COPY --from=builder /app/public ./public
 EXPOSE 3000
 
 CMD ["npm", "run", "start"]
+

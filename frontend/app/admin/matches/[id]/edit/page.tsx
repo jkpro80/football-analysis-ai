@@ -28,7 +28,9 @@ async function getMatch(
   matchId: string
 ): Promise<Match | null> {
   const response = await fetch(
-    `http://127.0.0.1:8000/matches/${matchId}`,
+    `${process.env.INTERNAL_API_URL ??
+      process.env.BACKEND_API_URL ??
+      "http://backend:8000"}/matches/${matchId}`,
     {
       cache: "no-store",
     }

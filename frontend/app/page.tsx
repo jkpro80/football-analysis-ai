@@ -5,15 +5,20 @@ import { getDashboardData } from "@/lib/dashboard";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const { fixtures, modelVersion } =
-    await getDashboardData();
+  const {
+    fixtures,
+    explorerFixtures,
+    modelVersion,
+  } = await getDashboardData();
 
   return (
     <AppLayout>
       <HomeDashboard
         fixtures={fixtures}
+        explorerFixtures={explorerFixtures}
         modelVersion={modelVersion}
       />
     </AppLayout>
   );
 }
+

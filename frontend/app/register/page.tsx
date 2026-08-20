@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -28,7 +28,7 @@ export default function RegisterPage() {
   );
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.replace("/profile");
+      router.replace("/");
     }
   }, [
     isAuthenticated,
@@ -52,7 +52,7 @@ export default function RegisterPage() {
         email,
         password,
       });
-      router.replace("/profile");
+      router.replace("/");
       router.refresh();
     } catch (caughtError) {
       setError(
@@ -272,3 +272,4 @@ export default function RegisterPage() {
     </main>
   );
 }
+

@@ -672,6 +672,110 @@ class PredictionV11UpcomingService:
             "predictions": predictions,
             "errors": errors,
         }
+    def get_finished_predictions(
+        self,
+        limit: int = 50,
+        history_limit: int = 5,
+    ) -> dict[str, Any]:
+        safe_limit = max(1, min(limit, 100))
+        safe_history_limit = max(1, min(history_limit, 20))
+
+        statement = (
+            select(Match)
+            .options(
+                joinedload(Match.home_team),
+                joinedload(Match.away_team),
+            )
+            .where(
+                Match.home_score.is_not(None),
+                Match.away_score.is_not(None),
+            )
+            .order_by(
+                Match.date.desc(),
+                Match.id.desc(),
+            )
+            .limit(safe_limit)
+        )
+
+        matches = list(
+            self.db.scalars(statement).unique().all()
+        )
+
+        prediction_service = PredictionV11Service(
+            db=self.db,
+        )
+
+        predictions: list[dict[str, Any]] = []
+        errors: list[dict[str, Any]] = []
+        detected_engine_version: str | None = None
+
+        for match in matches:
+            try:
+                result = prediction_service.predict_match(
+                    match_id=match.id,
+                    history_limit=safe_history_limit,
+                    max_goals=self.max_goals,
+                    top_scores_count=self.top_scores_count,
+                )
+
+                mapped = PredictionMapperV11.to_latest(
+                    result
+                )
+
+                compatibility = self.build_home_compatibility(
+                    match=match,
+                    mapped=mapped,
+                    result=result,
+                )
+
+                engine_version = str(
+                    result.get(
+                        "model",
+                        "Prediction Engine V11 11.0.1",
+                    )
+                )
+
+                if detected_engine_version is None:
+                    detected_engine_version = engine_version
+
+                predictions.append(
+                    {
+                        "api_version": "Latest Prediction API V1",
+                        "engine_version": engine_version,
+                        **mapped,
+                        **compatibility,
+                    }
+                )
+
+            except Exception as exc:
+                errors.append(
+                    {
+                        "match_id": match.id,
+                        "error": str(exc),
+                    }
+                )
+
+        engine_version = (
+            detected_engine_version
+            or "Prediction Engine V11 11.0.1"
+        )
+
+        return {
+            "status": "success",
+            "api_version": "Latest Prediction API V1",
+            "model_version": engine_version,
+            "engine_version": engine_version,
+            "configuration": {
+                "limit": safe_limit,
+                "history_limit": safe_history_limit,
+                "max_goals": self.max_goals,
+                "top_scores_count": self.top_scores_count,
+            },
+            "count": len(predictions),
+            "failed_count": len(errors),
+            "predictions": predictions,
+            "errors": errors,
+        }
     def get_latest_predictions(
         self,
         limit: int = 50,
@@ -771,6 +875,7 @@ class PredictionV11UpcomingService:
             "predictions": predictions,
             "errors": errors,
         }
+
 
 
 

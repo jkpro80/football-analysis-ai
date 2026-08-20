@@ -112,15 +112,6 @@ export default function MatchHero({
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge
-                label="Football Analysis AI V7"
-                tone="cyan"
-              />
-
-              <StatusBadge
-                label={modelVersion}
-                tone="violet"
-              />
 
               <StatusBadge
                 label={status.label}

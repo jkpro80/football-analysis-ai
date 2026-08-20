@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -24,7 +24,7 @@ export default function LoginPage() {
   );
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.replace("/profile");
+      router.replace("/");
     }
   }, [
     isAuthenticated,
@@ -42,7 +42,7 @@ export default function LoginPage() {
         identifier,
         password,
       });
-      router.replace("/profile");
+      router.replace("/");
       router.refresh();
     } catch (caughtError) {
       setError(
@@ -155,6 +155,16 @@ export default function LoginPage() {
                 className="w-full rounded-xl border border-slate-700 bg-[#071023] px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-400"
               />
             </label>
+
+            <div className="flex justify-start">
+              <Link
+                href="/forgot-password"
+                className="text-sm font-bold text-cyan-300 transition hover:text-cyan-200"
+              >
+                نسيت كلمة المرور؟
+              </Link>
+            </div>
+
             {error ? (
               <div
                 role="alert"
@@ -199,3 +209,4 @@ export default function LoginPage() {
     </main>
   );
 }
+

@@ -1,4 +1,5 @@
-﻿from app.core.config import settings
+
+from app.core.config import settings
 from app.core.logging import logger
 
 from fastapi import FastAPI
@@ -9,6 +10,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.api.auth import router as auth_router
 from app.api.subscriptions import router as subscriptions_router
 from app.api.payments import router as payments_router
+from app.api.notifications import router as notifications_router
+from app.api.favorites import router as favorites_router
 from app.api.system_update import router as system_update_router
 from app.database.database import SessionLocal
 from app.api.backtest import router as backtest_router
@@ -53,6 +56,8 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(subscriptions_router)
 app.include_router(payments_router)
+app.include_router(notifications_router)
+app.include_router(favorites_router)
 
 # Core data APIs
 app.include_router(teams_router)
@@ -147,3 +152,9 @@ def system_status() -> dict[str, str]:
 
 
 
+
+
+# Public read-only prediction results ticker API
+from app.api.prediction_results import router as prediction_results_router
+
+app.include_router(prediction_results_router)

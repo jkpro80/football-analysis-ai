@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+
+import { useLocale } from "@/context/locale-context";
 
 const liveMatches = [
   ["Liverpool", "2", "Arsenal", "1", "68'"],
@@ -12,16 +16,56 @@ const valueBets = [
 ];
 
 export default function HomeHighlights() {
+  const { locale } = useLocale();
+
+  const t =
+    locale === "ar"
+      ? {
+          liveEyebrow: "مباريات اليوم المباشرة",
+          liveTitle: "المباريات المباشرة",
+          viewAllLive: "مشاهدة الكل",
+          valueEyebrow: "فرص القيمة",
+          valueTitle: "أفضل فرص القيمة",
+          viewAllValue: "عرض الكل",
+          value: "القيمة",
+          odds: "الأودز",
+        }
+      : locale === "sv"
+        ? {
+            liveEyebrow: "DAGENS LIVEMATCHER",
+            liveTitle: "Livematcher",
+            viewAllLive: "Visa alla",
+            valueEyebrow: "VÄRDESPEL",
+            valueTitle: "Bästa värdespelen",
+            viewAllValue: "Visa alla",
+            value: "Värde",
+            odds: "Odds",
+          }
+        : {
+            liveEyebrow: "TODAY'S LIVE MATCHES",
+            liveTitle: "Live Matches",
+            viewAllLive: "View All",
+            valueEyebrow: "VALUE BETS",
+            valueTitle: "Top Value Bets",
+            viewAllValue: "View All",
+            value: "Value",
+            odds: "Odds",
+          };
+
   return (
-    <div dir="rtl" className="grid gap-6 xl:grid-cols-2">
+    <div
+      dir={locale === "ar" ? "rtl" : "ltr"}
+      className="grid gap-6 xl:grid-cols-2"
+    >
       <section className="rounded-3xl border border-slate-800 bg-slate-950/55 p-5 sm:p-6">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-xs font-black tracking-[0.18em] text-red-400">
-              TODAY&apos;S LIVE MATCHES
+              {t.liveEyebrow}
             </p>
+
             <h2 className="mt-2 text-xl font-black text-white">
-              المباريات المباشرة
+              {t.liveTitle}
             </h2>
           </div>
 
@@ -29,7 +73,7 @@ export default function HomeHighlights() {
             href="/live"
             className="text-sm font-black text-red-300 hover:text-red-200"
           >
-            مشاهدة الكل ←
+            {t.viewAllLive} {locale === "ar" ? "←" : "→"}
           </Link>
         </div>
 
@@ -40,17 +84,31 @@ export default function HomeHighlights() {
                 key={`${home}-${away}`}
                 className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-3 rounded-2xl border border-slate-800 bg-[#071023] p-4"
               >
-                <span className="font-black text-white">{home}</span>
+                <span className="font-black text-white">
+                  {home}
+                </span>
 
-                <strong className="text-xl text-white">
+                <strong
+                  dir="ltr"
+                  className="text-xl text-white"
+                >
                   {homeScore} - {awayScore}
                 </strong>
 
-                <span className="text-left font-black text-white">
+                <span
+                  className={`font-black text-white ${
+                    locale === "ar"
+                      ? "text-left"
+                      : "text-right"
+                  }`}
+                >
                   {away}
                 </span>
 
-                <span className="rounded-full bg-red-500/10 px-2.5 py-1 text-xs font-black text-red-300">
+                <span
+                  dir="ltr"
+                  className="rounded-full bg-red-500/10 px-2.5 py-1 text-xs font-black text-red-300"
+                >
                   {minute}
                 </span>
               </article>
@@ -63,10 +121,11 @@ export default function HomeHighlights() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-xs font-black tracking-[0.18em] text-emerald-400">
-              VALUE BETS
+              {t.valueEyebrow}
             </p>
+
             <h2 className="mt-2 text-xl font-black text-white">
-              أفضل فرص القيمة
+              {t.valueTitle}
             </h2>
           </div>
 
@@ -74,7 +133,7 @@ export default function HomeHighlights() {
             href="/value-bets"
             className="text-sm font-black text-emerald-300 hover:text-emerald-200"
           >
-            عرض الكل ←
+            {t.viewAllValue} {locale === "ar" ? "←" : "→"}
           </Link>
         </div>
 
@@ -84,16 +143,34 @@ export default function HomeHighlights() {
               key={market}
               className="grid grid-cols-[1fr_auto_auto] items-center gap-4 rounded-2xl border border-slate-800 bg-[#071023] p-4"
             >
-              <span className="font-black text-white">{market}</span>
+              <span className="font-black text-white">
+                {market}
+              </span>
 
               <div className="text-center">
-                <p className="text-[10px] text-slate-500">Value</p>
-                <strong className="text-emerald-400">{value}</strong>
+                <p className="text-[10px] text-slate-500">
+                  {t.value}
+                </p>
+
+                <strong
+                  dir="ltr"
+                  className="text-emerald-400"
+                >
+                  {value}
+                </strong>
               </div>
 
               <div className="text-center">
-                <p className="text-[10px] text-slate-500">Odds</p>
-                <strong className="text-amber-300">{odds}</strong>
+                <p className="text-[10px] text-slate-500">
+                  {t.odds}
+                </p>
+
+                <strong
+                  dir="ltr"
+                  className="text-amber-300"
+                >
+                  {odds}
+                </strong>
               </div>
             </article>
           ))}

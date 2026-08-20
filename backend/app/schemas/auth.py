@@ -52,6 +52,53 @@ class RegisterRequest(BaseModel):
                 "Password must include a number."
             )
         return value
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: EmailStr) -> str:
+        return str(value).strip().lower()
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(
+        min_length=40,
+        max_length=512,
+    )
+    new_password: str = Field(
+        min_length=8,
+        max_length=128,
+    )
+
+    @field_validator("token")
+    @classmethod
+    def normalize_token(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError(
+                "Reset token is required."
+            )
+        return normalized
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, value: str) -> str:
+        if not any(character.islower() for character in value):
+            raise ValueError(
+                "Password must include a lowercase letter."
+            )
+        if not any(character.isupper() for character in value):
+            raise ValueError(
+                "Password must include an uppercase letter."
+            )
+        if not any(character.isdigit() for character in value):
+            raise ValueError(
+                "Password must include a number."
+            )
+        return value
+
+
 class LoginRequest(BaseModel):
     identifier: str = Field(
         min_length=3,

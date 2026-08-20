@@ -1,26 +1,53 @@
+"use client";
+
+import { useLocale } from "@/context/locale-context";
+
 type ConfidenceGaugeProps = {
   value: number;
   level: string;
   model?: string;
 };
 
-function confidenceArabic(level: string) {
-  const values: Record<string, string> = {
-    "Very Low": "منخفضة جدًا",
-    Low: "منخفضة",
-    Medium: "متوسطة",
-    High: "مرتفعة",
-    "Very High": "مرتفعة جدًا",
-  };
+const CONFIDENCE_TEXT = {
+  ar: {
+    confidenceIndex: "مؤشر الثقة",
+    outOf100: "من 100",
+    confidence: "ثقة",
+    veryStrong: "قوية جدًا",
+    strong: "قوية",
+    medium: "متوسطة",
+    low: "منخفضة",
+  },
 
-  return values[level] ?? level;
-}
+  en: {
+    confidenceIndex: "Confidence Index",
+    outOf100: "out of 100",
+    confidence: "Confidence",
+    veryStrong: "Very High",
+    strong: "High",
+    medium: "Medium",
+    low: "Low",
+  },
+
+  sv: {
+    confidenceIndex: "Konfidensindex",
+    outOf100: "av 100",
+    confidence: "Konfidens",
+    veryStrong: "Mycket hög",
+    strong: "Hög",
+    medium: "Medel",
+    low: "Låg",
+  },
+} as const;
 
 export default function ConfidenceGauge({
   value,
   level,
   model,
 }: ConfidenceGaugeProps) {
+  const { locale, direction } = useLocale();
+  const text = CONFIDENCE_TEXT[locale];
+
   const safeValue = Math.min(
     Math.max(Number(value) || 0, 0),
     100,
@@ -29,7 +56,7 @@ export default function ConfidenceGauge({
   const confidenceStyle =
     safeValue >= 80
       ? {
-          label: "قوية جدًا",
+          label: text.veryStrong,
           ringColor: "#38bdf8",
           borderClass: "border-sky-500/30",
           backgroundClass: "bg-sky-950/15",
@@ -37,7 +64,7 @@ export default function ConfidenceGauge({
         }
       : safeValue >= 60
         ? {
-            label: "قوية",
+            label: text.strong,
             ringColor: "#34d399",
             borderClass: "border-emerald-500/30",
             backgroundClass: "bg-emerald-950/15",
@@ -45,14 +72,14 @@ export default function ConfidenceGauge({
           }
         : safeValue >= 40
           ? {
-              label: "متوسطة",
+              label: text.medium,
               ringColor: "#fbbf24",
               borderClass: "border-amber-500/30",
               backgroundClass: "bg-amber-950/15",
               textClass: "text-amber-300",
             }
           : {
-              label: "منخفضة",
+              label: text.low,
               ringColor: "#fb7185",
               borderClass: "border-rose-500/30",
               backgroundClass: "bg-rose-950/15",
@@ -61,6 +88,7 @@ export default function ConfidenceGauge({
 
   return (
     <div
+      dir={direction}
       className={[
         "rounded-3xl border p-7 text-center",
         confidenceStyle.borderClass,
@@ -68,7 +96,7 @@ export default function ConfidenceGauge({
       ].join(" ")}
     >
       <p className="text-sm font-bold text-slate-400">
-        مؤشر الثقة
+        {text.confidenceIndex}
       </p>
 
       <div
@@ -86,8 +114,9 @@ export default function ConfidenceGauge({
           >
             {safeValue.toFixed(0)}
           </span>
+
           <span className="text-xs text-slate-500">
-            من 100
+            {text.outOf100}
           </span>
         </div>
       </div>
@@ -98,7 +127,7 @@ export default function ConfidenceGauge({
           confidenceStyle.textClass,
         ].join(" ")}
       >
-        ثقة {confidenceStyle.label}
+        {text.confidence} {confidenceStyle.label}
       </p>
 
       {model && (

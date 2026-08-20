@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
 
+import { useLocale } from "@/context/locale-context";
+import type { Locale } from "@/lib/i18n/config";
 type Team = {
   id?: number;
   name: string;
@@ -90,9 +94,246 @@ type MatchHeroProps = {
   };
 
   evaluation?: PredictionEvaluation;
-  model?: string;
 };
 
+const MATCH_HERO_TEXT = {
+  ar: {
+    analysisNumber: (id: number) => `تحليل المباراة رقم ${id}`,
+    home: "الرئيسية",
+    backToMatches: "العودة للمباريات",
+    homeTeam: "الفريق المضيف",
+    awayTeam: "الفريق الضيف",
+    teamLogo: "شعار",
+    expectedGoals: "الأهداف المتوقعة",
+    mostLikelyScore: "النتيجة الأكثر احتمالًا",
+    scoreProbability: "احتمال النتيجة",
+    strongPrediction: "توقع قوي",
+    mediumPrediction: "توقع متوسط",
+    lowPrediction: "توقع منخفض",
+    scoreNote:
+      "النتيجة الدقيقة الأكثر احتمالًا لا تعني وحدها أن التعادل هو اتجاه المباراة المتوقع.",
+    matchStatus: "حالة المباراة",
+    competition: "البطولة",
+    venue: "الملعب",
+    dateTime: "التاريخ والوقت",
+    unavailable: "غير متوفر",
+    unavailableFeminine: "غير متوفرة",
+    matchTimeUnavailable: "موعد المباراة غير متوفر",
+    resultComparison: "مقارنة النتيجة",
+    predictedVsActual: "المتوقع مقابل الفعلي",
+    predictedScore: "النتيجة المتوقعة",
+    actualScore: "النتيجة الفعلية",
+    predictionEvaluation: "تقييم التوقعات",
+    enginePerformance: "أداء المحرك في هذه المباراة",
+    correct: "صحيح",
+    incorrect: "غير صحيح",
+    predicted: "المتوقع",
+    actual: "الفعلي",
+    matchAccuracy: "دقة هذه المباراة",
+    accuracySummary: (correct: number, total: number) =>
+      `نجح المحرك في ${correct} من ${total} مؤشرات`,
+    matchDirection: "اتجاه المباراة",
+    exactScore: "النتيجة الدقيقة",
+    bttsPrediction: "توقع تسجيل الفريقين",
+    overUnder25: "أكثر/أقل من 2.5",
+    yes: "نعم",
+    no: "لا",
+    over25: "أكثر من 2.5",
+    under25: "أقل من 2.5",
+    draw: "التعادل",
+    win: (team: string) => `فوز ${team}`,
+    resultProbabilities: "احتمالات نتيجة المباراة",
+    probabilities1x2: "احتمالات 1X2",
+    highestProbability: "أعلى احتمال",
+    highest: "الأعلى",
+    expectedGoalsComparison: "مقارنة الأهداف المتوقعة",
+    total: "المجموع",
+    homeXg: "xG المضيف",
+    difference: "الفارق",
+    awayXg: "xG الضيف",
+    predictionDirection: "اتجاه التوقع",
+    directionNote: "أعلى احتمال منفرد قبل انطلاق المباراة.",
+    predictionSummary: "ملخص التوقع",
+    predictionSummaryText: (
+      outcome: string,
+      probability: string,
+      score: string,
+    ) =>
+      `رجّح المحرك ${outcome} بنسبة ${probability}، وكانت النتيجة الدقيقة الأكثر احتمالًا ${score}.`,
+    predictionQuality: "جودة التوقع",
+    pending: "قيد الانتظار",
+    qualityNote:
+      "تقاس الجودة بعد انتهاء المباراة اعتمادًا على الأسواق الأربعة الرسمية.",
+    scheduled: "قادمة",
+    waiting: "قيد الانتظار",
+    live: "مباشرة",
+    paused: "متوقفة مؤقتًا",
+    finished: "منتهية",
+    postponed: "مؤجلة",
+    cancelled: "ملغاة",
+    suspended: "متوقفة",
+    abandoned: "تم التخلي عنها",
+    unknown: "غير معروفة",
+  },
+
+  en: {
+    analysisNumber: (id: number) => `Match Analysis #${id}`,
+    home: "Home",
+    backToMatches: "Back to Matches",
+    homeTeam: "Home Team",
+    awayTeam: "Away Team",
+    teamLogo: "Logo of",
+    expectedGoals: "Expected Goals",
+    mostLikelyScore: "Most Likely Score",
+    scoreProbability: "Score Probability",
+    strongPrediction: "Strong Prediction",
+    mediumPrediction: "Medium Prediction",
+    lowPrediction: "Low Prediction",
+    scoreNote:
+      "The most likely exact score does not by itself mean that a draw is the expected match outcome.",
+    matchStatus: "Match Status",
+    competition: "Competition",
+    venue: "Venue",
+    dateTime: "Date & Time",
+    unavailable: "Not available",
+    unavailableFeminine: "Not available",
+    matchTimeUnavailable: "Match time is not available",
+    resultComparison: "Score Comparison",
+    predictedVsActual: "Predicted vs Actual",
+    predictedScore: "Predicted Score",
+    actualScore: "Actual Score",
+    predictionEvaluation: "Prediction Evaluation",
+    enginePerformance: "Engine performance in this match",
+    correct: "Correct",
+    incorrect: "Incorrect",
+    predicted: "Predicted",
+    actual: "Actual",
+    matchAccuracy: "Match Accuracy",
+    accuracySummary: (correct: number, total: number) =>
+      `The engine got ${correct} of ${total} indicators correct`,
+    matchDirection: "Match Outcome",
+    exactScore: "Exact Score",
+    bttsPrediction: "Both Teams to Score",
+    overUnder25: "Over/Under 2.5",
+    yes: "Yes",
+    no: "No",
+    over25: "Over 2.5",
+    under25: "Under 2.5",
+    draw: "Draw",
+    win: (team: string) => `${team} Win`,
+    resultProbabilities: "Match Result Probabilities",
+    probabilities1x2: "1X2 Probabilities",
+    highestProbability: "Highest Probability",
+    highest: "Highest",
+    expectedGoalsComparison: "Expected Goals Comparison",
+    total: "Total",
+    homeXg: "Home xG",
+    difference: "Difference",
+    awayXg: "Away xG",
+    predictionDirection: "Prediction Direction",
+    directionNote: "Highest single probability before kickoff.",
+    predictionSummary: "Prediction Summary",
+    predictionSummaryText: (
+      outcome: string,
+      probability: string,
+      score: string,
+    ) =>
+      `The engine favors ${outcome} at ${probability}, with ${score} as the most likely exact score.`,
+    predictionQuality: "Prediction Quality",
+    pending: "Pending",
+    qualityNote:
+      "Quality is measured after the match using the four official evaluation markets.",
+    scheduled: "Upcoming",
+    waiting: "Pending",
+    live: "Live",
+    paused: "Paused",
+    finished: "Finished",
+    postponed: "Postponed",
+    cancelled: "Cancelled",
+    suspended: "Suspended",
+    abandoned: "Abandoned",
+    unknown: "Unknown",
+  },
+
+  sv: {
+    analysisNumber: (id: number) => `Matchanalys #${id}`,
+    home: "Hem",
+    backToMatches: "Tillbaka till matcher",
+    homeTeam: "Hemmalag",
+    awayTeam: "Bortalag",
+    teamLogo: "Logotyp för",
+    expectedGoals: "Förväntade mål",
+    mostLikelyScore: "Troligaste resultat",
+    scoreProbability: "Resultatsannolikhet",
+    strongPrediction: "Stark prognos",
+    mediumPrediction: "Medelstark prognos",
+    lowPrediction: "Svag prognos",
+    scoreNote:
+      "Det troligaste exakta resultatet innebär inte i sig att oavgjort är det förväntade matchutfallet.",
+    matchStatus: "Matchstatus",
+    competition: "Tävling",
+    venue: "Arena",
+    dateTime: "Datum och tid",
+    unavailable: "Inte tillgängligt",
+    unavailableFeminine: "Inte tillgängligt",
+    matchTimeUnavailable: "Matchtiden är inte tillgänglig",
+    resultComparison: "Resultatjämförelse",
+    predictedVsActual: "Prognos mot faktiskt resultat",
+    predictedScore: "Förväntat resultat",
+    actualScore: "Faktiskt resultat",
+    predictionEvaluation: "Utvärdering av prognosen",
+    enginePerformance: "Modellens resultat i den här matchen",
+    correct: "Rätt",
+    incorrect: "Fel",
+    predicted: "Prognos",
+    actual: "Faktiskt",
+    matchAccuracy: "Träffsäkerhet för matchen",
+    accuracySummary: (correct: number, total: number) =>
+      `Modellen hade rätt på ${correct} av ${total} indikatorer`,
+    matchDirection: "Matchutfall",
+    exactScore: "Exakt resultat",
+    bttsPrediction: "Båda lagen gör mål",
+    overUnder25: "Över/Under 2,5",
+    yes: "Ja",
+    no: "Nej",
+    over25: "Över 2,5",
+    under25: "Under 2,5",
+    draw: "Oavgjort",
+    win: (team: string) => `${team} vinner`,
+    resultProbabilities: "Sannolikheter för matchresultat",
+    probabilities1x2: "1X2-sannolikheter",
+    highestProbability: "Högsta sannolikhet",
+    highest: "Högst",
+    expectedGoalsComparison: "Jämförelse av förväntade mål",
+    total: "Totalt",
+    homeXg: "Hemma-xG",
+    difference: "Skillnad",
+    awayXg: "Borta-xG",
+    predictionDirection: "Prognosriktning",
+    directionNote: "Högsta enskilda sannolikhet före avspark.",
+    predictionSummary: "Prognossammanfattning",
+    predictionSummaryText: (
+      outcome: string,
+      probability: string,
+      score: string,
+    ) =>
+      `Modellen bedömer ${outcome} som troligast med ${probability}, och ${score} som det troligaste exakta resultatet.`,
+    predictionQuality: "Prognoskvalitet",
+    pending: "Väntar",
+    qualityNote:
+      "Kvaliteten mäts efter matchen utifrån de fyra officiella utvärderingsmarknaderna.",
+    scheduled: "Kommande",
+    waiting: "Väntar",
+    live: "Live",
+    paused: "Pausad",
+    finished: "Avslutad",
+    postponed: "Uppskjuten",
+    cancelled: "Inställd",
+    suspended: "Avbruten",
+    abandoned: "Övergiven",
+    unknown: "Okänd",
+  },
+} satisfies Record<Locale, Record<string, unknown>>;
 function normalizeProbability(value: number): number {
   if (!Number.isFinite(value)) {
     return 0;
@@ -105,12 +346,13 @@ function formatPercent(value: number): string {
   return `${normalizeProbability(value).toFixed(1)}%`;
 }
 
-function getPredictionStrength(value: number) {
+function getPredictionStrength(value: number, locale: Locale) {
+  const text = MATCH_HERO_TEXT[locale];
   const probability = normalizeProbability(value);
 
   if (probability >= 65) {
     return {
-      label: "توقع قوي",
+      label: text.strongPrediction,
       textClass: "text-emerald-300",
       borderClass: "border-emerald-400/30",
       backgroundClass: "bg-emerald-400/10",
@@ -121,7 +363,7 @@ function getPredictionStrength(value: number) {
 
   if (probability >= 40) {
     return {
-      label: "توقع متوسط",
+      label: text.mediumPrediction,
       textClass: "text-amber-300",
       borderClass: "border-amber-400/30",
       backgroundClass: "bg-amber-400/10",
@@ -131,7 +373,7 @@ function getPredictionStrength(value: number) {
   }
 
   return {
-    label: "توقع منخفض",
+    label: text.lowPrediction,
     textClass: "text-rose-300",
     borderClass: "border-rose-400/30",
     backgroundClass: "bg-rose-400/10",
@@ -149,9 +391,14 @@ function getTeamInitials(name: string): string {
     .join("");
 }
 
-function formatMatchDate(date?: string | null): string {
+function formatMatchDate(
+  date: string | null | undefined,
+  locale: Locale,
+): string {
+  const text = MATCH_HERO_TEXT[locale];
+
   if (!date) {
-    return "موعد المباراة غير متوفر";
+    return text.matchTimeUnavailable as string;
   }
 
   const parsedDate = new Date(date);
@@ -160,7 +407,14 @@ function formatMatchDate(date?: string | null): string {
     return date;
   }
 
-  return new Intl.DateTimeFormat("ar-IQ", {
+  const intlLocale =
+    locale === "sv"
+      ? "sv-SE"
+      : locale === "en"
+        ? "en-US"
+        : "ar-IQ";
+
+  return new Intl.DateTimeFormat(intlLocale, {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -170,40 +424,56 @@ function formatMatchDate(date?: string | null): string {
   }).format(parsedDate);
 }
 
-function translateStatus(status?: string | null): string {
-  const normalized = String(status ?? "").trim().toLowerCase();
+function translateStatus(
+  status: string | null | undefined,
+  locale: Locale,
+): string {
+  const text = MATCH_HERO_TEXT[locale];
+
+  const normalized = String(status ?? "")
+    .trim()
+    .toLowerCase();
 
   const statuses: Record<string, string> = {
-    "1": "قادمة",
-    "2": "قيد الانتظار",
-    "3": "مباشرة",
-    "4": "متوقفة مؤقتًا",
-    "5": "منتهية",
-    "6": "مؤجلة",
-    "7": "ملغاة",
-    "8": "متوقفة",
-    "9": "تم التخلي عنها",
+    "1": text.scheduled as string,
+    "2": text.waiting as string,
+    "3": text.live as string,
+    "4": text.paused as string,
+    "5": text.finished as string,
+    "6": text.postponed as string,
+    "7": text.cancelled as string,
+    "8": text.suspended as string,
+    "9": text.abandoned as string,
 
-    scheduled: "قادمة",
-    not_started: "قادمة",
-    live: "مباشرة",
-    inplay: "مباشرة",
-    finished: "منتهية",
-    ended: "منتهية",
-    postponed: "مؤجلة",
-    cancelled: "ملغاة",
-    canceled: "ملغاة",
-    abandoned: "تم التخلي عنها",
-    suspended: "متوقفة",
+    scheduled: text.scheduled as string,
+    not_started: text.scheduled as string,
+    pending: text.waiting as string,
+    live: text.live as string,
+    inplay: text.live as string,
+    "in-play": text.live as string,
+    finished: text.finished as string,
+    ended: text.finished as string,
+    completed: text.finished as string,
+    ft: text.finished as string,
+    halftime: text.paused as string,
+    ht: text.paused as string,
+    postponed: text.postponed as string,
+    cancelled: text.cancelled as string,
+    canceled: text.cancelled as string,
+    abandoned: text.abandoned as string,
+    suspended: text.suspended as string,
   };
 
   if (!normalized) {
-    return "قادمة";
+    return text.scheduled as string;
   }
 
-  return statuses[normalized] ?? status ?? "غير معروفة";
+  return (
+    statuses[normalized] ??
+    status ??
+    (text.unknown as string)
+  );
 }
-
 function ComparisonBadge({
   label,
   correct,
@@ -211,6 +481,9 @@ function ComparisonBadge({
   label: string;
   correct: boolean;
 }) {
+  const { locale } = useLocale();
+  const text = MATCH_HERO_TEXT[locale];
+
   return (
     <div
       className={[
@@ -232,7 +505,7 @@ function ComparisonBadge({
             : "text-rose-300"
         }
       >
-        {correct ? "صحيح" : "غير صحيح"}
+        {correct ? text.correct : text.incorrect}
       </strong>
     </div>
   );
@@ -249,6 +522,9 @@ function TeamPanel({
   expectedGoals: number;
   alignment: "right" | "left";
 }) {
+  const { locale } = useLocale();
+  const text = MATCH_HERO_TEXT[locale];
+
   const justifyClass =
     alignment === "right"
       ? "lg:justify-start"
@@ -271,7 +547,7 @@ function TeamPanel({
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={team.logo_url ?? team.logo ?? team.image_path ?? ""}
-              alt={`شعار ${team.name}`}
+              alt={`${text.teamLogo} ${team.name}`}
               className="h-20 w-20 object-contain sm:h-24 sm:w-24"
             />
           ) : (
@@ -300,7 +576,7 @@ team.country.trim().toLowerCase() !== "unknown" ? (
 
         <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-cyan-400/15 bg-cyan-400/5 px-4 py-2">
           <span className="text-xs text-slate-400">
-            الأهداف المتوقعة
+            {text.expectedGoals}
           </span>
 
           <strong className="text-lg font-black text-cyan-300">
@@ -361,6 +637,9 @@ function MatchMetaItem({
   icon: React.ReactNode;
   accentClass?: string;
 }) {
+  const { locale } = useLocale();
+  const text = MATCH_HERO_TEXT[locale];
+
   return (
     <div className="group flex min-h-24 items-center justify-center gap-3 border-white/5 p-4 text-center transition hover:bg-white/[0.025]">
       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.035] text-lg text-slate-400 transition group-hover:border-cyan-400/20 group-hover:text-cyan-300">
@@ -394,8 +673,10 @@ export default function MatchHero({
   probabilities,
   mostLikelyScore,
   evaluation,
-  model = "Prediction Engine V6",
 }: MatchHeroProps) {
+  const { locale, direction } = useLocale();
+  const text = MATCH_HERO_TEXT[locale];
+
   const hasFinalScore =
     match.is_finished === true &&
     typeof match.home_score === "number" &&
@@ -435,6 +716,7 @@ export default function MatchHero({
   const predictionStrength =
     getPredictionStrength(
       mostLikelyScore.probability,
+      locale,
     );
 
   const highestProbability = Math.max(
@@ -446,63 +728,63 @@ export default function MatchHero({
   const predictedOutcomeLabel =
     normalizeProbability(probabilities.homeWin)
       === highestProbability
-      ? `فوز ${homeTeam.name}`
+      ? text.win(homeTeam.name)
       : normalizeProbability(probabilities.awayWin)
           === highestProbability
-        ? `فوز ${awayTeam.name}`
-        : "التعادل";
+        ? text.win(awayTeam.name)
+        : text.draw;
 
   const predictedBttsLabel =
     evaluation?.btts?.predicted === true
-      ? "نعم"
+      ? text.yes
       : evaluation?.btts?.predicted === false
-        ? "لا"
-        : "غير متوفر";
+        ? text.no
+        : text.unavailable;
 
   const actualBttsLabel =
     evaluation?.btts?.actual === true
-      ? "نعم"
+      ? text.yes
       : evaluation?.btts?.actual === false
-        ? "لا"
-        : "غير متوفر";
+        ? text.no
+        : text.unavailable;
 
   const predictedOver25Label =
     evaluation?.over_2_5?.predicted === true
-      ? "أكثر من 2.5"
+      ? text.over25
       : evaluation?.over_2_5?.predicted === false
-        ? "أقل من 2.5"
-        : "غير متوفر";
+        ? text.under25
+        : text.unavailable;
 
   const actualOver25Label =
     evaluation?.over_2_5?.actual === true
-      ? "أكثر من 2.5"
+      ? text.over25
       : evaluation?.over_2_5?.actual === false
-        ? "أقل من 2.5"
-        : "غير متوفر";
+        ? text.under25
+        : text.unavailable;
 
   const evaluationItems = [
     {
-      label: "اتجاه المباراة",
+      label: text.matchDirection,
       correct: outcomeCorrect,
       predicted:
         evaluation?.predicted_outcome === "home_win"
-          ? `فوز ${homeTeam.name}`
+          ? text.win(homeTeam.name)
           : evaluation?.predicted_outcome === "away_win"
-            ? `فوز ${awayTeam.name}`
+            ? text.win(awayTeam.name)
             : evaluation?.predicted_outcome === "draw"
-              ? "التعادل"
+              ? text.draw
               : predictedOutcomeLabel,
       actual:
         evaluation?.actual_outcome === "home_win"
-          ? `فوز ${homeTeam.name}`
+          ? text.win(homeTeam.name)
           : evaluation?.actual_outcome === "away_win"
-            ? `فوز ${awayTeam.name}`
+            ? text.win(awayTeam.name)
             : evaluation?.actual_outcome === "draw"
-              ? "التعادل"
-              : "غير متوفر",
+              ? text.draw
+              : text.unavailable,
     },
     {
-      label: "النتيجة الدقيقة",
+      label: text.exactScore,
       correct: exactScoreCorrect,
       predicted:
         evaluation?.predicted_score?.score ??
@@ -510,13 +792,13 @@ export default function MatchHero({
       actual: `${actualHomeScore}-${actualAwayScore}`,
     },
     {
-      label: "توقع تسجيل الفريقين",
+      label: text.bttsPrediction,
       correct: bttsCorrect,
       predicted: predictedBttsLabel,
       actual: actualBttsLabel,
     },
     {
-      label: "أكثر/أقل من 2.5",
+      label: text.overUnder25,
       correct: over25Correct,
       predicted: predictedOver25Label,
       actual: actualOver25Label,
@@ -525,7 +807,7 @@ export default function MatchHero({
 
   return (
     <section
-      dir="rtl"
+      dir={direction}
       className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-slate-900/75 shadow-2xl shadow-slate-950/40 backdrop-blur-xl"
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.12),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(139,92,246,0.12),transparent_36%)]" />
@@ -534,7 +816,7 @@ export default function MatchHero({
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-xs font-bold text-slate-500">
-              تحليل المباراة رقم {match.id}
+              {text.analysisNumber(match.id)}
             </p>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -543,7 +825,7 @@ export default function MatchHero({
                 className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-400/5 px-3.5 py-2 text-xs font-black text-cyan-300 transition hover:border-cyan-300/40 hover:bg-cyan-400/10"
               >
                 <span aria-hidden="true">⌂</span>
-                الرئيسية
+                {text.home}
               </Link>
 
               <Link
@@ -551,18 +833,15 @@ export default function MatchHero({
                 className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2 text-xs font-black text-slate-300 transition hover:border-white/20 hover:bg-white/[0.06]"
               >
                 <span aria-hidden="true">←</span>
-                العودة للمباريات
+                {text.backToMatches}
               </Link>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-cyan-400/15 bg-cyan-400/5 px-3 py-1.5 text-xs font-bold text-cyan-300">
-              {model}
-            </span>
 
             <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-bold text-emerald-300">
-              {translateStatus(match.status)}
+              {translateStatus(match.status, locale)}
             </span>
           </div>
         </div>
@@ -575,14 +854,14 @@ export default function MatchHero({
         >
           <TeamPanel
             team={homeTeam}
-            label="الفريق المضيف"
+            label={text.homeTeam}
             expectedGoals={expectedGoals.home}
             alignment="right"
           />
 
           <div className="mx-auto w-full max-w-sm text-center">
             <span className="inline-flex rounded-full border border-cyan-500/20 bg-cyan-500/10 px-4 py-2 text-xs font-black text-cyan-300">
-              النتيجة الأكثر احتمالًا
+              {text.mostLikelyScore}
             </span>
 
             <div dir="ltr" className="mt-4">
@@ -609,7 +888,7 @@ export default function MatchHero({
 
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-slate-400">
-                    احتمال النتيجة
+                    {text.scoreProbability}
                   </span>
 
                   <strong
@@ -636,14 +915,13 @@ export default function MatchHero({
             </div>
 
             <p className="mt-2 text-xs leading-5 text-slate-600">
-              النتيجة الدقيقة الأكثر احتمالًا لا تعني وحدها
-              أن التعادل هو اتجاه المباراة المتوقع.
+              {text.scoreNote}
             </p>
           </div>
 
           <TeamPanel
             team={awayTeam}
-            label="الفريق الضيف"
+            label={text.awayTeam}
             expectedGoals={expectedGoals.away}
             alignment="left"
           />
@@ -652,8 +930,8 @@ export default function MatchHero({
         <div className="mt-8 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/45 shadow-inner shadow-black/20">
           <div className="grid divide-y divide-white/5 sm:grid-cols-2 sm:divide-x sm:divide-x-reverse sm:divide-y-0 xl:grid-cols-4">
             <MatchMetaItem
-              label="حالة المباراة"
-              value={translateStatus(match.status)}
+              label={text.matchStatus}
+              value={translateStatus(match.status, locale)}
               accentClass="text-emerald-300"
               icon={
                 <svg
@@ -681,8 +959,8 @@ export default function MatchHero({
             />
 
             <MatchMetaItem
-              label="البطولة"
-              value={match.league ?? "غير متوفرة"}
+              label={text.competition}
+              value={match.league ?? text.unavailableFeminine}
               icon={
                 <svg
                   viewBox="0 0 24 24"
@@ -708,8 +986,8 @@ export default function MatchHero({
             />
 
             <MatchMetaItem
-              label="الملعب"
-              value={match.venue ?? "غير متوفر"}
+              label={text.venue}
+              value={match.venue ?? text.unavailable}
               icon={
                 <svg
                   viewBox="0 0 24 24"
@@ -734,8 +1012,8 @@ export default function MatchHero({
             />
 
             <MatchMetaItem
-              label="التاريخ والوقت"
-              value={formatMatchDate(match.date)}
+              label={text.dateTime}
+              value={formatMatchDate(match.date, locale)}
               icon={
                 <svg
                   viewBox="0 0 24 24"
@@ -775,17 +1053,17 @@ export default function MatchHero({
             <div className="overflow-hidden rounded-3xl border border-white/10 bg-slate-950/55">
               <div className="border-b border-white/5 px-5 py-4">
                 <p className="text-xs font-bold text-slate-500">
-                  مقارنة النتيجة
+                  {text.resultComparison}
                 </p>
                 <h3 className="mt-1 font-black text-white">
-                  المتوقع مقابل الفعلي
+                  {text.predictedVsActual}
                 </h3>
               </div>
 
               <div className="space-y-3 p-4">
                 <div className="rounded-2xl border border-cyan-400/15 bg-cyan-400/5 p-4">
                   <p className="text-xs text-slate-500">
-                    النتيجة المتوقعة
+                    {text.predictedScore}
                   </p>
 
                   <strong
@@ -798,7 +1076,7 @@ export default function MatchHero({
 
                 <div className="rounded-2xl border border-violet-400/15 bg-violet-400/5 p-4">
                   <p className="text-xs text-slate-500">
-                    النتيجة الفعلية
+                    {text.actualScore}
                   </p>
 
                   <strong
@@ -815,10 +1093,10 @@ export default function MatchHero({
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 px-5 py-4">
                 <div>
                   <p className="text-xs font-bold text-slate-500">
-                    تقييم التوقعات
+                    {text.predictionEvaluation}
                   </p>
                   <h3 className="mt-1 font-black text-white">
-                    أداء المحرك في هذه المباراة
+                    {text.enginePerformance}
                   </h3>
                 </div>
 
@@ -874,14 +1152,14 @@ export default function MatchHero({
                               : "border-rose-400/20 bg-rose-400/10 text-rose-300",
                           ].join(" ")}
                         >
-                          {item.correct ? "صحيح" : "غير صحيح"}
+                          {item.correct ? text.correct : text.incorrect}
                         </span>
                       </div>
 
                       <div className="mt-4 space-y-2.5 text-xs">
                         <div className="flex items-center justify-between gap-3 rounded-xl bg-black/10 px-3 py-2">
                           <span className="text-slate-600">
-                            المتوقع
+                            {text.predicted}
                           </span>
                           <strong className="text-slate-300">
                             {item.predicted}
@@ -890,7 +1168,7 @@ export default function MatchHero({
 
                         <div className="flex items-center justify-between gap-3 rounded-xl bg-black/10 px-3 py-2">
                           <span className="text-slate-600">
-                            الفعلي
+                            {text.actual}
                           </span>
                           <strong className="text-white">
                             {item.actual}
@@ -905,12 +1183,14 @@ export default function MatchHero({
                   <div className="flex items-end justify-between gap-4">
                     <div>
                       <p className="text-sm font-black text-white">
-                        دقة هذه المباراة
+                        {text.matchAccuracy}
                       </p>
 
                       <p className="mt-1 text-xs text-slate-500">
-                        نجح المحرك في {correctChecks} من{" "}
-                        {totalChecks} مؤشرات
+                        {text.accuracySummary(
+                          correctChecks,
+                          totalChecks,
+                        )}
                       </p>
                     </div>
 
@@ -957,37 +1237,37 @@ export default function MatchHero({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-bold text-slate-500">
-                  احتمالات نتيجة المباراة
+                  {text.resultProbabilities}
                 </p>
 
                 <h3 className="mt-1 text-lg font-black text-white">
-                  احتمالات 1X2
+                  {text.probabilities1x2}
                 </h3>
               </div>
 
               <span className="rounded-full border border-cyan-400/15 bg-cyan-400/5 px-3 py-1.5 text-xs font-bold text-cyan-300">
-                أعلى احتمال {highestProbability.toFixed(1)}%
+                {text.highestProbability} {highestProbability.toFixed(1)}%
               </span>
             </div>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               {[
                 {
-                  label: `فوز ${homeTeam.name}`,
+                  label: text.win(homeTeam.name),
                   value: normalizeProbability(
                     probabilities.homeWin,
                   ),
                   accent: "cyan",
                 },
                 {
-                  label: "التعادل",
+                  label: text.draw,
                   value: normalizeProbability(
                     probabilities.draw,
                   ),
                   accent: "slate",
                 },
                 {
-                  label: `فوز ${awayTeam.name}`,
+                  label: text.win(awayTeam.name),
                   value: normalizeProbability(
                     probabilities.awayWin,
                   ),
@@ -1031,7 +1311,7 @@ export default function MatchHero({
                   >
                     {isHighest ? (
                       <span className="absolute left-3 top-3 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-[10px] font-black text-emerald-300">
-                        الأعلى
+                        {text.highest}
                       </span>
                     ) : null}
 
@@ -1069,7 +1349,7 @@ export default function MatchHero({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-bold text-slate-500">
-                  مقارنة الأهداف المتوقعة
+                  {text.expectedGoalsComparison}
                 </p>
 
                 <h3 className="mt-1 text-lg font-black text-white">
@@ -1078,7 +1358,7 @@ export default function MatchHero({
               </div>
 
               <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-bold text-slate-400">
-                المجموع{" "}
+                {text.total}{" "}
                 {(
                   expectedGoals.total ??
                   expectedGoals.home +
@@ -1159,7 +1439,7 @@ export default function MatchHero({
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
               <div className="rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.04] p-4 text-center">
                 <p className="text-xs text-slate-500">
-                  xG المضيف
+                  {text.homeXg}
                 </p>
 
                 <strong className="mt-2 block text-2xl font-black text-cyan-300">
@@ -1169,7 +1449,7 @@ export default function MatchHero({
 
               <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 text-center">
                 <p className="text-xs text-slate-500">
-                  الفارق
+                  {text.difference}
                 </p>
 
                 <strong className="mt-2 block text-2xl font-black text-white">
@@ -1182,7 +1462,7 @@ export default function MatchHero({
 
               <div className="rounded-2xl border border-violet-400/15 bg-violet-400/[0.04] p-4 text-center">
                 <p className="text-xs text-slate-500">
-                  xG الضيف
+                  {text.awayXg}
                 </p>
 
                 <strong className="mt-2 block text-2xl font-black text-violet-300">
@@ -1196,7 +1476,7 @@ export default function MatchHero({
         <div className="mt-6 grid gap-4 lg:grid-cols-3">
           <div className="rounded-3xl border border-cyan-400/15 bg-cyan-400/[0.04] p-5">
             <p className="text-xs font-bold text-slate-500">
-              اتجاه التوقع
+              {text.predictionDirection}
             </p>
 
             <strong className="mt-3 block text-xl font-black text-cyan-300">
@@ -1204,31 +1484,27 @@ export default function MatchHero({
             </strong>
 
             <p className="mt-2 text-xs leading-5 text-slate-600">
-              أعلى احتمال منفرد قبل انطلاق المباراة.
+              {text.directionNote}
             </p>
           </div>
 
           <div className="rounded-3xl border border-white/10 bg-slate-950/45 p-5">
             <p className="text-xs font-bold text-slate-500">
-              ملخص التوقع
+              {text.predictionSummary}
             </p>
 
             <p className="mt-3 text-sm leading-7 text-slate-300">
-              رجّح المحرك {predictedOutcomeLabel} بنسبة{" "}
-              <strong className="text-white">
-                {highestProbability.toFixed(1)}%
-              </strong>
-              ، وكانت النتيجة الدقيقة الأكثر احتمالًا{" "}
-              <strong dir="ltr" className="text-cyan-300">
-                {mostLikelyScore.score}
-              </strong>
-              .
+              {text.predictionSummaryText(
+                predictedOutcomeLabel,
+                `${highestProbability.toFixed(1)}%`,
+                mostLikelyScore.score,
+              )}
             </p>
           </div>
 
           <div className="rounded-3xl border border-violet-400/15 bg-violet-400/[0.04] p-5">
             <p className="text-xs font-bold text-slate-500">
-              جودة التوقع
+              {text.predictionQuality}
             </p>
 
             <div className="mt-3 flex items-end justify-between">
@@ -1244,7 +1520,7 @@ export default function MatchHero({
               >
                 {officialEvaluationAvailable
                   ? `${matchAccuracy}%`
-                  : "قيد الانتظار"}
+                  : text.pending}
               </strong>
 
               <span className="text-xs text-slate-600">
@@ -1253,8 +1529,7 @@ export default function MatchHero({
             </div>
 
             <p className="mt-2 text-xs leading-5 text-slate-600">
-              تقاس الجودة بعد انتهاء المباراة اعتمادًا على
-              الأسواق الأربعة الرسمية.
+              {text.qualityNote}
             </p>
           </div>
         </div>
@@ -1262,3 +1537,7 @@ export default function MatchHero({
     </section>
   );
 }
+
+
+
+

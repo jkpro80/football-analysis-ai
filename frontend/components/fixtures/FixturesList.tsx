@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { useLocale } from "@/context/locale-context";
+import type { Locale } from "@/lib/i18n/config";
+
 type MatchItem = {
   id: number;
   sportmonks_id: number | null;
@@ -26,6 +29,7 @@ type PredictionItem = {
   };
   predicted_score: string;
   best_pick: {
+    key: string;
     label: string;
     probability: number;
   };
@@ -102,24 +106,40 @@ function matchTimestamp(value: string) {
     : time;
 }
 
-function formatMatchDate(dateValue: string) {
+function localeTag(locale: Locale) {
+  if (locale === "ar") return "ar-IQ";
+  if (locale === "sv") return "sv-SE";
+  return "en-GB";
+}
+
+function formatMatchDate(
+  dateValue: string,
+  locale: Locale,
+) {
   const date = new Date(dateValue);
 
   if (Number.isNaN(date.getTime())) {
     return {
-      date: "تاريخ غير متوفر",
+      date:
+        locale === "sv"
+          ? "Datum saknas"
+          : locale === "en"
+            ? "Date unavailable"
+            : "تاريخ غير متوفر",
       time: "--:--",
     };
   }
 
+  const resolvedLocale = localeTag(locale);
+
   return {
-    date: new Intl.DateTimeFormat("ar-IQ", {
+    date: new Intl.DateTimeFormat(resolvedLocale, {
       year: "numeric",
       month: "short",
       day: "numeric",
     }).format(date),
 
-    time: new Intl.DateTimeFormat("ar-IQ", {
+    time: new Intl.DateTimeFormat(resolvedLocale, {
       hour: "2-digit",
       minute: "2-digit",
     }).format(date),
@@ -140,11 +160,18 @@ function dateKey(dateValue: string) {
   ].join("-");
 }
 
-function dateGroupLabel(dateValue: string) {
+function dateGroupLabel(
+  dateValue: string,
+  locale: Locale,
+) {
   const date = new Date(dateValue);
 
   if (Number.isNaN(date.getTime())) {
-    return "تاريخ غير معروف";
+    return locale === "sv"
+      ? "Okänt datum"
+      : locale === "en"
+        ? "Unknown date"
+        : "تاريخ غير معروف";
   }
 
   const now = new Date();
@@ -162,33 +189,51 @@ function dateGroupLabel(dateValue: string) {
   );
 
   const difference = Math.round(
-    (target.getTime() - today.getTime()) /
-      86400000,
+    (target.getTime() - today.getTime()) / 86400000,
   );
 
   if (difference === 0) {
-    return "اليوم";
+    return locale === "sv"
+      ? "Idag"
+      : locale === "en"
+        ? "Today"
+        : "اليوم";
   }
 
   if (difference === 1) {
-    return "غدًا";
+    return locale === "sv"
+      ? "Imorgon"
+      : locale === "en"
+        ? "Tomorrow"
+        : "غدًا";
   }
 
   if (difference === -1) {
-    return "أمس";
+    return locale === "sv"
+      ? "Igår"
+      : locale === "en"
+        ? "Yesterday"
+        : "أمس";
   }
 
-  return new Intl.DateTimeFormat("ar-IQ", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  }).format(date);
+  return new Intl.DateTimeFormat(
+    localeTag(locale),
+    {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    },
+  ).format(date);
 }
-function getStatusLabel(status: string | null) {
+
+function getStatusLabel(
+  status: string | null,
+  locale: Locale,
+) {
   if (isLive(status)) {
     return {
-      label: "مباشر",
+      label: "Live",
       className:
         "border-red-500/20 bg-red-500/10 text-red-300",
     };
@@ -196,7 +241,12 @@ function getStatusLabel(status: string | null) {
 
   if (isFinished(status)) {
     return {
-      label: "منتهية",
+      label:
+        locale === "sv"
+          ? "Avslutad"
+          : locale === "en"
+            ? "Finished"
+            : "منتهية",
       className:
         "border-slate-600 bg-slate-800 text-slate-300",
     };
@@ -204,23 +254,181 @@ function getStatusLabel(status: string | null) {
 
   if (isPostponed(status)) {
     return {
-      label: "مؤجلة",
+      label:
+        locale === "sv"
+          ? "Uppskjuten"
+          : locale === "en"
+            ? "Postponed"
+            : "مؤجلة",
       className:
         "border-amber-500/20 bg-amber-500/10 text-amber-300",
     };
   }
 
   return {
-    label: "قادمة",
+    label:
+      locale === "sv"
+        ? "Kommande"
+        : locale === "en"
+          ? "Upcoming"
+          : "قادمة",
     className:
       "border-cyan-500/20 bg-cyan-500/10 text-cyan-300",
   };
+}
+
+function translateBestPick(
+  key: string,
+  label: string,
+  homeTeam: string,
+  awayTeam: string,
+  locale: Locale,
+) {
+  const normalizedKey = key
+    .trim()
+    .toLowerCase()
+    .replaceAll("-", "_")
+    .replaceAll(" ", "_");
+
+  const translations: Record<
+    string,
+    { ar: string; en: string; sv: string }
+  > = {
+    under_2_5: {
+      ar: "أقل من 2.5 هدف",
+      en: "Under 2.5 Goals",
+      sv: "Under 2,5 mål",
+    },
+    over_2_5: {
+      ar: "أكثر من 2.5 هدف",
+      en: "Over 2.5 Goals",
+      sv: "Över 2,5 mål",
+    },
+    btts: {
+      ar: "تسجيل الفريقين",
+      en: "Both Teams to Score",
+      sv: "Båda lagen gör mål",
+    },
+    no_btts: {
+      ar: "عدم تسجيل الفريقين",
+      en: "Both Teams Not to Score",
+      sv: "Båda lagen gör inte mål",
+    },
+    draw: {
+      ar: "التعادل",
+      en: "Draw",
+      sv: "Oavgjort",
+    },
+  };
+
+  if (
+    normalizedKey === "home_win" ||
+    normalizedKey === "home"
+  ) {
+    return locale === "sv"
+      ? `${homeTeam} vinner`
+      : locale === "en"
+        ? `${homeTeam} Win`
+        : `فوز ${homeTeam}`;
+  }
+
+  if (
+    normalizedKey === "away_win" ||
+    normalizedKey === "away"
+  ) {
+    return locale === "sv"
+      ? `${awayTeam} vinner`
+      : locale === "en"
+        ? `${awayTeam} Win`
+        : `فوز ${awayTeam}`;
+  }
+
+  const translated = translations[normalizedKey];
+
+  if (translated) {
+    return translated[locale];
+  }
+
+  return label;
 }
 
 export default function FixturesList({
   matches,
   predictions,
 }: FixturesListProps) {
+  const { locale, direction } = useLocale();
+
+  const text =
+    locale === "sv"
+      ? {
+          filterAll: "Alla",
+          filterUpcoming: "Kommande",
+          filterLive: "Live",
+          filterFinished: "Avslutade",
+          filterNearest: "Närmaste",
+          title: "Matcher",
+          description:
+            "Filtrera matcher efter status och sök efter lag eller liga.",
+          searchPlaceholder: "Sök efter lag eller liga...",
+          noMatches: "Inga matchande matcher",
+          noMatchesHint: "Ändra filtret eller rensa sökningen.",
+          against: "mot",
+          matchId: "Match-ID",
+          result: "Resultat",
+          predictedScore: "Förväntat resultat",
+          confidence: "Konfidens",
+          bestPick: "Bästa val",
+          openAnalysis: "Öppna analys",
+          logoOf: "Logotyp för",
+          matchCount: (count: number) => `${count} matcher`,
+        }
+      : locale === "en"
+        ? {
+            filterAll: "All",
+            filterUpcoming: "Upcoming",
+            filterLive: "Live",
+            filterFinished: "Finished",
+            filterNearest: "Nearest",
+            title: "Fixtures",
+            description:
+              "Filter matches by status and search by team or league.",
+            searchPlaceholder: "Search by team or league...",
+            noMatches: "No matching fixtures",
+            noMatchesHint: "Change the filter or clear the search.",
+            against: "vs",
+            matchId: "Match ID",
+            result: "Result",
+            predictedScore: "Predicted Score",
+            confidence: "Confidence",
+            bestPick: "Best Pick",
+            openAnalysis: "Open Analysis",
+            logoOf: "Logo of",
+            matchCount: (count: number) => `${count} matches`,
+          }
+        : {
+            filterAll: "الكل",
+            filterUpcoming: "القادمة",
+            filterLive: "المباشرة",
+            filterFinished: "المنتهية",
+            filterNearest: "الأقرب",
+            title: "قائمة المباريات",
+            description:
+              "فلترة المباريات حسب الحالة والبحث باسم الفريق أو الدوري.",
+            searchPlaceholder: "ابحث باسم الفريق أو الدوري...",
+            noMatches: "لا توجد مباريات مطابقة",
+            noMatchesHint:
+              "جرّب تغيير الفلتر أو حذف عبارة البحث.",
+            against: "ضد",
+            matchId: "رقم المباراة",
+            result: "النتيجة",
+            predictedScore: "النتيجة المتوقعة",
+            confidence: "الثقة",
+            bestPick: "أفضل اختيار",
+            openAnalysis: "فتح التحليل",
+            logoOf: "شعار",
+            matchCount: (count: number) => `${count} مباراة`,
+          };
+
   const [filter, setFilter] =
     useState<FilterType>("all");
 
@@ -333,7 +541,7 @@ export default function FixturesList({
         current.matches.push(match);
       } else {
         groups.set(key, {
-          label: dateGroupLabel(match.date),
+          label: dateGroupLabel(match.date, locale),
           matches: [match],
         });
       }
@@ -360,7 +568,7 @@ export default function FixturesList({
             matchTimestamp(second.date),
         ),
       }));
-  }, [filteredMatches]);
+  }, [filteredMatches, locale]);
   const filters: Array<{
     key: FilterType;
     label: string;
@@ -368,46 +576,46 @@ export default function FixturesList({
   }> = [
     {
       key: "all",
-      label: "الكل",
+      label: text.filterAll,
       count: counts.all,
     },
     {
       key: "upcoming",
-      label: "القادمة",
+      label: text.filterUpcoming,
       count: counts.upcoming,
     },
     {
       key: "live",
-      label: "المباشرة",
+      label: text.filterLive,
       count: counts.live,
     },
     {
       key: "finished",
-      label: "المنتهية",
+      label: text.filterFinished,
       count: counts.finished,
     },
     {
       key: "nearest",
-      label: "الأقرب",
+      label: text.filterNearest,
     },
   ];
 
   return (
-    <section className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
+    <section dir={direction} className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-xl font-bold text-white">
-              قائمة المباريات
+              {text.title}
             </h2>
 
             <p className="mt-2 text-sm text-slate-400">
-              فلترة المباريات حسب الحالة والبحث باسم الفريق أو الدوري.
+              {text.description}
             </p>
           </div>
 
           <span className="w-fit rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-300">
-            {filteredMatches.length} مباراة
+            {text.matchCount(filteredMatches.length)}
           </span>
         </div>
 
@@ -453,7 +661,7 @@ export default function FixturesList({
               onChange={(event) =>
                 setSearch(event.target.value)
               }
-              placeholder="ابحث باسم الفريق أو الدوري..."
+              placeholder={text.searchPlaceholder}
               className="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-500/50 focus:ring-2 focus:ring-cyan-500/10"
             />
           </div>
@@ -463,11 +671,11 @@ export default function FixturesList({
       {filteredMatches.length === 0 ? (
         <div className="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-950/30 p-10 text-center">
           <h3 className="text-lg font-bold text-white">
-            لا توجد مباريات مطابقة
+            {text.noMatches}
           </h3>
 
           <p className="mt-2 text-sm text-slate-400">
-            جرّب تغيير الفلتر أو حذف عبارة البحث.
+            {text.noMatchesHint}
           </p>
         </div>
       ) : (
@@ -480,7 +688,7 @@ export default function FixturesList({
                 </h3>
 
                 <span className="rounded-full border border-slate-700 bg-slate-950/60 px-3 py-1 text-xs font-bold text-slate-400">
-                  {group.matches.length} مباراة
+                  {text.matchCount(group.matches.length)}
                 </span>
 
                 <div className="h-px flex-1 bg-slate-800" />
@@ -492,10 +700,10 @@ export default function FixturesList({
               predictionsByMatchId.get(match.id);
 
             const formattedDate =
-              formatMatchDate(match.date);
+              formatMatchDate(match.date, locale);
 
             const status =
-              getStatusLabel(match.status);
+              getStatusLabel(match.status, locale);
 
             const hasScore =
               match.home_score !== null &&
@@ -528,7 +736,7 @@ export default function FixturesList({
                             {match.home_logo ? (
                               <img
                                 src={match.home_logo}
-                                alt={`شعار ${match.home_team}`}
+                                alt={`${text.logoOf} ${match.home_team}`}
                                 width={32}
                                 height={32}
                                 className="h-8 w-8 object-contain"
@@ -548,7 +756,7 @@ export default function FixturesList({
                         </div>
 
                         <span className="text-sm text-slate-500">
-                          ضد
+                          {text.against}
                         </span>
 
                         <div className="flex items-center gap-2">
@@ -556,7 +764,7 @@ export default function FixturesList({
                             {match.away_logo ? (
                               <img
                                 src={match.away_logo}
-                                alt={`شعار ${match.away_team}`}
+                                alt={`${text.logoOf} ${match.away_team}`}
                                 width={32}
                                 height={32}
                                 className="h-8 w-8 object-contain"
@@ -578,7 +786,7 @@ export default function FixturesList({
 
                       <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
                         <span>
-                          رقم المباراة: {match.id}
+                          {text.matchId}: {match.id}
                         </span>
 
                         {match.league_name && (
@@ -594,7 +802,7 @@ export default function FixturesList({
                     {hasScore && (
                       <div className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2">
                         <p className="text-[10px] text-slate-500">
-                          النتيجة
+                          {text.result}
                         </p>
 
                         <span
@@ -612,7 +820,7 @@ export default function FixturesList({
                       <>
                         <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-2 text-center">
                           <p className="text-[10px] text-cyan-200/70">
-                            النتيجة المتوقعة
+                            {text.predictedScore}
                           </p>
 
                           <p
@@ -625,7 +833,7 @@ export default function FixturesList({
 
                         <div className="rounded-xl border border-violet-500/20 bg-violet-500/10 px-4 py-2 text-center">
                           <p className="text-[10px] text-violet-200/70">
-                            الثقة
+                            {text.confidence}
                           </p>
 
                           <p
@@ -641,11 +849,11 @@ export default function FixturesList({
 
                         <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2">
                           <p className="text-[10px] text-emerald-200/70">
-                            أفضل اختيار
+                            {text.bestPick}
                           </p>
 
                           <p className="mt-1 text-sm font-black text-emerald-300">
-                            {prediction.best_pick.label}
+                            {translateBestPick(prediction.best_pick.key, prediction.best_pick.label, match.home_team, match.away_team, locale)}
                           </p>
                         </div>
 
@@ -677,7 +885,7 @@ export default function FixturesList({
                     </span>
 
                     <span className="text-sm font-semibold text-cyan-400">
-                      فتح التحليل
+                      {text.openAnalysis}
                     </span>
                   </div>
                 </div>
@@ -692,4 +900,6 @@ export default function FixturesList({
     </section>
   );
 }
+
+
 

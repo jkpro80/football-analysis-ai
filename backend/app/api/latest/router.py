@@ -113,6 +113,33 @@ def get_latest_predictions(
             status_code=500,
             detail="حدث خطأ أثناء إنشاء أحدث التوقعات.",
         ) from exc
+@router.get("/finished")
+def get_latest_finished_predictions(
+    limit: int = Query(default=50, ge=1, le=100),
+    history_limit: int = Query(default=5, ge=1, le=20),
+    max_goals: int = Query(default=8, ge=5, le=15),
+    top_scores_count: int = Query(
+        default=10,
+        ge=1,
+        le=20,
+    ),
+    db: Session = Depends(get_db),
+):
+    """
+    جلب أحدث توقعات المباريات المنتهية.
+    """
+
+    service = PredictionV11UpcomingService(
+        db=db,
+        max_goals=max_goals,
+        top_scores_count=top_scores_count,
+    )
+
+    return service.get_finished_predictions(
+        limit=limit,
+        history_limit=history_limit,
+    )
+
 @router.get(
     "/{match_id}",
     response_model=LatestPredictionResponse,
@@ -221,3 +248,4 @@ def get_latest_prediction(
             status_code=500,
             detail="حدث خطأ أثناء إنشاء توقع المباراة.",
         ) from exc
+

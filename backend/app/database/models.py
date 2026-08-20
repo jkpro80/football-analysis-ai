@@ -1020,6 +1020,63 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+    password_reset_tokens = relationship(
+        "PasswordResetToken",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    notifications = relationship(
+        "Notification",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+    user_id = Column(
+        Integer,
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+    token_hash = Column(
+        String(64),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    expires_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        index=True,
+    )
+    used_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+    )
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    user = relationship(
+        "User",
+        back_populates="password_reset_tokens",
+    )
+
+
 class SubscriptionPlan(Base):
     __tablename__ = "subscription_plans"
     id = Column(
@@ -1352,6 +1409,126 @@ class AnalysisUsage(Base):
         "Match",
     )
 
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    user_id = Column(
+        Integer,
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    notification_type = Column(
+        String(50),
+        nullable=False,
+        index=True,
+    )
+
+    title = Column(
+        String(200),
+        nullable=False,
+    )
+
+    message = Column(
+        String(1000),
+        nullable=False,
+    )
+
+    link = Column(
+        String(500),
+        nullable=True,
+    )
+
+    data = Column(
+        JSONB,
+        nullable=True,
+    )
+
+    is_read = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        index=True,
+    )
+
+    read_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+    )
+
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        index=True,
+    )
+
+    user = relationship(
+        "User",
+        back_populates="notifications",
+    )
 
 
 
+class FavoriteMatch(Base):
+    __tablename__ = "favorite_matches"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    user_id = Column(
+        Integer,
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    match_id = Column(
+        Integer,
+        ForeignKey(
+            "matches.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        index=True,
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "match_id",
+            name="uq_favorite_matches_user_match",
+        ),
+    )
+
+    user = relationship(
+        "User",
+    )
+
+    match = relationship(
+        "Match",
+    )

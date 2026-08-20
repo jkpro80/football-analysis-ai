@@ -39,6 +39,10 @@ const emptyForm: MatchFormData = {
   status: "scheduled",
 };
 
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ??
+  "/api";
+
 const fieldStyle = {
   width: "100%",
   padding: "14px 16px",
@@ -92,7 +96,7 @@ export default function MatchForm({
         setIsLoadingTeams(true);
 
         const response = await fetch(
-          "http://127.0.0.1:8000/teams",
+          `${API_URL}/teams`,
           {
             cache: "no-store",
           }
@@ -173,8 +177,8 @@ export default function MatchForm({
 
     try {
       const url = match
-        ? `http://127.0.0.1:8000/matches/${match.id}`
-        : "http://127.0.0.1:8000/matches";
+        ? `${API_URL}/matches/${match.id}`
+        : `${API_URL}/matches`;
 
       const response = await fetch(url, {
         method: match ? "PUT" : "POST",

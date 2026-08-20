@@ -103,6 +103,11 @@ export type PredictionResponse = {
   match: {
     id: number;
     date: string;
+    status?: string | null;
+    home_score?: number | null;
+    away_score?: number | null;
+    is_finished?: boolean;
+    actual_outcome?: string | null;
     competition: string | null;
     venue: string | null;
     home_team: Team;

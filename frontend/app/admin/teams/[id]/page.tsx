@@ -15,6 +15,19 @@ type Team = {
   goals_conceded?: number;
 };
 
+type Match = {
+  id: number;
+  home_team_id: number;
+  away_team_id: number;
+  home_team: string;
+  away_team: string;
+  date: string;
+  status: string;
+  home_score: number | null;
+  away_score: number | null;
+  league_name: string | null;
+};
+
 type TeamPageProps = {
   params: Promise<{
     id: string;
@@ -22,8 +35,9 @@ type TeamPageProps = {
 };
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ??
-  "http://127.0.0.1:8000";
+  process.env.INTERNAL_API_URL ??
+  process.env.BACKEND_API_URL ??
+  "http://backend:8000";
 
 export default async function TeamDetailsPage({
   params,
@@ -34,6 +48,8 @@ export default async function TeamDetailsPage({
   if (!team) {
     notFound();
   }
+
+  const matches = await getTeamMatches(id);
 
   const overallRating = Math.round(
     (team.attack +
@@ -275,37 +291,129 @@ export default async function TeamDetailsPage({
             آخر المباريات
           </h2>
 
-          <p
-            style={{
-              margin: "12px 0 0",
-              color: "#94a3b8",
-              lineHeight: 1.8,
-            }}
-          >
-            في الخطوة القادمة سنربط هذا
-            القسم بآخر مباريات الفريق،
-            ونحسب عدد الانتصارات والتعادلات
-            والخسائر ومتوسط الأهداف.
-          </p>
+          {matches.length > 0 ? (
+            <div
+              style={{
+                display: "grid",
+                gap: "12px",
+                marginTop: "20px",
+              }}
+            >
+              {matches.map((match) => (
+                <Link
+                  key={match.id}
+                  href={`/matches/${match.id}`}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "minmax(0,1fr) auto minmax(0,1fr)",
+                    gap: "16px",
+                    alignItems: "center",
+                    padding: "18px",
+                    borderRadius: "16px",
+                    border: "1px solid #334155",
+                    backgroundColor:
+                      "rgba(2,6,23,0.65)",
+                    color: "#f8fafc",
+                    textDecoration: "none",
+                  }}
+                >
+                  <div
+                    style={{
+                      textAlign: "right",
+                      fontWeight: 850,
+                    }}
+                  >
+                    {match.home_team}
+                  </div>
 
-          <div
-            style={{
-              marginTop: "20px",
-              padding: "26px",
-              borderRadius: "16px",
-              border:
-                "1px dashed #475569",
-              color: "#64748b",
-              textAlign: "center",
-            }}
-          >
-            لا توجد مباريات مرتبطة بهذا
-            القسم حاليًا.
-          </div>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontWeight: 950 }}>
+                      {match.home_score !== null &&
+                      match.away_score !== null
+                        ? `${match.home_score} - ${match.away_score}`
+                        : new Date(
+                            match.date,
+                          ).toLocaleTimeString("ar", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                    </div>
+
+                    <div
+                      style={{
+                        marginTop: "5px",
+                        color: "#94a3b8",
+                        fontSize: "12px",
+                      }}
+                    >
+                      {new Date(
+                        match.date,
+                      ).toLocaleDateString("ar")}
+                    </div>
+
+                    {match.league_name ? (
+                      <div
+                        style={{
+                          marginTop: "5px",
+                          color: "#64748b",
+                          fontSize: "11px",
+                        }}
+                      >
+                        {match.league_name}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div
+                    style={{
+                      textAlign: "left",
+                      fontWeight: 850,
+                    }}
+                  >
+                    {match.away_team}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div
+              style={{
+                marginTop: "20px",
+                padding: "26px",
+                borderRadius: "16px",
+                border:
+                  "1px dashed #475569",
+                color: "#64748b",
+                textAlign: "center",
+              }}
+            >
+              لا توجد مباريات متاحة لهذا الفريق حاليًا.
+            </div>
+          )}
         </section>
       </div>
     </main>
   );
+}
+
+async function getTeamMatches(
+  id: string,
+): Promise<Match[]> {
+  const response = await fetch(
+    `${API_URL}/matches?team_id=${encodeURIComponent(id)}&limit=10`,
+    {
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      "تعذر تحميل مباريات الفريق.",
+    );
+  }
+
+  return (await response.json()) as Match[];
 }
 
 async function getTeam(

@@ -1,4 +1,9 @@
+"use client";
+
 import Link from "next/link";
+
+import { useLocale } from "@/context/locale-context";
+import type { Locale } from "@/lib/i18n/config";
 
 import type { DashboardFixture } from "./types";
 
@@ -52,13 +57,17 @@ function fixtureTitle(
   return `${fixture.homeTeam.name} × ${fixture.awayTeam.name}`;
 }
 
-function percentage(value: number | undefined): string {
+function percentage(
+  value: number | undefined,
+): string {
   return `${Number(value ?? 0).toFixed(2)}%`;
 }
 
 function highestFixture(
   fixtures: DashboardFixture[],
-  getValue: (fixture: DashboardFixture) => number,
+  getValue: (
+    fixture: DashboardFixture,
+  ) => number,
 ): DashboardFixture | undefined {
   return [...fixtures].sort(
     (first, second) =>
@@ -66,16 +75,174 @@ function highestFixture(
   )[0];
 }
 
+function getText(locale: Locale) {
+  if (locale === "ar") {
+    return {
+      title: "رؤى الذكاء الاصطناعي",
+      subtitle:
+        "إشارات مستخرجة مباشرة من توقعات المحرك الحالية.",
+      viewAnalysis: "عرض التحليلات",
+      noData:
+        "لا توجد بيانات كافية لإنشاء الرؤى حاليًا.",
+
+      highConfidenceCategory: "ثقة مرتفعة",
+      highConfidenceDescription:
+        "أعلى مباراة حاليًا من حيث درجة اتفاق مؤشرات محرك التوقعات.",
+
+      bttsCategory: "إشارة تسجيل الفريقين",
+      bttsDescription:
+        "أعلى احتمال متاح حاليًا لتسجيل الفريقين في المباراة.",
+
+      goalsCategory: "إشارة الأهداف",
+      goalsDescription:
+        "أعلى احتمال متاح لتجاوز إجمالي المباراة حاجز 2.5 هدف.",
+
+      bestPickCategory: "أفضل اختيار",
+      bestPickDescription: (
+        match: string,
+      ) => `أفضل اختيار في مباراة ${match}.`,
+    };
+  }
+
+  if (locale === "sv") {
+    return {
+      title: "AI-insikter",
+      subtitle:
+        "Signaler som hämtas direkt från motorns aktuella prognoser.",
+      viewAnalysis: "Visa analyser",
+      noData:
+        "Det finns inte tillräckligt med data för att skapa insikter just nu.",
+
+      highConfidenceCategory: "HÖG SÄKERHET",
+      highConfidenceDescription:
+        "Matchen med högst samstämmighet mellan prognosmotorns indikatorer.",
+
+      bttsCategory: "BTTS-SIGNAL",
+      bttsDescription:
+        "Den högsta aktuella sannolikheten för att båda lagen gör mål.",
+
+      goalsCategory: "MÅLSIGNAL",
+      goalsDescription:
+        "Den högsta aktuella sannolikheten för fler än 2,5 mål i matchen.",
+
+      bestPickCategory: "BÄSTA VAL",
+      bestPickDescription: (
+        match: string,
+      ) => `Det bästa valet i matchen ${match}.`,
+    };
+  }
+
+  return {
+    title: "AI Insights",
+    subtitle:
+      "Signals extracted directly from the prediction engine's current forecasts.",
+    viewAnalysis: "View analyses",
+    noData:
+      "There is not enough data to generate insights right now.",
+
+    highConfidenceCategory: "HIGH CONFIDENCE",
+    highConfidenceDescription:
+      "The match with the highest agreement across the prediction engine indicators.",
+
+    bttsCategory: "BTTS SIGNAL",
+    bttsDescription:
+      "The highest currently available probability that both teams will score.",
+
+    goalsCategory: "GOALS SIGNAL",
+    goalsDescription:
+      "The highest currently available probability of more than 2.5 total goals.",
+
+    bestPickCategory: "BEST PICK",
+    bestPickDescription: (
+      match: string,
+    ) => `The best pick for ${match}.`,
+  };
+}
+
+function translateBestPick(
+  key: string,
+  fallbackLabel: string,
+  locale: Locale,
+): string {
+  const normalizedKey = String(key ?? "")
+    .trim()
+    .toLowerCase()
+    .replaceAll("-", "_")
+    .replaceAll(" ", "_");
+
+  const translations: Record<
+    string,
+    { ar: string; en: string; sv: string }
+  > = {
+    home_win: {
+      ar: "فوز الفريق المضيف",
+      en: "Home Win",
+      sv: "Hemmaseger",
+    },
+    home: {
+      ar: "فوز الفريق المضيف",
+      en: "Home Win",
+      sv: "Hemmaseger",
+    },
+    away_win: {
+      ar: "فوز الفريق الضيف",
+      en: "Away Win",
+      sv: "Bortaseger",
+    },
+    away: {
+      ar: "فوز الفريق الضيف",
+      en: "Away Win",
+      sv: "Bortaseger",
+    },
+    draw: {
+      ar: "التعادل",
+      en: "Draw",
+      sv: "Oavgjort",
+    },
+    btts: {
+      ar: "تسجيل الفريقين",
+      en: "Both Teams to Score",
+      sv: "Båda lagen gör mål",
+    },
+    no_btts: {
+      ar: "عدم تسجيل الفريقين",
+      en: "Both Teams Not to Score",
+      sv: "Båda lagen gör inte mål",
+    },
+    over_2_5: {
+      ar: "أكثر من 2.5 هدف",
+      en: "Over 2.5 Goals",
+      sv: "Över 2,5 mål",
+    },
+    under_2_5: {
+      ar: "أقل من 2.5 هدف",
+      en: "Under 2.5 Goals",
+      sv: "Under 2,5 mål",
+    },
+  };
+
+  const translation = translations[normalizedKey];
+
+  if (!translation) {
+    return fallbackLabel;
+  }
+
+  return translation[locale];
+}
 function buildInsights(
   fixtures: DashboardFixture[],
+  locale: Locale,
 ): Insight[] {
   if (fixtures.length === 0) {
     return [];
   }
 
+  const t = getText(locale);
+
   const highestConfidence = highestFixture(
     fixtures,
-    (fixture) => fixture.confidence?.score ?? 0,
+    (fixture) =>
+      fixture.confidence?.score ?? 0,
   );
 
   const highestBtts = highestFixture(
@@ -92,7 +259,8 @@ function buildInsights(
 
   const highestBestPick = highestFixture(
     fixtures.filter(
-      (fixture) => fixture.bestPick !== undefined,
+      (fixture) =>
+        fixture.bestPick !== undefined,
     ),
     (fixture) =>
       fixture.bestPick?.probability ?? 0,
@@ -103,10 +271,12 @@ function buildInsights(
   if (highestConfidence) {
     insights.push({
       id: "highest-confidence",
-      category: "HIGH CONFIDENCE",
-      title: fixtureTitle(highestConfidence),
+      category:
+        t.highConfidenceCategory,
+      title:
+        fixtureTitle(highestConfidence),
       description:
-        "أعلى مباراة حاليًا من حيث درجة اتفاق مؤشرات محرك التوقعات.",
+        t.highConfidenceDescription,
       metric: percentage(
         highestConfidence.confidence?.score,
       ),
@@ -119,10 +289,9 @@ function buildInsights(
   if (highestBtts) {
     insights.push({
       id: "highest-btts",
-      category: "BTTS SIGNAL",
+      category: t.bttsCategory,
       title: fixtureTitle(highestBtts),
-      description:
-        "أعلى احتمال متاح حاليًا لتسجيل الفريقين في المباراة.",
+      description: t.bttsDescription,
       metric: percentage(
         highestBtts.probabilities?.btts,
       ),
@@ -135,10 +304,9 @@ function buildInsights(
   if (highestOver25) {
     insights.push({
       id: "highest-over-25",
-      category: "GOALS SIGNAL",
+      category: t.goalsCategory,
       title: fixtureTitle(highestOver25),
-      description:
-        "أعلى احتمال متاح لتجاوز إجمالي المباراة حاجز 2.5 هدف.",
+      description: t.goalsDescription,
       metric: percentage(
         highestOver25.probabilities?.over25,
       ),
@@ -149,14 +317,28 @@ function buildInsights(
   }
 
   if (highestBestPick?.bestPick) {
+    const match =
+      fixtureTitle(highestBestPick);
+
     insights.push({
       id: "highest-best-pick",
-      category: "BEST PICK",
-      title: highestBestPick.bestPick.label,
+      category: t.bestPickCategory,
+
+      // نبقي قيمة المحرك نفسها دون تغيير
+      // حتى لا نغيّر منطق Prediction Engine.
+      title:
+        translateBestPick(
+          highestBestPick.bestPick.key,
+          highestBestPick.bestPick.label,
+          locale,
+        ),
+
       description:
-        `أفضل اختيار في مباراة ${fixtureTitle(highestBestPick)}.`,
+        t.bestPickDescription(match),
+
       metric: percentage(
-        highestBestPick.bestPick.probability,
+        highestBestPick.bestPick
+          .probability,
       ),
       icon: "✦",
       tone: "rose",
@@ -170,11 +352,22 @@ function buildInsights(
 export default function AIInsights({
   fixtures,
 }: AIInsightsProps) {
-  const insights = buildInsights(fixtures);
+  const {
+    locale,
+    direction,
+  } = useLocale();
+
+  const t = getText(locale);
+
+  const insights =
+    buildInsights(
+      fixtures,
+      locale,
+    );
 
   return (
     <section
-      dir="rtl"
+      dir={direction}
       className="rounded-3xl border border-slate-800 bg-slate-950/55 p-5 sm:p-6"
     >
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -184,11 +377,11 @@ export default function AIInsights({
           </p>
 
           <h2 className="mt-2 text-2xl font-black text-white">
-            رؤى الذكاء الاصطناعي
+            {t.title}
           </h2>
 
           <p className="mt-2 text-sm text-slate-500">
-            إشارات مستخرجة مباشرة من توقعات المحرك الحالية.
+            {t.subtitle}
           </p>
         </div>
 
@@ -196,18 +389,21 @@ export default function AIInsights({
           href="/statistics"
           className="text-sm font-black text-violet-300 transition hover:text-violet-200"
         >
-          عرض التحليلات ←
+          {direction === "rtl"
+            ? `${t.viewAnalysis} ←`
+            : `${t.viewAnalysis} →`}
         </Link>
       </div>
 
       {insights.length === 0 ? (
         <div className="mt-5 rounded-2xl border border-slate-800 bg-[#071023] p-5 text-sm text-slate-500">
-          لا توجد بيانات كافية لإنشاء الرؤى حاليًا.
+          {t.noData}
         </div>
       ) : (
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           {insights.map((item) => {
-            const tone = tones[item.tone];
+            const tone =
+              tones[item.tone];
 
             return (
               <Link
@@ -253,3 +449,4 @@ export default function AIInsights({
     </section>
   );
 }
+

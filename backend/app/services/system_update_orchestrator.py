@@ -118,7 +118,7 @@ class SystemUpdateOrchestrator:
             )
         )
 
-        prediction_result = self._generate_predictions(
+        prediction_result = self.generate_predictions(
             prediction_limit=prediction_limit,
             recent_limit=recent_limit,
             replace_existing_predictions=replace_existing_predictions,
@@ -711,7 +711,7 @@ class SystemUpdateOrchestrator:
             return result
 
 
-    def _generate_predictions(
+    def generate_predictions(
         self,
         *,
         prediction_limit: int,
@@ -800,7 +800,7 @@ class SystemUpdateOrchestrator:
 
         operations.append(
             {
-                "step": f"generate_predictions_v{PredictionV11RecordService.MODEL_VERSION}",
+                "step": "generate_predictions_v11",
                 "status": (
                     "success"
                     if failed == 0

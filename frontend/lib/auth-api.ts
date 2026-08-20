@@ -10,6 +10,19 @@ export interface LoginRequest {
   identifier: string;
   password: string;
 }
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  new_password: string;
+}
+
+export interface MessageResponse {
+  message: string;
+}
 export interface SubscriptionPlan {
   id: number;
   code: string;
@@ -69,10 +82,28 @@ async function request<T>(
     let message = "Request failed";
     try {
       const body = await response.json();
-      message =
-        typeof body?.detail === "string"
-          ? body.detail
-          : message;
+      if (typeof body?.detail === "string") {
+        message = body.detail;
+      } else if (Array.isArray(body?.detail)) {
+        const validationMessages = body.detail
+          .map((item: unknown) => {
+            if (
+              typeof item === "object" &&
+              item !== null &&
+              "msg" in item &&
+              typeof (item as { msg?: unknown }).msg === "string"
+            ) {
+              return (item as { msg: string }).msg;
+            }
+
+            return null;
+          })
+          .filter((item: string | null): item is string => Boolean(item));
+
+        if (validationMessages.length > 0) {
+          message = validationMessages.join(" ");
+        }
+      }
     } catch {
       // Keep generic error.
     }
@@ -95,6 +126,30 @@ export function login(
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+export function forgotPassword(
+  payload: ForgotPasswordRequest,
+) {
+  return request<MessageResponse>(
+    "/auth/forgot-password",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function resetPassword(
+  payload: ResetPasswordRequest,
+) {
+  return request<MessageResponse>(
+    "/auth/reset-password",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
 }
 export function refresh(
   refresh_token: string,
@@ -223,3 +278,4 @@ export function createCheckout(
     },
   );
 }
+

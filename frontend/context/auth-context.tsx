@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import {
   createContext,
   useCallback,
@@ -56,6 +56,9 @@ function storeTokens(
     REFRESH_TOKEN_KEY,
     refreshToken,
   );
+
+  document.cookie =
+    `${ACCESS_TOKEN_KEY}=${encodeURIComponent(accessToken)}; Path=/; SameSite=Lax`;
 }
 function clearStoredTokens(): void {
   if (typeof window === "undefined") {
@@ -67,6 +70,9 @@ function clearStoredTokens(): void {
   window.localStorage.removeItem(
     REFRESH_TOKEN_KEY,
   );
+
+  document.cookie =
+    `${ACCESS_TOKEN_KEY}=; Path=/; Max-Age=0; SameSite=Lax`;
 }
 export function AuthProvider({
   children,
@@ -247,6 +253,9 @@ export function useAuth(): AuthContextValue {
   }
   return context;
 }
+
+
+
 
 
 

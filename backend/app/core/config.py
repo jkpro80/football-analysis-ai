@@ -27,6 +27,18 @@ class Settings(BaseSettings):
     stripe_pro_price_id: str | None = None
     stripe_premium_price_id: str | None = None
 
+    # Email / password reset
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_from_email: str | None = None
+    smtp_from_name: str = "MALX"
+    smtp_use_starttls: bool = True
+
+    frontend_base_url: str = "https://xn--mlx-ula.com"
+    password_reset_expire_minutes: int = 30
+
     allowed_origins: list[str] = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",

@@ -1,4 +1,9 @@
+"use client";
+
 import Link from "next/link";
+
+import { useLocale } from "@/context/locale-context";
+import type { Locale } from "@/lib/i18n/config";
 
 type PredictionCard = {
   id: number;
@@ -72,6 +77,63 @@ type TopPredictionsProps = {
   predictions?: PredictionCard[];
 };
 
+function getText(locale: Locale) {
+  if (locale === "ar") {
+    return {
+      eyebrow: "أفضل توقعات الذكاء الاصطناعي",
+      title: "أفضل توقعات الذكاء الاصطناعي",
+      description:
+        "أعلى المباريات من حيث الثقة وجودة البيانات.",
+      viewAll: "عرض جميع التوقعات",
+      today: "اليوم",
+      homeWin: "فوز المضيف",
+      draw: "التعادل",
+      awayWin: "فوز الضيف",
+      xgHome: "xG المضيف",
+      xgAway: "xG الضيف",
+      bestPick: "أفضل اختيار",
+      confidence: "الثقة",
+      analyzeMatch: "تحليل المباراة",
+    };
+  }
+
+  if (locale === "sv") {
+    return {
+      eyebrow: "BÄSTA AI-PROGNOSER",
+      title: "Bästa AI-prognoser",
+      description:
+        "Matcherna med högst säkerhet och datakvalitet.",
+      viewAll: "Visa alla prognoser",
+      today: "Idag",
+      homeWin: "Hemmaseger",
+      draw: "Oavgjort",
+      awayWin: "Bortaseger",
+      xgHome: "xG hemma",
+      xgAway: "xG borta",
+      bestPick: "Bästa val",
+      confidence: "Säkerhet",
+      analyzeMatch: "Analysera match",
+    };
+  }
+
+  return {
+    eyebrow: "TOP AI PREDICTIONS",
+    title: "Top AI Predictions",
+    description:
+      "Matches with the highest confidence and data quality.",
+    viewAll: "View All Predictions",
+    today: "Today",
+    homeWin: "Home Win",
+    draw: "Draw",
+    awayWin: "Away Win",
+    xgHome: "Home xG",
+    xgAway: "Away xG",
+    bestPick: "Best Pick",
+    confidence: "Confidence",
+    analyzeMatch: "Analyze Match",
+  };
+}
+
 function ProbabilityBar({
   label,
   value,
@@ -82,8 +144,16 @@ function ProbabilityBar({
   return (
     <div>
       <div className="flex items-center justify-between text-[11px]">
-        <span className="font-bold text-slate-500">{label}</span>
-        <span className="font-black text-slate-300">{value}%</span>
+        <span className="font-bold text-slate-500">
+          {label}
+        </span>
+
+        <span
+          dir="ltr"
+          className="font-black text-slate-300"
+        >
+          {value}%
+        </span>
       </div>
 
       <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-800">
@@ -99,23 +169,30 @@ function ProbabilityBar({
 export default function TopPredictions({
   predictions = DEFAULT_PREDICTIONS,
 }: TopPredictionsProps) {
+  const {
+    locale,
+    direction,
+  } = useLocale();
+
+  const t = getText(locale);
+
   return (
     <section
-      dir="rtl"
+      dir={direction}
       className="rounded-3xl border border-slate-800 bg-slate-950/55 p-5 sm:p-6"
     >
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-black tracking-[0.18em] text-cyan-400">
-            TOP AI PREDICTIONS
+            {t.eyebrow}
           </p>
 
           <h2 className="mt-2 text-2xl font-black text-white">
-            أفضل توقعات الذكاء الاصطناعي
+            {t.title}
           </h2>
 
           <p className="mt-2 text-sm text-slate-500">
-            أعلى المباريات من حيث الثقة وجودة البيانات.
+            {t.description}
           </p>
         </div>
 
@@ -123,7 +200,7 @@ export default function TopPredictions({
           href="/predictions"
           className="text-sm font-black text-cyan-300 transition hover:text-cyan-200"
         >
-          عرض جميع التوقعات ←
+          {t.viewAll} {direction === "rtl" ? "←" : "→"}
         </Link>
       </div>
 
@@ -141,14 +218,22 @@ export default function TopPredictions({
                   </span>
 
                   <span className="text-slate-500">
-                    اليوم · {item.kickoff}
+                    {t.today} ·{" "}
+                    <span dir="ltr">
+                      {item.kickoff}
+                    </span>
                   </span>
                 </div>
 
-                <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                <div
+                  dir="ltr"
+                  className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3"
+                >
                   <div>
                     <div className="grid h-12 w-12 place-items-center rounded-2xl border border-slate-700 bg-slate-900 text-sm font-black text-cyan-300">
-                      {item.homeTeam.slice(0, 2).toUpperCase()}
+                      {item.homeTeam
+                        .slice(0, 2)
+                        .toUpperCase()}
                     </div>
 
                     <p className="mt-2 font-black text-white">
@@ -162,7 +247,9 @@ export default function TopPredictions({
 
                   <div className="text-left">
                     <div className="mr-auto grid h-12 w-12 place-items-center rounded-2xl border border-slate-700 bg-slate-900 text-sm font-black text-amber-300">
-                      {item.awayTeam.slice(0, 2).toUpperCase()}
+                      {item.awayTeam
+                        .slice(0, 2)
+                        .toUpperCase()}
                     </div>
 
                     <p className="mt-2 font-black text-white">
@@ -174,27 +261,39 @@ export default function TopPredictions({
                 <div className="mt-4 grid grid-cols-3 gap-2">
                   <div className="rounded-xl bg-slate-900/80 p-3 text-center">
                     <p className="text-[10px] text-slate-500">
-                      فوز المضيف
+                      {t.homeWin}
                     </p>
-                    <p className="mt-1 font-black text-cyan-300">
+
+                    <p
+                      dir="ltr"
+                      className="mt-1 font-black text-cyan-300"
+                    >
                       {item.homeWin}%
                     </p>
                   </div>
 
                   <div className="rounded-xl bg-slate-900/80 p-3 text-center">
                     <p className="text-[10px] text-slate-500">
-                      التعادل
+                      {t.draw}
                     </p>
-                    <p className="mt-1 font-black text-slate-300">
+
+                    <p
+                      dir="ltr"
+                      className="mt-1 font-black text-slate-300"
+                    >
                       {item.draw}%
                     </p>
                   </div>
 
                   <div className="rounded-xl bg-slate-900/80 p-3 text-center">
                     <p className="text-[10px] text-slate-500">
-                      فوز الضيف
+                      {t.awayWin}
                     </p>
-                    <p className="mt-1 font-black text-amber-300">
+
+                    <p
+                      dir="ltr"
+                      className="mt-1 font-black text-amber-300"
+                    >
                       {item.awayWin}%
                     </p>
                   </div>
@@ -215,18 +314,26 @@ export default function TopPredictions({
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-center">
                     <p className="text-[10px] text-slate-500">
-                      xG المضيف
+                      {t.xgHome}
                     </p>
-                    <p className="mt-1 text-lg font-black text-cyan-300">
+
+                    <p
+                      dir="ltr"
+                      className="mt-1 text-lg font-black text-cyan-300"
+                    >
                       {item.xgHome}
                     </p>
                   </div>
 
                   <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-center">
                     <p className="text-[10px] text-slate-500">
-                      xG الضيف
+                      {t.xgAway}
                     </p>
-                    <p className="mt-1 text-lg font-black text-amber-300">
+
+                    <p
+                      dir="ltr"
+                      className="mt-1 text-lg font-black text-amber-300"
+                    >
                       {item.xgAway}
                     </p>
                   </div>
@@ -235,7 +342,7 @@ export default function TopPredictions({
 
               <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.06] p-4">
                 <p className="text-xs font-bold text-slate-500">
-                  أفضل اختيار
+                  {t.bestPick}
                 </p>
 
                 <p className="mt-2 text-lg font-black text-cyan-300">
@@ -244,10 +351,13 @@ export default function TopPredictions({
 
                 <div className="mt-4 flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-500">
-                    Confidence
+                    {t.confidence}
                   </span>
 
-                  <strong className="text-2xl font-black text-emerald-400">
+                  <strong
+                    dir="ltr"
+                    className="text-2xl font-black text-emerald-400"
+                  >
                     {item.confidence}%
                   </strong>
                 </div>
@@ -256,7 +366,7 @@ export default function TopPredictions({
                   href={`/matches/${item.id}`}
                   className="mt-4 block rounded-xl bg-cyan-400 px-4 py-2.5 text-center text-sm font-black text-slate-950 transition hover:bg-cyan-300"
                 >
-                  Analyze Match
+                  {t.analyzeMatch}
                 </Link>
               </div>
             </div>

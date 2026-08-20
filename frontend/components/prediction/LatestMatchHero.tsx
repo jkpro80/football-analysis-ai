@@ -1,4 +1,8 @@
+"use client";
+
 import MatchHero from "@/components/dashboard/MatchHero";
+import { useLocale } from "@/context/locale-context";
+import type { Locale } from "@/lib/i18n/config";
 
 export type LatestHeroTeam = {
   id: number;
@@ -62,7 +66,6 @@ type LatestMatchHeroProps = {
   isFinished?: boolean;
   actualOutcome?: string | null;
   evaluation?: PredictionEvaluation;
-  engineVersion: string;
   matchDate: string;
   leagueName?: string | null;
   venueName?: string | null;
@@ -78,40 +81,104 @@ type LatestMatchHeroProps = {
   scoreProbability: number;
 };
 
-function translateMatchStatus(status: string): string {
+function translateMatchStatus(
+  status: string,
+  locale: Locale,
+): string {
   const normalized = String(status ?? "")
     .trim()
     .toLowerCase();
 
-  const statuses: Record<string, string> = {
-    "1": "لم تبدأ",
-    "2": "قريبًا",
-    "3": "الشوط الأول",
-    "4": "استراحة",
-    "5": "انتهت",
-    "6": "مؤجلة",
-    "7": "ملغاة",
-    "8": "بعد الوقت الأصلي",
-    "9": "بعد الأشواط الإضافية",
-    "10": "ركلات ترجيح",
-    scheduled: "مجدولة",
-    not_started: "لم تبدأ",
-    pending: "قريبًا",
-    live: "مباشر",
-    inplay: "مباشر",
-    "in-play": "مباشر",
-    halftime: "استراحة",
-    ht: "استراحة",
-    finished: "انتهت",
-    completed: "انتهت",
-    ft: "انتهت",
-    postponed: "مؤجلة",
-    cancelled: "ملغاة",
-    canceled: "ملغاة",
-    abandoned: "متوقفة",
+  const statuses: Record<
+    Locale,
+    Record<string, string>
+  > = {
+    ar: {
+      "1": "لم تبدأ",
+      "2": "قريبًا",
+      "3": "الشوط الأول",
+      "4": "استراحة",
+      "5": "انتهت",
+      "6": "مؤجلة",
+      "7": "ملغاة",
+      "8": "بعد الوقت الأصلي",
+      "9": "بعد الأشواط الإضافية",
+      "10": "ركلات ترجيح",
+      scheduled: "مجدولة",
+      not_started: "لم تبدأ",
+      pending: "قريبًا",
+      live: "مباشر",
+      inplay: "مباشر",
+      "in-play": "مباشر",
+      halftime: "استراحة",
+      ht: "استراحة",
+      finished: "انتهت",
+      completed: "انتهت",
+      ft: "انتهت",
+      postponed: "مؤجلة",
+      cancelled: "ملغاة",
+      canceled: "ملغاة",
+      abandoned: "متوقفة",
+    },
+
+    en: {
+      "1": "Not Started",
+      "2": "Upcoming",
+      "3": "First Half",
+      "4": "Half Time",
+      "5": "Finished",
+      "6": "Postponed",
+      "7": "Cancelled",
+      "8": "After Regular Time",
+      "9": "After Extra Time",
+      "10": "Penalties",
+      scheduled: "Scheduled",
+      not_started: "Not Started",
+      pending: "Upcoming",
+      live: "Live",
+      inplay: "Live",
+      "in-play": "Live",
+      halftime: "Half Time",
+      ht: "Half Time",
+      finished: "Finished",
+      completed: "Finished",
+      ft: "Finished",
+      postponed: "Postponed",
+      cancelled: "Cancelled",
+      canceled: "Cancelled",
+      abandoned: "Abandoned",
+    },
+
+    sv: {
+      "1": "Ej startad",
+      "2": "Kommande",
+      "3": "Första halvlek",
+      "4": "Halvtid",
+      "5": "Avslutad",
+      "6": "Uppskjuten",
+      "7": "Inställd",
+      "8": "Efter ordinarie tid",
+      "9": "Efter förlängning",
+      "10": "Straffar",
+      scheduled: "Schemalagd",
+      not_started: "Ej startad",
+      pending: "Kommande",
+      live: "Live",
+      inplay: "Live",
+      "in-play": "Live",
+      halftime: "Halvtid",
+      ht: "Halvtid",
+      finished: "Avslutad",
+      completed: "Avslutad",
+      ft: "Avslutad",
+      postponed: "Uppskjuten",
+      cancelled: "Inställd",
+      canceled: "Inställd",
+      abandoned: "Avbruten",
+    },
   };
 
-  return statuses[normalized] ?? status;
+  return statuses[locale][normalized] ?? status;
 }
 export default function LatestMatchHero({
   matchId,
@@ -121,7 +188,6 @@ export default function LatestMatchHero({
   isFinished,
   actualOutcome,
   evaluation,
-  engineVersion,
   matchDate,
   leagueName,
   venueName,
@@ -136,17 +202,18 @@ export default function LatestMatchHero({
   mostLikelyScore,
   scoreProbability,
 }: LatestMatchHeroProps) {
-  const translatedStatus = translateMatchStatus(status);
+  const { locale } = useLocale();
+
+  const translatedStatus = translateMatchStatus(
+    status,
+    locale,
+  );
 
   return (
     <section className="space-y-3">
       <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
         <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 font-bold text-emerald-300">
           {translatedStatus}
-        </span>
-
-        <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1 font-bold text-violet-300">
-          {engineVersion}
         </span>
 
         <span className="rounded-full border border-slate-700 bg-slate-900/60 px-3 py-1 text-slate-400">
@@ -183,8 +250,8 @@ export default function LatestMatchHero({
           probability: scoreProbability,
         }}
         evaluation={evaluation}
-        model={engineVersion}
       />
     </section>
   );
 }
+

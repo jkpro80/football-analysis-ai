@@ -1,12 +1,15 @@
 ﻿from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import uuid4
+import hashlib
+import secrets
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.database.models import (
+    PasswordResetToken,
     SubscriptionPlan,
     User,
     UserSubscription,
@@ -25,6 +28,12 @@ class RegistrationConflictError(AuthServiceError):
     """Raised when an email or username already exists."""
 class InactiveUserError(AuthServiceError):
     """Raised when authentication is attempted by an inactive user."""
+
+
+class PasswordResetError(AuthServiceError):
+    """Raised when a password reset token is invalid or expired."""
+
+
 class AuthService:
     ACCESS_TOKEN_TYPE = "access"
     REFRESH_TOKEN_TYPE = "refresh"
@@ -253,6 +262,156 @@ class AuthService:
             expected_type=self.REFRESH_TOKEN_TYPE,
         )
         return user, self.issue_tokens(user)
+    @staticmethod
+    def _hash_reset_token(token: str) -> str:
+        if not isinstance(token, str):
+            raise PasswordResetError(
+                "Invalid password reset token."
+            )
+
+        normalized = token.strip()
+
+        if not normalized:
+            raise PasswordResetError(
+                "Invalid password reset token."
+            )
+
+        return hashlib.sha256(
+            normalized.encode("utf-8")
+        ).hexdigest()
+
+    def create_password_reset_token(
+        self,
+        *,
+        email: str,
+    ) -> tuple[User | None, str | None]:
+        normalized_email = email.strip().lower()
+
+        if not normalized_email:
+            raise ValueError("email is required.")
+
+        user = self.users.get_by_email(
+            normalized_email,
+        )
+
+        # Do not reveal whether an account exists.
+        if user is None or not user.is_active:
+            return None, None
+
+        now = self._utc_now()
+
+        (
+            self.db.query(PasswordResetToken)
+            .filter(
+                PasswordResetToken.user_id == user.id,
+                PasswordResetToken.used_at.is_(None),
+            )
+            .update(
+                {
+                    PasswordResetToken.used_at: now,
+                },
+                synchronize_session=False,
+            )
+        )
+
+        raw_token = secrets.token_urlsafe(48)
+
+        reset_token = PasswordResetToken(
+            user_id=user.id,
+            token_hash=self._hash_reset_token(
+                raw_token,
+            ),
+            expires_at=(
+                now
+                + timedelta(
+                    minutes=(
+                        settings.password_reset_expire_minutes
+                    ),
+                )
+            ),
+            used_at=None,
+            created_at=now,
+        )
+
+        try:
+            self.db.add(reset_token)
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+
+        return user, raw_token
+
+    def reset_password(
+        self,
+        *,
+        token: str,
+        new_password: str,
+    ) -> User:
+        token_hash = self._hash_reset_token(
+            token,
+        )
+
+        now = self._utc_now()
+
+        reset_token = (
+            self.db.query(PasswordResetToken)
+            .filter(
+                PasswordResetToken.token_hash
+                == token_hash,
+                PasswordResetToken.used_at.is_(None),
+                PasswordResetToken.expires_at > now,
+            )
+            .first()
+        )
+
+        if reset_token is None:
+            raise PasswordResetError(
+                "Invalid or expired password reset token."
+            )
+
+        user = self.users.get_by_id(
+            reset_token.user_id,
+        )
+
+        if user is None or not user.is_active:
+            raise PasswordResetError(
+                "Invalid or expired password reset token."
+            )
+
+        user.password_hash = self.hash_password(
+            new_password,
+        )
+        user.updated_at = now
+        reset_token.used_at = now
+
+        # Invalidate every other outstanding reset token
+        # for this user as soon as the password changes.
+        (
+            self.db.query(PasswordResetToken)
+            .filter(
+                PasswordResetToken.user_id == user.id,
+                PasswordResetToken.id
+                != reset_token.id,
+                PasswordResetToken.used_at.is_(None),
+            )
+            .update(
+                {
+                    PasswordResetToken.used_at: now,
+                },
+                synchronize_session=False,
+            )
+        )
+
+        try:
+            self.db.commit()
+            self.db.refresh(user)
+        except Exception:
+            self.db.rollback()
+            raise
+
+        return user
+
     def get_active_subscription(
         self,
         user_id: int,

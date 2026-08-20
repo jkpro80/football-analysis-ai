@@ -1,4 +1,4 @@
-﻿type ApiRequestOptions = RequestInit & {
+type ApiRequestOptions = RequestInit & {
   admin?: boolean;
 };
 
@@ -32,6 +32,22 @@ function buildHeaders(
     !headers.has("Content-Type")
   ) {
     headers.set("Content-Type", "application/json");
+  }
+
+  if (
+    typeof window !== "undefined" &&
+    !headers.has("Authorization")
+  ) {
+    const accessToken = window.localStorage.getItem(
+      "football_ai_access_token",
+    );
+
+    if (accessToken) {
+      headers.set(
+        "Authorization",
+        `Bearer ${accessToken}`,
+      );
+    }
   }
 
   if (options.admin && typeof window === "undefined") {
@@ -113,4 +129,5 @@ export async function getPrediction(
     `/predictions/${matchId}`,
   );
 }
+
 

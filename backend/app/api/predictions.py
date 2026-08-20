@@ -1,10 +1,10 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database.database import get_db
 from app.database.models import SubscriptionPlan, User
-from app.dependencies.auth import get_optional_current_user
+from app.dependencies.auth import get_current_user
 from app.engine.prediction_engine_v11 import (
     PredictionEngineError,
     PredictionEngineV11,
@@ -28,8 +28,8 @@ def get_prediction(
     include_features: bool = False,
     include_raw_data: bool = False,
     db: Session = Depends(get_db),
-    current_user: User | None = Depends(
-        get_optional_current_user,
+    current_user: User = Depends(
+        get_current_user,
     ),
 ) -> PredictionResponse:
     """
@@ -114,6 +114,44 @@ def get_prediction(
         response = PredictionResponse.model_validate(
             result,
         )
+
+        if plan_code == "free":
+            response = PredictionResponse.model_validate(
+                {
+                    "success": response.success,
+                    "engine": response.engine.model_dump(),
+                    "match": response.match.model_dump(),
+                    "expected_goals": (
+                        response.expected_goals.model_dump()
+                    ),
+                    "prediction": response.prediction.model_dump(),
+                    "most_likely_score": (
+                        response.most_likely_score.model_dump()
+                    ),
+                    "confidence": {
+                        "confidence": response.confidence.confidence,
+                        "level": response.confidence.level,
+                        "predicted_outcome": (
+                            response.confidence.predicted_outcome
+                        ),
+                        "predicted_outcome_label": (
+                            response.confidence.predicted_outcome_label
+                        ),
+                        "highest_probability": (
+                            response.confidence.highest_probability
+                        ),
+                        "probability_margin": (
+                            response.confidence.probability_margin
+                        ),
+                        "model": response.confidence.model,
+                        "factors": {},
+                        "warnings": [],
+                    },
+                }
+            )
+
+        elif plan_code == "pro":
+            response.raw_data = None
         if (
             current_user is not None
             and usage_service is not None
@@ -152,3 +190,5 @@ def get_prediction(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate match prediction.",
         ) from exc
+
+

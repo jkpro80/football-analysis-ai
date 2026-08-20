@@ -364,8 +364,23 @@ def get_team_statistics(
                 "possession": (
                     average_possession
                 ),
+                "shots": (
+                    float(team.shots)
+                    if team.shots is not None
+                    else None
+                ),
+                "shots_on_target": (
+                    float(team.shots_on_target)
+                    if team.shots_on_target is not None
+                    else None
+                ),
                 "corners": (
                     average_corners
+                ),
+                "fouls": (
+                    float(team.fouls)
+                    if team.fouls is not None
+                    else None
                 ),
                 "yellow_cards": (
                     average_yellow_cards
@@ -578,3 +593,4 @@ def clamp_rating(
             min(value, 100),
         )
     )
+

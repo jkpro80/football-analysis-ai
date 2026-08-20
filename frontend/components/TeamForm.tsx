@@ -34,6 +34,10 @@ const emptyForm: TeamFormData = {
   goals_conceded: 1,
 };
 
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ??
+  "/api";
+
 const inputStyle = {
   width: "100%",
   padding: "14px 16px",
@@ -116,8 +120,8 @@ export default function TeamForm({
 
     try {
       const url = team
-        ? `http://127.0.0.1:8000/teams/${team.id}`
-        : "http://127.0.0.1:8000/teams";
+        ? `${API_URL}/teams/${team.id}`
+        : `${API_URL}/teams`;
 
       const response = await fetch(url, {
         method: team ? "PUT" : "POST",

@@ -1,55 +1,164 @@
+"use client";
+
+import { useLocale } from "@/context/locale-context";
+import type { Locale } from "@/lib/i18n/config";
+
 type StatItem = {
   label: string;
   value: string;
   caption: string;
   icon: string;
-  tone: "cyan" | "emerald" | "amber" | "violet" | "rose" | "blue";
+  tone:
+    | "cyan"
+    | "emerald"
+    | "amber"
+    | "violet"
+    | "rose"
+    | "blue";
 };
 
-const DEFAULT_STATS: StatItem[] = [
-  {
-    label: "مباريات اليوم",
-    value: "62",
-    caption: "عبر جميع الدوريات",
-    icon: "⚽",
-    tone: "cyan",
-  },
-  {
-    label: "مباشر الآن",
-    value: "11",
-    caption: "يتم تحديثها لحظيًا",
-    icon: "●",
-    tone: "rose",
-  },
-  {
-    label: "متوسط الأهداف",
-    value: "2.87",
-    caption: "لكل مباراة",
-    icon: "🥅",
-    tone: "emerald",
-  },
-  {
-    label: "متوسط الركنيات",
-    value: "10.4",
-    caption: "لكل مباراة",
-    icon: "🚩",
-    tone: "amber",
-  },
-  {
-    label: "متوسط البطاقات",
-    value: "4.7",
-    caption: "بطاقة صفراء",
-    icon: "▰",
-    tone: "violet",
-  },
-  {
-    label: "دقة التوقعات",
-    value: "85%",
-    caption: "آخر 30 يومًا",
-    icon: "◎",
-    tone: "blue",
-  },
-];
+function getDefaultStats(
+  locale: Locale,
+): StatItem[] {
+  if (locale === "ar") {
+    return [
+      {
+        label: "مباريات اليوم",
+        value: "62",
+        caption: "عبر جميع الدوريات",
+        icon: "⚽",
+        tone: "cyan",
+      },
+      {
+        label: "مباشر الآن",
+        value: "11",
+        caption: "يتم تحديثها لحظيًا",
+        icon: "●",
+        tone: "rose",
+      },
+      {
+        label: "متوسط الأهداف",
+        value: "2.87",
+        caption: "لكل مباراة",
+        icon: "🥅",
+        tone: "emerald",
+      },
+      {
+        label: "متوسط الركنيات",
+        value: "10.4",
+        caption: "لكل مباراة",
+        icon: "🚩",
+        tone: "amber",
+      },
+      {
+        label: "متوسط البطاقات",
+        value: "4.7",
+        caption: "بطاقة صفراء",
+        icon: "▰",
+        tone: "violet",
+      },
+      {
+        label: "دقة التوقعات",
+        value: "85%",
+        caption: "آخر 30 يومًا",
+        icon: "◎",
+        tone: "blue",
+      },
+    ];
+  }
+
+  if (locale === "sv") {
+    return [
+      {
+        label: "Dagens matcher",
+        value: "62",
+        caption: "I alla ligor",
+        icon: "⚽",
+        tone: "cyan",
+      },
+      {
+        label: "Live nu",
+        value: "11",
+        caption: "Uppdateras i realtid",
+        icon: "●",
+        tone: "rose",
+      },
+      {
+        label: "Målsnitt",
+        value: "2.87",
+        caption: "Per match",
+        icon: "🥅",
+        tone: "emerald",
+      },
+      {
+        label: "Hörnsnitt",
+        value: "10.4",
+        caption: "Per match",
+        icon: "🚩",
+        tone: "amber",
+      },
+      {
+        label: "Kortsnitt",
+        value: "4.7",
+        caption: "Gula kort",
+        icon: "▰",
+        tone: "violet",
+      },
+      {
+        label: "Prognosprecision",
+        value: "85%",
+        caption: "Senaste 30 dagarna",
+        icon: "◎",
+        tone: "blue",
+      },
+    ];
+  }
+
+  return [
+    {
+      label: "Today's Matches",
+      value: "62",
+      caption: "Across all leagues",
+      icon: "⚽",
+      tone: "cyan",
+    },
+    {
+      label: "Live Now",
+      value: "11",
+      caption: "Updated in real time",
+      icon: "●",
+      tone: "rose",
+    },
+    {
+      label: "Average Goals",
+      value: "2.87",
+      caption: "Per match",
+      icon: "🥅",
+      tone: "emerald",
+    },
+    {
+      label: "Average Corners",
+      value: "10.4",
+      caption: "Per match",
+      icon: "🚩",
+      tone: "amber",
+    },
+    {
+      label: "Average Cards",
+      value: "4.7",
+      caption: "Yellow cards",
+      icon: "▰",
+      tone: "violet",
+    },
+    {
+      label: "Prediction Accuracy",
+      value: "85%",
+      caption: "Last 30 days",
+      icon: "◎",
+      tone: "blue",
+    },
+  ];
+}
 
 const toneClasses = {
   cyan: {
@@ -89,16 +198,32 @@ type HomeStatsBarProps = {
 };
 
 export default function HomeStatsBar({
-  stats = DEFAULT_STATS,
+  stats,
 }: HomeStatsBarProps) {
+  const {
+    locale,
+    direction,
+  } = useLocale();
+
+  const displayedStats =
+    stats ?? getDefaultStats(locale);
+
+  const statsLabel =
+    locale === "ar"
+      ? "إحصائيات المنصة"
+      : locale === "sv"
+        ? "Plattformsstatistik"
+        : "Platform statistics";
+
   return (
     <section
-      dir="rtl"
-      aria-label="إحصائيات المنصة"
+      dir={direction}
+      aria-label={statsLabel}
       className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
     >
-      {stats.map((item) => {
-        const tone = toneClasses[item.tone];
+      {displayedStats.map((item) => {
+        const tone =
+          toneClasses[item.tone];
 
         return (
           <article
@@ -111,7 +236,10 @@ export default function HomeStatsBar({
                   {item.label}
                 </p>
 
-                <p className={`mt-2 text-2xl font-black ${tone.value}`}>
+                <p
+                  dir="ltr"
+                  className={`mt-2 text-2xl font-black ${tone.value}`}
+                >
                   {item.value}
                 </p>
 

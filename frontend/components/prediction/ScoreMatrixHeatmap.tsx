@@ -1,3 +1,8 @@
+"use client";
+
+import { useLocale } from "@/context/locale-context";
+import type { Locale } from "@/lib/i18n/config";
+
 type ScoreMatrixCell = {
   home_goals: number;
   away_goals: number;
@@ -17,13 +22,86 @@ type ScoreMatrixHeatmapProps = {
   maxGoals?: number;
 };
 
+const TEXT = {
+  ar: {
+    title: "خريطة احتمالات النتائج",
+    unavailable:
+      "بيانات مصفوفة النتائج غير متاحة لهذه المباراة.",
+    description:
+      "الصفوف تمثل أهداف الفريق المضيف، والأعمدة تمثل أهداف الفريق الضيف. الخلايا الأكثر سطوعًا تمثل النتائج ذات الاحتمال الأعلى.",
+    resultsRange: "النتائج من 0 إلى",
+    highestSingleScore: "أعلى نتيجة منفردة",
+    recommendedScore: "النتيجة المتوافقة",
+    entropy: "تشتت النتائج",
+    topFive: "تركّز أفضل 5 نتائج",
+    homeWin: "فوز المضيف",
+    draw: "التعادل",
+    awayWin: "فوز الضيف",
+    purpleLegend: "البنفسجي: أعلى نتيجة منفردة",
+    greenLegend: "الأخضر: النتيجة المتوافقة",
+    goldLegend: "الذهبي: النتيجتان متطابقتان",
+    homeAway: "مضيف / ضيف",
+    score: "النتيجة",
+    probability: "الاحتمال",
+    probabilityWith: "باحتمال",
+  },
+  en: {
+    title: "Score Probability Matrix",
+    unavailable:
+      "Score matrix data is not available for this match.",
+    description:
+      "Rows represent the home team's goals and columns represent the away team's goals. Brighter cells indicate more likely scorelines.",
+    resultsRange: "Scores from 0 to",
+    highestSingleScore: "Highest Single Score",
+    recommendedScore: "Recommended Score",
+    entropy: "Score Dispersion",
+    topFive: "Top 5 Score Concentration",
+    homeWin: "Home Win",
+    draw: "Draw",
+    awayWin: "Away Win",
+    purpleLegend: "Purple: Highest single score",
+    greenLegend: "Green: Recommended score",
+    goldLegend: "Gold: Both scores match",
+    homeAway: "Home / Away",
+    score: "Score",
+    probability: "probability",
+    probabilityWith: "with probability",
+  },
+  sv: {
+    title: "Resultatsannolikhetsmatris",
+    unavailable:
+      "Resultatmatrisen är inte tillgänglig för den här matchen.",
+    description:
+      "Raderna visar hemmalagets mål och kolumnerna visar bortalagets mål. Ljusare celler representerar mer sannolika resultat.",
+    resultsRange: "Resultat från 0 till",
+    highestSingleScore: "Troligaste enskilda resultat",
+    recommendedScore: "Rekommenderat resultat",
+    entropy: "Resultatspridning",
+    topFive: "Koncentration av topp 5-resultat",
+    homeWin: "Hemmaseger",
+    draw: "Oavgjort",
+    awayWin: "Bortaseger",
+    purpleLegend: "Lila: Troligaste enskilda resultat",
+    greenLegend: "Grön: Rekommenderat resultat",
+    goldLegend: "Guld: Resultaten sammanfaller",
+    homeAway: "Hemma / Borta",
+    score: "Resultat",
+    probability: "sannolikhet",
+    probabilityWith: "med sannolikheten",
+  },
+} satisfies Record<Locale, Record<string, string>>;
+
 function percentage(
   value: number | null | undefined,
   digits = 2,
 ): string {
   const resolved = Number(value ?? 0);
 
-  return `${Number.isFinite(resolved) ? resolved.toFixed(digits) : "0.00"}%`;
+  return `${
+    Number.isFinite(resolved)
+      ? resolved.toFixed(digits)
+      : "0.00"
+  }%`;
 }
 
 function metricValue(
@@ -49,11 +127,17 @@ function cellBackground(
     maximumProbability > 0
       ? Math.min(
           1,
-          Math.max(0, probability / maximumProbability),
+          Math.max(
+            0,
+            probability / maximumProbability,
+          ),
         )
       : 0;
 
-  const visualIntensity = Math.pow(intensity, 0.72);
+  const visualIntensity = Math.pow(
+    intensity,
+    0.72,
+  );
 
   if (probability >= 9) {
     return `rgba(16, 185, 129, ${
@@ -95,6 +179,9 @@ export default function ScoreMatrixHeatmap({
   topFiveConcentration = null,
   maxGoals = 6,
 }: ScoreMatrixHeatmapProps) {
+  const { locale, direction } = useLocale();
+  const text = TEXT[locale];
+
   const goals = Array.from(
     { length: maxGoals + 1 },
     (_, index) => index,
@@ -103,8 +190,12 @@ export default function ScoreMatrixHeatmap({
   const visibleCells = Array.isArray(matrix)
     ? matrix.filter(
         (cell) =>
-          Number.isFinite(Number(cell.home_goals)) &&
-          Number.isFinite(Number(cell.away_goals)) &&
+          Number.isFinite(
+            Number(cell.home_goals),
+          ) &&
+          Number.isFinite(
+            Number(cell.away_goals),
+          ) &&
           cell.home_goals >= 0 &&
           cell.home_goals <= maxGoals &&
           cell.away_goals >= 0 &&
@@ -114,13 +205,16 @@ export default function ScoreMatrixHeatmap({
 
   if (visibleCells.length === 0) {
     return (
-      <section className="rounded-[32px] border border-slate-800 bg-[#050b1e] p-6 sm:p-8">
+      <section
+        dir={direction}
+        className="rounded-[32px] border border-slate-800 bg-[#050b1e] p-6 sm:p-8"
+      >
         <h2 className="text-2xl font-black">
-          خريطة احتمالات النتائج
+          {text.title}
         </h2>
 
         <p className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-950/15 p-4 text-sm text-amber-100/80">
-          بيانات مصفوفة النتائج غير متاحة لهذه المباراة.
+          {text.unavailable}
         </p>
       </section>
     );
@@ -142,46 +236,47 @@ export default function ScoreMatrixHeatmap({
 
   const outcomes = [
     {
-      label: "فوز المضيف",
+      label: text.homeWin,
       value: homeWin,
       textClass: "text-cyan-300",
     },
     {
-      label: "التعادل",
+      label: text.draw,
       value: draw,
       textClass: "text-slate-100",
     },
     {
-      label: "فوز الضيف",
+      label: text.awayWin,
       value: awayWin,
       textClass: "text-violet-300",
     },
   ];
 
   return (
-    <section className="rounded-[32px] border border-slate-800 bg-[#050b1e] p-5 sm:p-8">
+    <section
+      dir={direction}
+      className="rounded-[32px] border border-slate-800 bg-[#050b1e] p-5 sm:p-8"
+    >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-2xl font-black">
-            خريطة احتمالات النتائج
+            {text.title}
           </h2>
 
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
-            الصفوف تمثل أهداف الفريق المضيف، والأعمدة تمثل أهداف
-            الفريق الضيف. الخلايا الأكثر سطوعًا تمثل النتائج ذات
-            الاحتمال الأعلى.
+            {text.description}
           </p>
         </div>
 
         <span className="rounded-full border border-cyan-500/25 bg-cyan-950/20 px-3 py-1 text-xs font-bold text-cyan-300">
-          النتائج من 0 إلى {maxGoals}
+          {text.resultsRange} {maxGoals}
         </span>
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <article className="rounded-2xl border border-violet-500/30 bg-violet-950/20 p-4">
           <p className="text-xs font-bold text-slate-400">
-            أعلى نتيجة منفردة
+            {text.highestSingleScore}
           </p>
 
           <p
@@ -194,7 +289,7 @@ export default function ScoreMatrixHeatmap({
 
         <article className="rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-4">
           <p className="text-xs font-bold text-slate-400">
-            النتيجة المتوافقة
+            {text.recommendedScore}
           </p>
 
           <p
@@ -207,7 +302,7 @@ export default function ScoreMatrixHeatmap({
 
         <article className="rounded-2xl border border-cyan-500/20 bg-slate-950/50 p-4">
           <p className="text-xs font-bold text-slate-400">
-            تشتت النتائج
+            {text.entropy}
           </p>
 
           <p className="mt-2 text-3xl font-black text-cyan-300">
@@ -221,13 +316,15 @@ export default function ScoreMatrixHeatmap({
 
         <article className="rounded-2xl border border-cyan-500/20 bg-slate-950/50 p-4">
           <p className="text-xs font-bold text-slate-400">
-            تركّز أفضل 5 نتائج
+            {text.topFive}
           </p>
 
           <p className="mt-2 text-3xl font-black text-cyan-300">
             {topFiveConcentration === null
               ? "—"
-              : percentage(topFiveConcentration)}
+              : percentage(
+                  topFiveConcentration,
+                )}
           </p>
         </article>
       </div>
@@ -253,15 +350,15 @@ export default function ScoreMatrixHeatmap({
 
       <div className="mt-5 flex flex-wrap gap-3 text-xs">
         <span className="rounded-full border border-violet-500/40 bg-violet-950/30 px-3 py-1 text-violet-200">
-          البنفسجي: أعلى نتيجة منفردة
+          {text.purpleLegend}
         </span>
 
         <span className="rounded-full border border-emerald-500/40 bg-emerald-950/30 px-3 py-1 text-emerald-200">
-          الأخضر: النتيجة المتوافقة
+          {text.greenLegend}
         </span>
 
         <span className="rounded-full border border-amber-400/50 bg-amber-950/30 px-3 py-1 text-amber-200">
-          الذهبي: النتيجتان متطابقتان
+          {text.goldLegend}
         </span>
       </div>
 
@@ -273,7 +370,7 @@ export default function ScoreMatrixHeatmap({
           <thead>
             <tr>
               <th className="w-24 p-2 text-xs text-slate-500">
-                مضيف / ضيف
+                {text.homeAway}
               </th>
 
               {goals.map((awayGoals) => (
@@ -299,8 +396,11 @@ export default function ScoreMatrixHeatmap({
                 </th>
 
                 {goals.map((awayGoals) => {
-                  const score = `${homeGoals}-${awayGoals}`;
-                  const cell = cellsByScore.get(score);
+                  const score =
+                    `${homeGoals}-${awayGoals}`;
+
+                  const cell =
+                    cellsByScore.get(score);
 
                   const probability = Number(
                     cell?.probability ?? 0,
@@ -313,7 +413,8 @@ export default function ScoreMatrixHeatmap({
                     score === recommendedScore;
 
                   const isBoth =
-                    isMostLikely && isRecommended;
+                    isMostLikely &&
+                    isRecommended;
 
                   const emphasisClass = isBoth
                     ? "border-amber-300 ring-2 ring-amber-300/70"
@@ -332,18 +433,19 @@ export default function ScoreMatrixHeatmap({
                   return (
                     <td
                       key={score}
-                      title={`النتيجة ${score} — الاحتمال ${percentage(
+                      title={`${text.score} ${score} — ${text.probability} ${percentage(
                         probability,
                       )}`}
-                      aria-label={`النتيجة ${score} باحتمال ${percentage(
+                      aria-label={`${text.score} ${score} ${text.probabilityWith} ${percentage(
                         probability,
                       )}`}
                       className={`relative h-[70px] min-w-[88px] rounded-2xl border p-2 transition duration-200 hover:-translate-y-0.5 hover:brightness-125 ${emphasisClass}`}
                       style={{
-                        backgroundColor: cellBackground(
-                          probability,
-                          maximumProbability,
-                        ),
+                        backgroundColor:
+                          cellBackground(
+                            probability,
+                            maximumProbability,
+                          ),
                       }}
                     >
                       <strong className="block text-base font-black text-white">
@@ -351,7 +453,9 @@ export default function ScoreMatrixHeatmap({
                       </strong>
 
                       <span className="mt-1 block text-xs font-bold text-slate-100">
-                        {percentage(probability)}
+                        {percentage(
+                          probability,
+                        )}
                       </span>
 
                       {(isMostLikely ||

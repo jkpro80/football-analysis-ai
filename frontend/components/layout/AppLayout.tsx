@@ -1,6 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
+
+import { useLocale } from "@/context/locale-context";
+
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 
@@ -11,9 +14,11 @@ type AppLayoutProps = {
 export default function AppLayout({
   children,
 }: AppLayoutProps) {
+  const { direction } = useLocale();
+
   return (
     <div
-      dir="rtl"
+      dir={direction}
       className="min-h-screen bg-slate-950 text-slate-100"
     >
       <div className="flex min-h-screen">

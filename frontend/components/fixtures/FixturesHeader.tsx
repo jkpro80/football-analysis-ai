@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { useLocale } from "@/context/locale-context";
 
 type MatchItem = {
   id: number;
@@ -69,6 +70,140 @@ export default function FixturesHeader({
   matches,
 }: FixturesHeaderProps) {
   const router = useRouter();
+  const { locale, direction } = useLocale();
+
+  const text =
+    locale === "sv"
+      ? {
+          eyebrow: "MATCHCENTER",
+          title: "Matchadministration",
+          description:
+            "Uppdatera matchdata i omgångar och exportera den aktuella listan till en CSV-fil.",
+          home: "Hem",
+          exportCsv: "Exportera CSV",
+          updating: "Uppdaterar...",
+          updateMatches: "Uppdatera matcher",
+          total: "Totalt antal matcher",
+          upcoming: "Kommande",
+          live: "Live",
+          finished: "Avslutade",
+          preparingTeams: "Förbereder laglistan...",
+          loadTeamsError: "Det gick inte att ladda laglistan.",
+          noSportMonksIds:
+            "Inga giltiga SportMonks-ID:n hittades.",
+          updatingBatch: (current: number, total: number) =>
+            `Uppdaterar omgång ${current} av ${total}`,
+          batchFailed: (batch: number) =>
+            `Omgång ${batch} misslyckades.`,
+          updateSuccess: (count: number) =>
+            `${count} lag uppdaterades.`,
+          updatePartial: (succeeded: number, failed: number) =>
+            `${succeeded} lag uppdaterades, ${failed} misslyckades.`,
+          updateError:
+            "Ett fel uppstod under uppdateringen.",
+          noMatchesExport:
+            "Det finns inga matcher att exportera.",
+          exportSuccess: (count: number) =>
+            `${count} matcher exporterades.`,
+          csvColumns: [
+            "Match-ID",
+            "SportMonks ID",
+            "Liga",
+            "Hemmalag",
+            "Bortalag",
+            "Datum",
+            "Status",
+            "Hemmamål",
+            "Bortamål",
+          ],
+        }
+      : locale === "en"
+        ? {
+            eyebrow: "FIXTURES CONTROL CENTER",
+            title: "Fixtures Management",
+            description:
+              "Update fixture data in batches and export the current list to a CSV file.",
+            home: "Home",
+            exportCsv: "Export CSV",
+            updating: "Updating...",
+            updateMatches: "Update Fixtures",
+            total: "Total Fixtures",
+            upcoming: "Upcoming",
+            live: "Live",
+            finished: "Finished",
+            preparingTeams: "Preparing team list...",
+            loadTeamsError: "Unable to load the team list.",
+            noSportMonksIds:
+              "No valid SportMonks IDs were found.",
+            updatingBatch: (current: number, total: number) =>
+              `Updating batch ${current} of ${total}`,
+            batchFailed: (batch: number) =>
+              `Batch ${batch} failed.`,
+            updateSuccess: (count: number) =>
+              `${count} teams updated successfully.`,
+            updatePartial: (succeeded: number, failed: number) =>
+              `${succeeded} teams updated, ${failed} failed.`,
+            updateError:
+              "An error occurred during the update.",
+            noMatchesExport:
+              "There are no fixtures to export.",
+            exportSuccess: (count: number) =>
+              `${count} fixtures exported.`,
+            csvColumns: [
+              "Match ID",
+              "SportMonks ID",
+              "League",
+              "Home Team",
+              "Away Team",
+              "Date",
+              "Status",
+              "Home Goals",
+              "Away Goals",
+            ],
+          }
+        : {
+            eyebrow: "مركز إدارة المباريات",
+            title: "إدارة المباريات",
+            description:
+              "تحديث بيانات المباريات على دفعات وتصدير القائمة الحالية إلى ملف CSV.",
+            home: "الرئيسية",
+            exportCsv: "تصدير CSV",
+            updating: "جاري التحديث...",
+            updateMatches: "تحديث المباريات",
+            total: "إجمالي المباريات",
+            upcoming: "قادمة",
+            live: "مباشرة",
+            finished: "منتهية",
+            preparingTeams: "جاري تجهيز قائمة الفرق...",
+            loadTeamsError: "تعذر تحميل قائمة الفرق.",
+            noSportMonksIds:
+              "لم يتم العثور على معرفات SportMonks صالحة.",
+            updatingBatch: (current: number, total: number) =>
+              `جاري تحديث الدفعة ${current} من ${total}`,
+            batchFailed: (batch: number) =>
+              `فشلت الدفعة ${batch}.`,
+            updateSuccess: (count: number) =>
+              `تم تحديث ${count} فريق بنجاح.`,
+            updatePartial: (succeeded: number, failed: number) =>
+              `تم تحديث ${succeeded} فريق، وفشل تحديث ${failed} فريق.`,
+            updateError:
+              "حدث خطأ أثناء عملية التحديث.",
+            noMatchesExport:
+              "لا توجد مباريات لتصديرها.",
+            exportSuccess: (count: number) =>
+              `تم تصدير ${count} مباراة.`,
+            csvColumns: [
+              "رقم المباراة",
+              "SportMonks ID",
+              "الدوري",
+              "الفريق المضيف",
+              "الفريق الضيف",
+              "التاريخ",
+              "الحالة",
+              "أهداف المضيف",
+              "أهداف الضيف",
+            ],
+          };
 
   const [updating, setUpdating] =
     useState(false);
@@ -119,7 +254,7 @@ export default function FixturesHeader({
     setProgress(0);
     setMessage({
       type: "info",
-      text: "جاري تحضير قائمة الفرق...",
+      text: text.preparingTeams,
     });
 
     try {
@@ -132,7 +267,7 @@ export default function FixturesHeader({
 
       if (!teamsResponse.ok) {
         throw new Error(
-          "تعذر تحميل قائمة الفرق.",
+          text.loadTeamsError,
         );
       }
 
@@ -155,7 +290,7 @@ export default function FixturesHeader({
 
       if (teamIds.length === 0) {
         throw new Error(
-          "لا توجد معرفات SportMonks صالحة.",
+          "لم يتم العثور على معرفات SportMonks صالحة.",
         );
       }
 
@@ -211,7 +346,7 @@ export default function FixturesHeader({
         if (!response.ok) {
           throw new Error(
             result.detail ??
-              `فشلت الدفعة ${index + 1}.`,
+              text.batchFailed(index + 1),
           );
         }
 
@@ -237,7 +372,7 @@ export default function FixturesHeader({
             : "info",
         text:
           failed === 0
-            ? `تم تحديث ${succeeded} فريق بنجاح.`
+            ? text.updateSuccess(succeeded)
             : (
                 `تم تحديث ${succeeded} فريق، ` +
                 `وفشل تحديث ${failed} فريق.`
@@ -251,7 +386,7 @@ export default function FixturesHeader({
         text:
           error instanceof Error
             ? error.message
-            : "حدث خطأ أثناء التحديث.",
+            : "حدث خطأ أثناء عملية التحديث.",
       });
     } finally {
       setUpdating(false);
@@ -268,17 +403,7 @@ export default function FixturesHeader({
       return;
     }
 
-    const columns = [
-      "رقم المباراة",
-      "SportMonks ID",
-      "الدوري",
-      "الفريق المضيف",
-      "الفريق الضيف",
-      "التاريخ",
-      "الحالة",
-      "أهداف المضيف",
-      "أهداف الضيف",
-    ];
+    const columns = text.csvColumns;
 
     const rows = matches.map((match) => [
       match.id,
@@ -325,7 +450,7 @@ export default function FixturesHeader({
     setMessage({
       type: "success",
       text:
-        `تم تصدير ${matches.length} مباراة.`,
+        text.exportSuccess(matches.length),
     });
   }
 
@@ -337,21 +462,20 @@ export default function FixturesHeader({
         : "border-cyan-500/20 bg-cyan-500/10 text-cyan-200";
 
   return (
-    <section className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/75 shadow-xl shadow-black/20">
+    <section dir={direction} className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/75 shadow-xl shadow-black/20">
       <div className="p-6">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <p className="mb-2 text-sm font-bold text-cyan-400">
-              Fixtures Control Center
+              {text.eyebrow}
             </p>
 
             <h1 className="text-3xl font-black text-white sm:text-4xl">
-              مركز إدارة المباريات
+              {text.title}
             </h1>
 
             <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-400">
-              تحديث بيانات المباريات على دفعات وتصدير
-              القائمة الحالية إلى ملف CSV.
+              {text.description}
             </p>
           </div>
 
@@ -360,7 +484,7 @@ export default function FixturesHeader({
               href="/"
               className="rounded-xl border border-slate-700 bg-slate-950/50 px-5 py-2.5 font-bold text-slate-200 transition hover:bg-slate-800"
             >
-              الرئيسية
+              {text.home}
             </Link>
 
             <button
@@ -368,7 +492,7 @@ export default function FixturesHeader({
               onClick={exportMatches}
               className="rounded-xl border border-slate-700 bg-slate-950/50 px-5 py-2.5 font-bold text-slate-200 transition hover:bg-slate-800"
             >
-              تصدير CSV
+              {text.exportCsv}
             </button>
 
             <button
@@ -378,8 +502,8 @@ export default function FixturesHeader({
               className="rounded-xl bg-cyan-500 px-5 py-2.5 font-black text-slate-950 transition hover:bg-cyan-400 disabled:cursor-wait disabled:opacity-60"
             >
               {updating
-                ? "جاري التحديث..."
-                : "تحديث المباريات"}
+                ? text.updating
+                : text.updateMatches}
             </button>
           </div>
         </div>
@@ -387,10 +511,10 @@ export default function FixturesHeader({
 
       <div className="grid gap-px bg-slate-800 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          ["إجمالي المباريات", statistics.total],
-          ["قادمة", statistics.upcoming],
-          ["مباشرة", statistics.live],
-          ["منتهية", statistics.finished],
+          [text.total, statistics.total],
+          [text.upcoming, statistics.upcoming],
+          [text.live, statistics.live],
+          [text.finished, statistics.finished],
         ].map(([label, value]) => (
           <div
             key={String(label)}
@@ -441,6 +565,9 @@ export default function FixturesHeader({
     </section>
   );
 }
+
+
+
 
 
 

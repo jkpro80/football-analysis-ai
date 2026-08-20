@@ -3,9 +3,15 @@
 import Link from "next/link";
 import { useMemo } from "react";
 
+import { useAuth } from "@/context/auth-context";
+import { useLocale } from "@/context/locale-context";
+
+import AdBanner from "./AdBanner";
+import AdSlider from "./AdSlider";
 import AIInsights from "./AIInsights";
-import { confidenceClasses } from "./helpers";
+import { confidenceClasses, normalizeStatus } from "./helpers";
 import MatchExplorer from "./MatchExplorer";
+import PredictionResultsTicker from "./PredictionResultsTicker";
 import StatCard from "./StatCard";
 import TopPickCard from "./TopPickCard";
 import type { HomeDashboardProps } from "./types";
@@ -17,8 +23,95 @@ export type {
 
 export default function HomeDashboard({
   fixtures,
+  explorerFixtures,
   modelVersion,
 }: HomeDashboardProps) {
+  const { user } = useAuth();
+  const { locale } = useLocale();
+
+  const isAdmin = user?.role === "admin";
+
+  const t =
+    locale === "ar"
+      ? {
+          heroTitle: "لوحة تحليل مباريات كرة القدم",
+          heroDescription:
+            "البحث عن المباريات، ترتيب التوقعات، ومراجعة أفضل اختيارات محرك الذكاء الاصطناعي.",
+          allMatches: "جميع المباريات",
+          adminPanel: "لوحة الإدارة",
+          ad: "إعلان",
+          availableMatches: "المباريات المتاحة",
+          availableMatchesSubtitle: "إجمالي المباريات القادمة",
+          scheduledMatches: "المباريات المجدولة",
+          scheduledMatchesSubtitle: "{t.scheduledMatchesSubtitle}",
+          liveMatches: "المباريات المباشرة",
+          liveMatchesSubtitle: "المباريات الجارية حاليًا",
+          averageConfidence: "متوسط الثقة",
+          averageConfidenceSubtitle:
+            "متوسط ثقة التوقعات المتاحة",
+          topPicks: "أفضل توقعات الذكاء الاصطناعي",
+          topPicksDescription:
+            "مرتبة وفق أعلى نسبة لأفضل اختيار في كل مباراة.",
+          noPredictions:
+            "لا توجد توقعات متاحة حاليًا.",
+        }
+      : locale === "sv"
+        ? {
+            heroTitle: "Analys av fotbollsmatcher",
+            heroDescription:
+              "Sök bland matcher, rangordna prognoser och granska AI-motorns bästa val.",
+            allMatches: "Alla matcher",
+            adminPanel: "Adminpanel",
+            ad: "Annons",
+            availableMatches: "Tillgängliga matcher",
+            availableMatchesSubtitle:
+              "Totalt antal kommande matcher",
+            scheduledMatches:
+              "Schemalagda matcher",
+            scheduledMatchesSubtitle:
+              "Kommande matcher",
+            liveMatches: "Livematcher",
+            liveMatchesSubtitle:
+              "Matcher som spelas just nu",
+            averageConfidence:
+              "Genomsnittlig säkerhet",
+            averageConfidenceSubtitle:
+              "Genomsnittlig säkerhet för tillgängliga prognoser",
+            topPicks: "AI:s bästa prognoser",
+            topPicksDescription:
+              "Rangordnade efter den högsta sannolikheten för det bästa valet i varje match.",
+            noPredictions:
+              "Inga prognoser är tillgängliga just nu.",
+          }
+        : {
+            heroTitle: "Football Match Analysis",
+            heroDescription:
+              "Search matches, rank predictions and review the AI engine's best picks.",
+            allMatches: "All Matches",
+            adminPanel: "Admin Panel",
+            ad: "Advertisement",
+            availableMatches:
+              "Available Matches",
+            availableMatchesSubtitle:
+              "Total upcoming matches",
+            scheduledMatches:
+              "Scheduled Matches",
+            scheduledMatchesSubtitle:
+              "Upcoming matches",
+            liveMatches: "Live Matches",
+            liveMatchesSubtitle:
+              "Matches currently in progress",
+            averageConfidence:
+              "Average Confidence",
+            averageConfidenceSubtitle:
+              "Average confidence of available predictions",
+            topPicks: "Top AI Predictions",
+            topPicksDescription:
+              "Ranked by the highest probability of the best pick in each match.",
+            noPredictions:
+              "No predictions are currently available.",
+          };
+
   const topPicks = useMemo(() => {
     return [...fixtures]
       .filter(
@@ -33,51 +126,6 @@ export default function HomeDashboard({
       .slice(0, 3);
   }, [fixtures]);
 
-  const normalizeStatus = (
-    status: string | undefined,
-  ): "scheduled" | "live" | "finished" | "other" => {
-    const normalized = String(status ?? "")
-      .trim()
-      .toLowerCase();
-
-    if (
-      ["1", "2", "scheduled", "not_started", "pending"].includes(
-        normalized,
-      )
-    ) {
-      return "scheduled";
-    }
-
-    if (
-      [
-        "3",
-        "4",
-        "live",
-        "inplay",
-        "in-play",
-        "halftime",
-        "ht",
-      ].includes(normalized)
-    ) {
-      return "live";
-    }
-
-    if (
-      [
-        "5",
-        "8",
-        "9",
-        "10",
-        "finished",
-        "completed",
-        "ft",
-      ].includes(normalized)
-    ) {
-      return "finished";
-    }
-
-    return "other";
-  };
 
   const liveMatches = fixtures.filter(
     (fixture) =>
@@ -103,7 +151,7 @@ export default function HomeDashboard({
 
   return (
     <main
-      dir="rtl"
+      dir={locale === "ar" ? "rtl" : "ltr"}
       className="min-h-screen bg-[#020617] text-white"
     >
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -115,13 +163,11 @@ export default function HomeDashboard({
               </p>
 
               <h1 className="mt-3 text-3xl font-black sm:text-5xl">
-                لوحة تحليل مباريات كرة القدم
+                {t.heroTitle}
               </h1>
 
               <p className="mt-4 max-w-3xl leading-8 text-slate-400">
-                البحث عن المباريات، ترتيب التوقعات،
-                ومراجعة أفضل اختيارات محرك الذكاء
-                الاصطناعي.
+                {t.heroDescription}
               </p>
             </div>
 
@@ -130,45 +176,57 @@ export default function HomeDashboard({
                 href="/fixtures"
                 className="rounded-xl bg-cyan-500 px-5 py-3 font-black text-slate-950 transition hover:bg-cyan-400"
               >
-                جميع المباريات
+                {t.allMatches}
               </Link>
 
-              <Link
-                href="/admin"
-                className="rounded-xl border border-slate-700 px-5 py-3 font-bold transition hover:border-violet-400"
-              >
-                لوحة الإدارة
-              </Link>
+              {isAdmin ? (
+                <Link
+                  href="/admin"
+                  className="rounded-xl border border-slate-700 px-5 py-3 font-bold transition hover:border-violet-400"
+                >
+                  {t.adminPanel}
+                </Link>
+              ) : null}
             </div>
           </nav>
+
+          <PredictionResultsTicker />
         </header>
+
+        <AdSlider />
+
+        <AdBanner
+          href="https://example.com"
+          imageUrl="/ads/home-banner.jpg"
+          alt={t.ad}
+        />
 
         <section className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
-            title="المباريات المتاحة"
+            title={t.availableMatches}
             value={fixtures.length}
-            subtitle="إجمالي المباريات القادمة"
+            subtitle={t.availableMatchesSubtitle}
             valueClassName="text-cyan-300"
           />
 
           <StatCard
-            title="المباريات المجدولة"
+            title={t.scheduledMatches}
             value={scheduledMatches}
-            subtitle="المباريات القادمة"
+            subtitle={t.scheduledMatchesSubtitle}
             valueClassName="text-violet-300"
           />
 
           <StatCard
-            title="المباريات المباشرة"
+            title={t.liveMatches}
             value={liveMatches}
-            subtitle="المباريات الجارية حاليًا"
+            subtitle={t.liveMatchesSubtitle}
             valueClassName="text-red-300"
           />
 
           <StatCard
-            title="متوسط الثقة"
+            title={t.averageConfidence}
             value={`${averageConfidence}%`}
-            subtitle={modelVersion}
+            subtitle={t.averageConfidenceSubtitle}
             valueClassName={confidenceClasses(
               averageConfidence,
             )}
@@ -182,18 +240,17 @@ export default function HomeDashboard({
             </p>
 
             <h2 className="mt-2 text-3xl font-black">
-              أفضل توقعات الذكاء الاصطناعي
+              {t.topPicks}
             </h2>
 
             <p className="mt-2 text-slate-500">
-              مرتبة وفق أعلى نسبة لأفضل اختيار في كل
-              مباراة.
+              {t.topPicksDescription}
             </p>
           </div>
 
           {topPicks.length === 0 ? (
             <div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-7 text-slate-400">
-              لا توجد توقعات متاحة حاليًا.
+              {t.noPredictions}
             </div>
           ) : (
             <div className="grid gap-5 lg:grid-cols-3">
@@ -213,14 +270,19 @@ export default function HomeDashboard({
         </section>
 
         <section className="mt-12">
-          <MatchExplorer fixtures={fixtures} />
+          <MatchExplorer fixtures={explorerFixtures} />
         </section>
 
         <footer className="mt-14 border-t border-slate-800 py-7 text-center text-sm text-slate-600">
-          Football Analysis AI — {modelVersion}
+          Football Analysis AI
         </footer>
       </div>
     </main>
   );
 }
+
+
+
+
+
 

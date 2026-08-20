@@ -22,6 +22,59 @@ const initialState: OperationState = {
   message: "",
 };
 
+function extractTeamRecords(
+  data: unknown,
+): unknown[] {
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  if (
+    typeof data !== "object" ||
+    data === null
+  ) {
+    return [];
+  }
+
+  const record = data as Record<string, unknown>;
+
+  for (const key of ["data", "items", "results"]) {
+    const value = record[key];
+
+    if (Array.isArray(value)) {
+      return value;
+    }
+  }
+
+  return [];
+}
+
+function extractSportmonksTeamId(
+  team: unknown,
+): number | null {
+  if (
+    typeof team !== "object" ||
+    team === null
+  ) {
+    return null;
+  }
+
+  const rawValue = (
+    team as Record<string, unknown>
+  ).sportmonks_id;
+
+  const value = Number(rawValue);
+
+  if (
+    !Number.isInteger(value) ||
+    value <= 0
+  ) {
+    return null;
+  }
+
+  return value;
+}
+
 async function requestApi(
   path: string,
   method: "GET" | "POST" = "POST",
@@ -167,6 +220,7 @@ function ActionCard({
         borderRadius: "18px",
         padding: "20px",
         backgroundColor: "#ffffff",
+        color: "#0f172a",
       }}
     >
       <div
@@ -209,6 +263,9 @@ const inputStyle: React.CSSProperties = {
   border: "1px solid #cbd5e1",
   borderRadius: "10px",
   outline: "none",
+  backgroundColor: "#ffffff",
+  color: "#0f172a",
+  colorScheme: "light",
 };
 
 const buttonStyle: React.CSSProperties = {
@@ -270,8 +327,46 @@ export default function DataManagementPanel() {
     }
   }
 
+  async function loadTrackedTeamIds() {
+    try {
+      const data = await requestApi(
+        "/teams?limit=1000",
+        "GET",
+      );
+
+      const ids = Array.from(
+        new Set(
+          extractTeamRecords(data)
+            .map(extractSportmonksTeamId)
+            .filter(
+              (value): value is number =>
+                value !== null,
+            ),
+        ),
+      ).sort((left, right) => left - right);
+
+      if (ids.length === 0) {
+        return;
+      }
+
+      setAllTeamIds((currentValue) => {
+        if (currentValue.trim()) {
+          return currentValue;
+        }
+
+        return ids.join(",");
+      });
+    } catch (error) {
+      console.error(
+        "Failed to preload Sportmonks team IDs.",
+        error,
+      );
+    }
+  }
+
   useEffect(() => {
     void loadSystemStatus();
+    void loadTrackedTeamIds();
 
     const interval = window.setInterval(() => {
       void loadSystemStatus();
@@ -332,7 +427,9 @@ export default function DataManagementPanel() {
     return value;
   }
 
-  function updateEverything(event: FormEvent) {
+  async function updateEverything(
+    event: FormEvent,
+  ) {
     event.preventDefault();
 
     if (!allTeamIds.trim()) {
@@ -355,14 +452,166 @@ export default function DataManagementPanel() {
       replace_existing_predictions: "false",
     });
 
-    void run(
-      setUpdateAllState,
-      "اكتمل تحديث النظام.",
-      () =>
-        requestApi(
-          `/system/update-all?${query.toString()}`,
-        ),
-    );
+    setUpdateAllState({
+      status: "loading",
+      message:
+        "جارٍ إنشاء مهمة التحديث في الخلفية...",
+    });
+
+    try {
+      const createdJob = await requestApi(
+        `/system/update-all/job?${query.toString()}`,
+      );
+
+      if (
+        typeof createdJob !== "object" ||
+        createdJob === null
+      ) {
+        throw new Error(
+          "لم يُرجع الخادم بيانات مهمة صالحة.",
+        );
+      }
+
+      const jobId = Number(
+        (
+          createdJob as Record<string, unknown>
+        ).job_id,
+      );
+
+      if (
+        !Number.isInteger(jobId) ||
+        jobId <= 0
+      ) {
+        throw new Error(
+          "لم يُرجع الخادم Job ID صالحًا.",
+        );
+      }
+
+      setUpdateAllState({
+        status: "loading",
+        message:
+          `بدأ التحديث في الخلفية — Job #${jobId}`,
+        data: createdJob,
+      });
+
+      while (true) {
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, 5000);
+        });
+
+        const jobData = await requestApi(
+          `/system/jobs/${jobId}`,
+          "GET",
+        );
+
+        if (
+          typeof jobData !== "object" ||
+          jobData === null
+        ) {
+          throw new Error(
+            "تعذر قراءة حالة مهمة التحديث.",
+          );
+        }
+
+        const jobRecord =
+          jobData as Record<string, unknown>;
+
+        const jobStatus = String(
+          jobRecord.status ?? "",
+        );
+
+        const progress = Number(
+          jobRecord.progress ?? 0,
+        );
+
+        const message = String(
+          jobRecord.message ??
+            "جارٍ تحديث النظام...",
+        );
+
+        setUpdateAllState({
+          status: "loading",
+          message:
+            `${message} — ${progress}%`,
+          data: jobData,
+        });
+
+        if (jobStatus === "failed") {
+          const errorMessage = String(
+            jobRecord.error_message ??
+              "فشلت مهمة تحديث النظام.",
+          );
+
+          throw new Error(errorMessage);
+        }
+
+        if (jobStatus !== "completed") {
+          continue;
+        }
+
+        let result: unknown = jobData;
+
+        const rawResult =
+          jobRecord.result_json;
+
+        if (
+          typeof rawResult === "string" &&
+          rawResult.trim()
+        ) {
+          try {
+            result = JSON.parse(rawResult);
+          } catch {
+            result = jobData;
+          }
+        }
+
+        let orchestratorStatus = "";
+
+        if (
+          typeof result === "object" &&
+          result !== null
+        ) {
+          orchestratorStatus = String(
+            (
+              result as Record<
+                string,
+                unknown
+              >
+            ).status ?? "",
+          );
+        }
+
+        if (
+          orchestratorStatus ===
+          "completed_with_errors"
+        ) {
+          setUpdateAllState({
+            status: "error",
+            message:
+              "اكتمل التحديث مع وجود بعض الأخطاء.",
+            data: result,
+          });
+        } else {
+          setUpdateAllState({
+            status: "success",
+            message:
+              "اكتمل تحديث النظام بنجاح.",
+            data: result,
+          });
+        }
+
+        void loadSystemStatus();
+        break;
+      }
+    } catch (error) {
+      setUpdateAllState({
+        status: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ أثناء تحديث النظام.",
+      });
+    }
   }
 
   function syncTeam(event: FormEvent) {
@@ -396,12 +645,17 @@ export default function DataManagementPanel() {
       return;
     }
 
+    const query = new URLSearchParams({
+      start_date: startDate,
+      end_date: endDate,
+    });
+
     void run(
       setFixturesState,
       "تم تحميل مباريات الفريق من Sportmonks.",
       () =>
         requestApi(
-          `/sportmonks/teams/${value}/fixtures`,
+          `/sportmonks/teams/${value}/fixtures?${query.toString()}`,
           "GET",
         ),
     );
@@ -468,10 +722,10 @@ export default function DataManagementPanel() {
 
     void run(
       setPredictionState,
-      "اكتمل توليد توقعات V5.",
+      "اكتمل توليد توقعات V11.",
       () =>
         requestApi(
-          `/predictions-v5/generate-all?${query.toString()}`,
+          `/system/generate-predictions?${query.toString()}`,
         ),
     );
   }
@@ -490,6 +744,7 @@ export default function DataManagementPanel() {
         padding: "24px",
         background:
           "linear-gradient(135deg, #f8fafc, #ecfdf5)",
+        color: "#0f172a",
       }}
     >
       <div style={{ marginBottom: "20px" }}>
@@ -576,7 +831,9 @@ export default function DataManagementPanel() {
         }}
       >
         <h3 style={{ margin: 0, fontSize: "22px" }}>
-          🚀 Sync Everything
+          <span style={{ color: "#0f172a" }}>
+            🚀 Sync Everything
+          </span>
         </h3>
 
         <p
@@ -586,7 +843,7 @@ export default function DataManagementPanel() {
           }}
         >
           مزامنة الفرق والمباريات، تحديث الإحصائيات
-          وELO، ثم توليد توقعات V5.
+          وELO، ثم توليد توقعات V11.
         </p>
 
         <form
@@ -783,7 +1040,7 @@ export default function DataManagementPanel() {
 
         <ActionCard
           icon="🤖"
-          title="Generate Predictions V5"
+          title="Generate Predictions V11"
           description="توليد وحفظ توقعات المباريات المجدولة تلقائيًا."
         >
           <div style={{ display: "grid", gap: "10px" }}>

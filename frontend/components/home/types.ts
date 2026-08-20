@@ -48,6 +48,7 @@ export type DashboardFixture = {
 
 export type HomeDashboardProps = {
   fixtures: DashboardFixture[];
+  explorerFixtures: DashboardFixture[];
   modelVersion: string;
 };
 
@@ -72,3 +73,4 @@ export type QuickFilter =
   | "btts"
   | "home-win"
   | "away-win";
+
