@@ -154,27 +154,27 @@ export default function HomeDashboard({
       dir={locale === "ar" ? "rtl" : "ltr"}
       className="min-h-screen bg-[#020617] text-white"
     >
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <header className="rounded-[32px] border border-cyan-500/20 bg-gradient-to-l from-cyan-950/30 via-slate-950 to-violet-950/30 p-7 sm:p-10">
-          <nav className="flex flex-wrap items-center justify-between gap-6">
+      <div className="mx-auto max-w-7xl px-3 py-4 sm:px-5 sm:py-6 lg:px-8 lg:py-8">
+        <header className="rounded-xl border border-cyan-500/20 bg-gradient-to-l from-cyan-950/30 via-slate-950 to-violet-950/30 p-3 sm:rounded-[28px] sm:p-7 lg:rounded-[32px] lg:p-10">
+          <nav className="flex flex-col items-stretch justify-between gap-3 sm:gap-6 lg:flex-row lg:items-center">
             <div>
-              <p className="text-sm font-bold tracking-[0.2em] text-cyan-400">
+              <p className="text-[9px] font-bold tracking-[0.14em] text-cyan-400 sm:text-sm sm:tracking-[0.2em]">
                 FOOTBALL ANALYSIS AI
               </p>
 
-              <h1 className="mt-3 text-3xl font-black sm:text-5xl">
+              <h1 className="mt-1.5 text-xl font-black leading-tight sm:mt-3 sm:text-4xl lg:text-5xl">
                 {t.heroTitle}
               </h1>
 
-              <p className="mt-4 max-w-3xl leading-8 text-slate-400">
+              <p className="mt-2 max-w-3xl text-[11px] leading-5 text-slate-400 sm:mt-4 sm:text-base sm:leading-8">
                 {t.heroDescription}
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex w-full flex-col gap-1.5 sm:w-auto sm:flex-row sm:flex-wrap sm:gap-3">
               <Link
                 href="/fixtures"
-                className="rounded-xl bg-cyan-500 px-5 py-3 font-black text-slate-950 transition hover:bg-cyan-400"
+                className="w-full rounded-lg bg-cyan-500 px-3 py-2 text-center text-xs font-black text-slate-950 transition hover:bg-cyan-400 sm:w-auto sm:rounded-xl sm:px-5 sm:py-3 sm:text-base"
               >
                 {t.allMatches}
               </Link>
@@ -182,7 +182,7 @@ export default function HomeDashboard({
               {isAdmin ? (
                 <Link
                   href="/admin"
-                  className="rounded-xl border border-slate-700 px-5 py-3 font-bold transition hover:border-violet-400"
+                  className="w-full rounded-lg border border-slate-700 px-3 py-2 text-center text-xs font-bold transition hover:border-violet-400 sm:w-auto sm:rounded-xl sm:px-5 sm:py-3 sm:text-base"
                 >
                   {t.adminPanel}
                 </Link>
@@ -201,7 +201,7 @@ export default function HomeDashboard({
           alt={t.ad}
         />
 
-        <section className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="mt-4 grid grid-cols-2 gap-2 sm:mt-7 sm:gap-5 lg:grid-cols-4">
           <StatCard
             title={t.availableMatches}
             value={fixtures.length}
@@ -233,13 +233,13 @@ export default function HomeDashboard({
           />
         </section>
 
-        <section className="mt-10">
+        <section className="mt-8 sm:mt-10">
           <div className="mb-6">
             <p className="text-sm font-bold tracking-[0.2em] text-emerald-400">
               TOP AI PICKS
             </p>
 
-            <h2 className="mt-2 text-3xl font-black">
+            <h2 className="mt-2 text-2xl font-black sm:text-3xl">
               {t.topPicks}
             </h2>
 
@@ -253,7 +253,7 @@ export default function HomeDashboard({
               {t.noPredictions}
             </div>
           ) : (
-            <div className="grid gap-5 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
               {topPicks.map((fixture, index) => (
                 <TopPickCard
                   key={fixture.id}
@@ -265,11 +265,11 @@ export default function HomeDashboard({
           )}
         </section>
 
-        <section className="mt-12">
+        <section className="mt-8 sm:mt-12">
           <AIInsights fixtures={fixtures} />
         </section>
 
-        <section className="mt-12">
+        <section className="mt-8 sm:mt-12">
           <MatchExplorer fixtures={explorerFixtures} />
         </section>
 
@@ -280,6 +280,9 @@ export default function HomeDashboard({
     </main>
   );
 }
+
+
+
 
 
 

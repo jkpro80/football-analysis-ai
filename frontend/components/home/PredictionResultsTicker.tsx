@@ -222,18 +222,18 @@ export default function PredictionResultsTicker() {
 
   return (
     <div dir={direction} className="mt-6 overflow-hidden rounded-xl border border-emerald-500/20 bg-slate-950/70">
-      <div className="flex h-12 items-center">
-        <div className="relative z-10 flex h-full shrink-0 items-center gap-2 border-l border-emerald-500/20 bg-[#071023] px-4">
-          <span className="h-2 w-2 rounded-full bg-emerald-400" />
+      <div className="flex h-12 min-w-0 items-center">
+        <div className="relative z-10 flex h-full w-[112px] shrink-0 items-center gap-1.5 border-l border-emerald-500/20 bg-[#071023] px-2 sm:w-auto sm:gap-2 sm:px-4">
+          <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400" />
 
-          <span className="whitespace-nowrap text-xs font-black text-emerald-300">
+          <span className="min-w-0 truncate whitespace-nowrap text-[9px] font-black text-emerald-300 sm:text-xs">
             {title}
           </span>
         </div>
 
         <div
           dir="ltr"
-          className="relative flex-1 overflow-hidden"
+          className="relative min-w-0 flex-1 overflow-hidden"
         >
           <div className="prediction-ticker-track flex w-max items-center">
             {tickerItems.map(
@@ -241,7 +241,7 @@ export default function PredictionResultsTicker() {
                 <Link
                   key={`${result.match_id}-${index}`}
                   href={`/matches/${result.match_id}`}
-                  className="mx-2 flex shrink-0 items-center gap-2 rounded-lg px-3 py-1.5 text-xs transition hover:bg-slate-800/70"
+                  className="mx-1 flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] transition hover:bg-slate-800/70 sm:mx-2 sm:gap-2 sm:px-3 sm:text-xs"
                 >
                   <span className="font-bold text-slate-200">
                     {result.home_team.name}
@@ -261,7 +261,7 @@ export default function PredictionResultsTicker() {
                     {t.correctPrediction}
                   </span>
 
-                  <span className="text-sm font-black text-cyan-300">
+                  <span className="text-xs font-black text-cyan-300 sm:text-sm">
                     {translateCorrectPickLabel(result.correct_pick_label, locale)}
                   </span>
 
@@ -270,7 +270,7 @@ export default function PredictionResultsTicker() {
                   </span>
 
                   {result.confidence_score !== null ? (
-                    <span className="rounded-full border border-violet-400/20 bg-violet-500/10 px-2.5 py-1 font-bold text-violet-200">
+                    <span className="hidden rounded-full border border-violet-400/20 bg-violet-500/10 px-2.5 py-1 font-bold text-violet-200 sm:inline-flex">
                       {t.confidence}: {result.confidence_score}%
                     </span>
                   ) : null}
@@ -308,3 +308,5 @@ export default function PredictionResultsTicker() {
     </div>
   );
 }
+
+

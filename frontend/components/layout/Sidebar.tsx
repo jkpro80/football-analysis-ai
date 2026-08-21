@@ -13,7 +13,13 @@ type NavigationItem = {
   badge?: string;
 };
 
-export default function Sidebar() {
+type SidebarProps = {
+  mobile?: boolean;
+};
+
+export default function Sidebar({
+  mobile = false,
+}: SidebarProps) {
   const pathname = usePathname();
   const { user } = useAuth();
 
@@ -149,8 +155,10 @@ export default function Sidebar() {
     <aside
       dir={direction}
       className={[
-        "hidden h-screen w-56 shrink-0 bg-slate-950/95",
-        "lg:sticky lg:top-0 lg:flex lg:flex-col",
+        "h-screen shrink-0 bg-slate-950/95",
+        mobile
+          ? "flex w-full flex-col"
+          : "hidden w-56 lg:sticky lg:top-0 lg:flex lg:flex-col",
         direction === "rtl"
           ? "border-l border-slate-800"
           : "border-r border-slate-800",
@@ -276,3 +284,4 @@ function NavigationGroup({
     </div>
   );
 }
+

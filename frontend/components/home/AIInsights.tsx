@@ -368,26 +368,26 @@ export default function AIInsights({
   return (
     <section
       dir={direction}
-      className="rounded-3xl border border-slate-800 bg-slate-950/55 p-5 sm:p-6"
+      className="rounded-xl border border-slate-800 bg-slate-950/55 p-3 sm:rounded-3xl sm:p-6"
     >
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-2 sm:gap-3">
         <div>
-          <p className="text-xs font-black tracking-[0.18em] text-violet-400">
+          <p className="text-[9px] font-black tracking-[0.14em] text-violet-400 sm:text-xs sm:tracking-[0.18em]">
             AI INSIGHTS
           </p>
 
-          <h2 className="mt-2 text-2xl font-black text-white">
+          <h2 className="mt-1 text-lg font-black text-white sm:mt-2 sm:text-2xl">
             {t.title}
           </h2>
 
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-1 text-[11px] leading-4 text-slate-500 sm:mt-2 sm:text-sm">
             {t.subtitle}
           </p>
         </div>
 
         <Link
           href="/statistics"
-          className="text-sm font-black text-violet-300 transition hover:text-violet-200"
+          className="text-[11px] font-black text-violet-300 transition hover:text-violet-200 sm:text-sm"
         >
           {direction === "rtl"
             ? `${t.viewAnalysis} ←`
@@ -400,7 +400,7 @@ export default function AIInsights({
           {t.noData}
         </div>
       ) : (
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        <div className="mt-3 grid gap-2 sm:mt-5 sm:grid-cols-2 sm:gap-4">
           {insights.map((item) => {
             const tone =
               tones[item.tone];
@@ -409,33 +409,33 @@ export default function AIInsights({
               <Link
                 key={item.id}
                 href={`/matches/${item.matchId}`}
-                className={`rounded-2xl border bg-[#071023] p-4 transition hover:-translate-y-0.5 hover:bg-slate-900/70 ${tone.border}`}
+                className={`rounded-xl border bg-[#071023] p-2.5 transition hover:-translate-y-0.5 hover:bg-slate-900/70 sm:rounded-2xl sm:p-4 ${tone.border}`}
               >
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start justify-between gap-2 sm:gap-4">
                   <div>
                     <span
-                      className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-black tracking-[0.14em] ${tone.badge}`}
+                      className={`inline-flex rounded-full px-2 py-0.5 text-[8px] font-black tracking-[0.10em] sm:px-2.5 sm:py-1 sm:text-[10px] sm:tracking-[0.14em] ${tone.badge}`}
                     >
                       {item.category}
                     </span>
 
-                    <h3 className="mt-3 font-black text-white">
+                    <h3 className="mt-1.5 text-xs font-black leading-4 text-white sm:mt-3 sm:text-base">
                       {item.title}
                     </h3>
 
-                    <p className="mt-2 text-sm leading-6 text-slate-500">
+                    <p className="mt-1 text-[10px] leading-4 text-slate-500 sm:mt-2 sm:text-sm sm:leading-6">
                       {item.description}
                     </p>
                   </div>
 
                   <div className="shrink-0 text-left">
-                    <span className="text-lg">
+                    <span className="text-sm sm:text-lg">
                       {item.icon}
                     </span>
 
                     <p
                       dir="ltr"
-                      className={`mt-2 text-2xl font-black tabular-nums ${tone.metric}`}
+                      className={`mt-1 text-lg font-black tabular-nums sm:mt-2 sm:text-2xl ${tone.metric}`}
                     >
                       {item.metric}
                     </p>
@@ -449,4 +449,5 @@ export default function AIInsights({
     </section>
   );
 }
+
 

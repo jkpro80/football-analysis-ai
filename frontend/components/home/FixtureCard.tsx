@@ -88,7 +88,7 @@ export default function FixtureCard({
   return (
     <article
       dir={direction}
-      className="flex h-full min-h-[270px] w-full flex-col rounded-2xl border border-slate-800 bg-[#071023] p-3.5 transition duration-200 hover:-translate-y-0.5 hover:border-cyan-500/40"
+      className="flex h-full w-full flex-col rounded-xl border border-slate-800 bg-[#071023] p-2.5 transition duration-200 hover:-translate-y-0.5 hover:border-cyan-500/40 sm:min-h-[270px] sm:rounded-2xl sm:p-3.5"
     >
       <div className="flex items-center justify-between gap-2">
         <span
@@ -109,41 +109,41 @@ export default function FixtureCard({
 
       <div
         dir="ltr"
-        className="mt-3 grid flex-1 grid-cols-[1fr_auto_1fr] items-center gap-2"
+        className="mt-2 grid flex-1 grid-cols-[1fr_auto_1fr] items-center gap-1.5 sm:mt-3 sm:gap-2"
       >
         <div className="flex min-w-0 flex-col items-center justify-center text-center">
-          <div className="origin-center scale-[0.78]">
+          <div className="origin-center scale-[0.62] sm:scale-[0.78]">
             <TeamLogo
               team={fixture.homeTeam}
             />
           </div>
 
-          <h3 className="mt-0.5 line-clamp-2 min-h-[36px] text-[13px] font-black leading-[18px] text-white">
+          <h3 className="mt-0 line-clamp-2 min-h-[30px] text-[11px] font-black leading-[15px] text-white sm:mt-0.5 sm:min-h-[36px] sm:text-[13px] sm:leading-[18px]">
             {fixture.homeTeam.name}
           </h3>
         </div>
 
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-violet-500/30 bg-violet-500/10 text-[11px] font-black text-violet-300">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-violet-500/30 bg-violet-500/10 text-[9px] font-black text-violet-300 sm:h-9 sm:w-9 sm:text-[11px]">
           VS
         </div>
 
         <div className="flex min-w-0 flex-col items-center justify-center text-center">
-          <div className="origin-center scale-[0.78]">
+          <div className="origin-center scale-[0.62] sm:scale-[0.78]">
             <TeamLogo
               team={fixture.awayTeam}
             />
           </div>
 
-          <h3 className="mt-0.5 line-clamp-2 min-h-[36px] text-[13px] font-black leading-[18px] text-white">
+          <h3 className="mt-0 line-clamp-2 min-h-[30px] text-[11px] font-black leading-[15px] text-white sm:mt-0.5 sm:min-h-[36px] sm:text-[13px] sm:leading-[18px]">
             {fixture.awayTeam.name}
           </h3>
         </div>
       </div>
 
-      <div className="mt-3 space-y-2">
+      <div className="mt-2 space-y-1.5 sm:mt-3 sm:space-y-2">
         <Link
           href={`/matches/${fixture.id}`}
-          className="block rounded-lg bg-gradient-to-l from-cyan-500 to-blue-600 px-3 py-2.5 text-center text-sm font-black text-white transition hover:opacity-90"
+          className="block rounded-lg bg-gradient-to-l from-cyan-500 to-blue-600 px-2.5 py-2 text-center text-xs font-black text-white transition hover:opacity-90 sm:px-3 sm:py-2.5 sm:text-sm"
         >
           {t.viewAnalysis}
         </Link>
@@ -159,3 +159,4 @@ export default function FixtureCard({
     </article>
   );
 }
+

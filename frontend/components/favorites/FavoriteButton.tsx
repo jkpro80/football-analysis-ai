@@ -190,13 +190,13 @@ export default function FavoriteButton({
   }
 
   return (
-    <div dir={direction} className="mt-3">
+    <div dir={direction} className="mt-1.5 sm:mt-3">
       <button
         type="button"
         disabled={!isReady || isSaving}
         onClick={() => void handleToggle()}
         aria-pressed={isFavorite}
-        className={`w-full rounded-xl border px-4 py-3 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-50 ${
+        className={`w-full rounded-lg border px-2.5 py-1.5 text-[11px] font-black transition disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-xl sm:px-4 sm:py-3 sm:text-sm ${
           isFavorite
             ? "border-amber-400/40 bg-amber-400/15 text-amber-300"
             : "border-slate-700 bg-slate-900 text-slate-300 hover:border-amber-400/40 hover:text-amber-300"
@@ -211,3 +211,4 @@ export default function FavoriteButton({
     </div>
   );
 }
+

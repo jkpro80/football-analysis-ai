@@ -20,7 +20,13 @@ import {
   type NotificationItem,
 } from "@/lib/notification-api";
 
-export default function Topbar() {
+type TopbarProps = {
+  onOpenMobileNavigation?: () => void;
+};
+
+export default function Topbar({
+  onOpenMobileNavigation,
+}: TopbarProps) {
   const router = useRouter();
 
   const {
@@ -240,8 +246,30 @@ export default function Topbar() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-800 bg-slate-950/90 backdrop-blur">
-      <div className="flex h-16 items-center justify-between px-6">
-        <div className="max-w-xl flex-1">
+      <div className="flex h-16 items-center gap-1.5 px-2 sm:gap-3 sm:px-4 lg:px-6">
+        <button
+          type="button"
+          onClick={onOpenMobileNavigation}
+          aria-label={
+            locale === "ar"
+              ? "فتح القائمة"
+              : locale === "sv"
+                ? "Öppna meny"
+                : "Open menu"
+          }
+          title={
+            locale === "ar"
+              ? "فتح القائمة"
+              : locale === "sv"
+                ? "Öppna meny"
+                : "Open menu"
+          }
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-xl font-bold text-slate-200 transition hover:border-slate-600 hover:bg-slate-800 lg:hidden"
+        >
+          <span aria-hidden="true">☰</span>
+        </button>
+
+        <div className="min-w-0 max-w-xl flex-1">
           <input
             type="text"
             placeholder={
@@ -251,11 +279,11 @@ export default function Topbar() {
                   ? "Sök efter lag, liga eller match..."
                   : "Search for a team, league or match..."
             }
-            className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-white outline-none transition focus:border-cyan-500"
+            className="w-full rounded-xl border border-slate-700 bg-slate-900 px-2 py-2 text-xs text-white outline-none transition focus:border-cyan-500 sm:px-4 sm:text-sm"
           />
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-3 lg:gap-4">
           <div className="relative">
             <label
               htmlFor="language-switcher"
@@ -272,7 +300,7 @@ export default function Topbar() {
                   event.target.value as Locale,
                 )
               }
-              className="cursor-pointer rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm font-bold text-slate-200 outline-none transition hover:border-slate-600 focus:border-cyan-500"
+              className="w-[52px] cursor-pointer rounded-xl border border-slate-700 bg-slate-900 px-1 py-2 text-xs font-bold text-slate-200 outline-none transition hover:border-slate-600 focus:border-cyan-500 sm:w-auto sm:px-3 sm:text-sm"
               aria-label="Language"
             >
               <option value="ar">
@@ -303,7 +331,7 @@ export default function Topbar() {
                     (current) => !current,
                   )
                 }
-                className="relative rounded-xl bg-slate-900 p-3 transition hover:bg-slate-800"
+                className="relative rounded-xl bg-slate-900 p-2.5 transition hover:bg-slate-800 sm:p-3"
               >
                 <span aria-hidden="true">
                   🔔
@@ -428,9 +456,9 @@ export default function Topbar() {
           ) : isAuthenticated && user ? (
             <Link
               href="/profile"
-              className="flex items-center gap-3 rounded-xl bg-slate-900 px-3 py-2 transition hover:bg-slate-800"
+              className="flex items-center gap-3 rounded-xl bg-slate-900 p-1.5 transition hover:bg-slate-800 sm:px-3 sm:py-2"
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-500 font-bold text-slate-950">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-cyan-500 font-bold text-slate-950 sm:h-10 sm:w-10">
                 {initial}
               </div>
 
@@ -457,3 +485,4 @@ export default function Topbar() {
     </header>
   );
 }
+

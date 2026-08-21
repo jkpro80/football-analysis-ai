@@ -587,7 +587,7 @@ export default function MatchExplorer({
               aria-label={
                 t.paginationLabel
               }
-              className="mt-8 flex flex-wrap items-center justify-center gap-2"
+              className="mt-5 flex flex-nowrap items-center justify-center gap-1 sm:mt-8 sm:flex-wrap sm:gap-2"
             >
               <button
                 type="button"
@@ -597,7 +597,7 @@ export default function MatchExplorer({
                 onClick={() =>
                   setCurrentPage(1)
                 }
-                className="rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm font-bold text-slate-300 transition hover:border-cyan-500/50 disabled:cursor-not-allowed disabled:opacity-40"
+                className="hidden rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm font-bold text-slate-300 transition hover:border-cyan-500/50 disabled:cursor-not-allowed disabled:opacity-40 sm:block"
               >
                 {t.first}
               </button>
@@ -616,7 +616,7 @@ export default function MatchExplorer({
                       ),
                   )
                 }
-                className="rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm font-bold text-slate-300 transition hover:border-cyan-500/50 disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-lg border border-slate-700 bg-slate-950/60 px-2 py-1.5 text-[11px] font-bold text-slate-300 transition hover:border-cyan-500/50 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3 sm:py-2 sm:text-sm"
               >
                 {t.previous}
               </button>
@@ -634,7 +634,7 @@ export default function MatchExplorer({
                       )
                     }
                     className={[
-                      "min-w-10 rounded-lg border px-3 py-2 text-sm font-black transition",
+                      "min-w-7 rounded-lg border px-2 py-1.5 text-[11px] font-black transition sm:min-w-10 sm:px-3 sm:py-2 sm:text-sm",
                       pageNumber ===
                       currentPage
                         ? "border-cyan-400 bg-cyan-500 text-slate-950"
@@ -661,7 +661,7 @@ export default function MatchExplorer({
                       ),
                   )
                 }
-                className="rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm font-bold text-slate-300 transition hover:border-cyan-500/50 disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-lg border border-slate-700 bg-slate-950/60 px-2 py-1.5 text-[11px] font-bold text-slate-300 transition hover:border-cyan-500/50 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3 sm:py-2 sm:text-sm"
               >
                 {t.next}
               </button>
@@ -677,7 +677,7 @@ export default function MatchExplorer({
                     totalPages,
                   )
                 }
-                className="rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm font-bold text-slate-300 transition hover:border-cyan-500/50 disabled:cursor-not-allowed disabled:opacity-40"
+                className="hidden rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm font-bold text-slate-300 transition hover:border-cyan-500/50 disabled:cursor-not-allowed disabled:opacity-40 sm:block"
               >
                 {t.last}
               </button>
@@ -688,3 +688,5 @@ export default function MatchExplorer({
     </section>
   );
 }
+
+
