@@ -540,6 +540,10 @@ class PredictionEngineV11:
 
         response["evaluation"] = self._build_evaluation(
             match=match,
+            statistics=raw_data.get(
+                "statistics",
+                [],
+            ),
             predicted_outcome=confidence.get(
                 "predicted_outcome"
             ),
@@ -552,6 +556,7 @@ class PredictionEngineV11:
                 "totals",
                 {},
             ),
+            match_events=match_events,
         )
 
         if include_score_matrix:
@@ -572,10 +577,12 @@ class PredictionEngineV11:
     def _build_evaluation(
         cls,
         match: Any,
+        statistics: Any,
         predicted_outcome: Any,
         most_likely_score: Dict[str, Any],
         btts: Dict[str, Any],
         totals: Dict[str, Any],
+        match_events: Dict[str, Any],
     ) -> Dict[str, Any]:
         home_score = cls._get_value(
             match,
@@ -598,6 +605,65 @@ class PredictionEngineV11:
         actual_home = int(home_score)
         actual_away = int(away_score)
         actual_total = actual_home + actual_away
+
+        home_team_id = cls._get_value(
+            match,
+            "home_team_id",
+        )
+        away_team_id = cls._get_value(
+            match,
+            "away_team_id",
+        )
+
+        home_statistics = None
+        away_statistics = None
+
+        for statistic in statistics or []:
+            team_id = cls._get_value(
+                statistic,
+                "team_id",
+            )
+
+            if team_id == home_team_id:
+                home_statistics = statistic
+            elif team_id == away_team_id:
+                away_statistics = statistic
+
+        actual_home_corners = cls._number(
+            cls._get_value(
+                home_statistics,
+                "corners",
+            )
+        )
+        actual_away_corners = cls._number(
+            cls._get_value(
+                away_statistics,
+                "corners",
+            )
+        )
+
+        actual_home_yellow_cards = cls._number(
+            cls._get_value(
+                home_statistics,
+                "yellow_cards",
+            )
+        )
+        actual_away_yellow_cards = cls._number(
+            cls._get_value(
+                away_statistics,
+                "yellow_cards",
+            )
+        )
+
+        actual_corners_available = (
+            home_statistics is not None
+            and away_statistics is not None
+        )
+
+        actual_yellow_cards_available = (
+            home_statistics is not None
+            and away_statistics is not None
+        )
 
         if actual_home > actual_away:
             actual_outcome = "home_win"
@@ -683,12 +749,132 @@ class PredictionEngineV11:
             == actual_over_2_5
         )
 
+        corners_prediction = match_events.get(
+            "corners",
+            {},
+        )
+
+        if not isinstance(
+            corners_prediction,
+            dict,
+        ):
+            corners_prediction = {}
+
+        corners_range = corners_prediction.get(
+            "most_likely_range",
+            {},
+        )
+
+        if not isinstance(
+            corners_range,
+            dict,
+        ):
+            corners_range = {}
+
+        corners_min = corners_range.get(
+            "minimum"
+        )
+        corners_max = corners_range.get(
+            "maximum"
+        )
+
+        actual_total_corners = None
+        corners_correct = None
+
+        if (
+            actual_corners_available
+            and actual_home_corners is not None
+            and actual_away_corners is not None
+        ):
+            actual_total_corners = (
+                actual_home_corners
+                + actual_away_corners
+            )
+
+            if (
+                corners_min is not None
+                and corners_max is not None
+            ):
+                corners_correct = (
+                    float(corners_min)
+                    <= actual_total_corners
+                    <= float(corners_max)
+                )
+
+        yellow_cards_prediction = (
+            match_events.get(
+                "yellow_cards",
+                {},
+            )
+        )
+
+        if not isinstance(
+            yellow_cards_prediction,
+            dict,
+        ):
+            yellow_cards_prediction = {}
+
+        yellow_cards_range = (
+            yellow_cards_prediction.get(
+                "most_likely_range",
+                {},
+            )
+        )
+
+        if not isinstance(
+            yellow_cards_range,
+            dict,
+        ):
+            yellow_cards_range = {}
+
+        yellow_cards_min = (
+            yellow_cards_range.get(
+                "minimum"
+            )
+        )
+        yellow_cards_max = (
+            yellow_cards_range.get(
+                "maximum"
+            )
+        )
+
+        actual_total_yellow_cards = None
+        yellow_cards_correct = None
+
+        if (
+            actual_yellow_cards_available
+            and actual_home_yellow_cards is not None
+            and actual_away_yellow_cards is not None
+        ):
+            actual_total_yellow_cards = (
+                actual_home_yellow_cards
+                + actual_away_yellow_cards
+            )
+
+            if (
+                yellow_cards_min is not None
+                and yellow_cards_max is not None
+            ):
+                yellow_cards_correct = (
+                    float(yellow_cards_min)
+                    <= actual_total_yellow_cards
+                    <= float(yellow_cards_max)
+                )
+
         checks = [
             winner_correct,
             bool(exact_score_correct),
             btts_correct,
             over_2_5_correct,
         ]
+
+        if corners_correct is not None:
+            checks.append(corners_correct)
+
+        if yellow_cards_correct is not None:
+            checks.append(
+                yellow_cards_correct
+            )
 
         correct_checks = sum(
             1 for value in checks if value
@@ -727,6 +913,50 @@ class PredictionEngineV11:
                 ),
             },
             "actual_outcome": actual_outcome,
+            "actual_corners": {
+                "available": actual_corners_available,
+                "home": (
+                    round(actual_home_corners, 2)
+                    if actual_corners_available
+                    else None
+                ),
+                "away": (
+                    round(actual_away_corners, 2)
+                    if actual_corners_available
+                    else None
+                ),
+                "total": (
+                    round(
+                        actual_home_corners
+                        + actual_away_corners,
+                        2,
+                    )
+                    if actual_corners_available
+                    else None
+                ),
+            },
+            "actual_yellow_cards": {
+                "available": actual_yellow_cards_available,
+                "home": (
+                    round(actual_home_yellow_cards, 2)
+                    if actual_yellow_cards_available
+                    else None
+                ),
+                "away": (
+                    round(actual_away_yellow_cards, 2)
+                    if actual_yellow_cards_available
+                    else None
+                ),
+                "total": (
+                    round(
+                        actual_home_yellow_cards
+                        + actual_away_yellow_cards,
+                        2,
+                    )
+                    if actual_yellow_cards_available
+                    else None
+                ),
+            },
             "predicted_outcome": (
                 normalized_predicted_outcome
             ),
@@ -759,6 +989,35 @@ class PredictionEngineV11:
                     under_2_5_probability,
                     2,
                 ),
+            },
+            "corners": {
+                "available": (
+                    corners_correct is not None
+                ),
+                "actual_total": (
+                    round(actual_total_corners, 2)
+                    if actual_total_corners is not None
+                    else None
+                ),
+                "expected_min": corners_min,
+                "expected_max": corners_max,
+                "correct": corners_correct,
+            },
+            "yellow_cards": {
+                "available": (
+                    yellow_cards_correct is not None
+                ),
+                "actual_total": (
+                    round(
+                        actual_total_yellow_cards,
+                        2,
+                    )
+                    if actual_total_yellow_cards is not None
+                    else None
+                ),
+                "expected_min": yellow_cards_min,
+                "expected_max": yellow_cards_max,
+                "correct": yellow_cards_correct,
             },
             "correct_checks": correct_checks,
             "total_checks": total_checks,

@@ -132,6 +132,38 @@ class PredictionV11RecordService:
             "expected_total_goals"
         ]
 
+        record.expected_home_corners = mapped[
+            "expected_home_corners"
+        ]
+        record.expected_away_corners = mapped[
+            "expected_away_corners"
+        ]
+        record.expected_total_corners = mapped[
+            "expected_total_corners"
+        ]
+        record.expected_corners_min = mapped[
+            "expected_corners_min"
+        ]
+        record.expected_corners_max = mapped[
+            "expected_corners_max"
+        ]
+
+        record.expected_home_yellow_cards = mapped[
+            "expected_home_yellow_cards"
+        ]
+        record.expected_away_yellow_cards = mapped[
+            "expected_away_yellow_cards"
+        ]
+        record.expected_total_yellow_cards = mapped[
+            "expected_total_yellow_cards"
+        ]
+        record.expected_yellow_cards_min = mapped[
+            "expected_yellow_cards_min"
+        ]
+        record.expected_yellow_cards_max = mapped[
+            "expected_yellow_cards_max"
+        ]
+
         record.home_win_probability = mapped[
             "home_win_probability"
         ]
@@ -216,6 +248,22 @@ class PredictionV11RecordService:
             prediction.get("confidence")
         )
 
+        match_events = self._dictionary(
+            prediction.get("match_events")
+        )
+        corners = self._dictionary(
+            match_events.get("corners")
+        )
+        yellow_cards = self._dictionary(
+            match_events.get("yellow_cards")
+        )
+        corners_range = self._dictionary(
+            corners.get("most_likely_range")
+        )
+        yellow_cards_range = self._dictionary(
+            yellow_cards.get("most_likely_range")
+        )
+
         expected_home = self._number(
             expected_goals.get("home")
         )
@@ -272,6 +320,36 @@ class PredictionV11RecordService:
             "expected_home_goals": expected_home,
             "expected_away_goals": expected_away,
             "expected_total_goals": expected_total,
+            "expected_home_corners": self._number(
+                corners.get("home_expected")
+            ),
+            "expected_away_corners": self._number(
+                corners.get("away_expected")
+            ),
+            "expected_total_corners": self._number(
+                corners.get("total_expected")
+            ),
+            "expected_corners_min": self._integer(
+                corners_range.get("minimum")
+            ),
+            "expected_corners_max": self._integer(
+                corners_range.get("maximum")
+            ),
+            "expected_home_yellow_cards": self._number(
+                yellow_cards.get("home_expected")
+            ),
+            "expected_away_yellow_cards": self._number(
+                yellow_cards.get("away_expected")
+            ),
+            "expected_total_yellow_cards": self._number(
+                yellow_cards.get("total_expected")
+            ),
+            "expected_yellow_cards_min": self._integer(
+                yellow_cards_range.get("minimum")
+            ),
+            "expected_yellow_cards_max": self._integer(
+                yellow_cards_range.get("maximum")
+            ),
             "home_win_probability": home_win,
             "draw_probability": draw,
             "away_win_probability": away_win,
@@ -540,6 +618,17 @@ class PredictionV11RecordService:
         record.exact_score_correct = None
         record.home_goals_error = None
         record.away_goals_error = None
+        record.total_goals_error = None
+
+        record.actual_home_corners = None
+        record.actual_away_corners = None
+        record.actual_total_corners = None
+        record.corners_correct = None
+
+        record.actual_home_yellow_cards = None
+        record.actual_away_yellow_cards = None
+        record.actual_total_yellow_cards = None
+        record.yellow_cards_correct = None
 
     @staticmethod
     def serialize_record(
@@ -554,6 +643,26 @@ class PredictionV11RecordService:
                 "home": record.expected_home_goals,
                 "away": record.expected_away_goals,
                 "total": record.expected_total_goals,
+            },
+            "match_events": {
+                "corners": {
+                    "home_expected": record.expected_home_corners,
+                    "away_expected": record.expected_away_corners,
+                    "total_expected": record.expected_total_corners,
+                    "most_likely_range": {
+                        "minimum": record.expected_corners_min,
+                        "maximum": record.expected_corners_max,
+                    },
+                },
+                "yellow_cards": {
+                    "home_expected": record.expected_home_yellow_cards,
+                    "away_expected": record.expected_away_yellow_cards,
+                    "total_expected": record.expected_total_yellow_cards,
+                    "most_likely_range": {
+                        "minimum": record.expected_yellow_cards_min,
+                        "maximum": record.expected_yellow_cards_max,
+                    },
+                },
             },
             "probabilities": {
                 "home_win": record.home_win_probability,
@@ -676,4 +785,3 @@ class PredictionV11RecordService:
             )
 
         return result
-

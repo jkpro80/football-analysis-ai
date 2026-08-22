@@ -326,7 +326,7 @@ class SportmonksSyncService:
         )
 
         model_version = (
-            "Prediction Engine V4.1"
+            "Prediction Engine V11"
         )
 
         current_datetime = (
@@ -335,9 +335,6 @@ class SportmonksSyncService:
             )
             .replace(
                 tzinfo=None
-            )
-            .strftime(
-                "%Y-%m-%d %H:%M:%S"
             )
         )
 

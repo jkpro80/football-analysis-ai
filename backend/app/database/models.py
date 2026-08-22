@@ -299,6 +299,48 @@ class PredictionRecord(Base):
         nullable=False,
     )
 
+    expected_home_corners = Column(
+        Float,
+        nullable=True,
+    )
+    expected_away_corners = Column(
+        Float,
+        nullable=True,
+    )
+    expected_total_corners = Column(
+        Float,
+        nullable=True,
+    )
+    expected_corners_min = Column(
+        Integer,
+        nullable=True,
+    )
+    expected_corners_max = Column(
+        Integer,
+        nullable=True,
+    )
+
+    expected_home_yellow_cards = Column(
+        Float,
+        nullable=True,
+    )
+    expected_away_yellow_cards = Column(
+        Float,
+        nullable=True,
+    )
+    expected_total_yellow_cards = Column(
+        Float,
+        nullable=True,
+    )
+    expected_yellow_cards_min = Column(
+        Integer,
+        nullable=True,
+    )
+    expected_yellow_cards_max = Column(
+        Integer,
+        nullable=True,
+    )
+
     home_win_probability = Column(
         Float,
         nullable=False,
@@ -391,6 +433,40 @@ class PredictionRecord(Base):
     )
 
     exact_score_correct = Column(
+        Boolean,
+        nullable=True,
+    )
+
+    actual_home_corners = Column(
+        Float,
+        nullable=True,
+    )
+    actual_away_corners = Column(
+        Float,
+        nullable=True,
+    )
+    actual_total_corners = Column(
+        Float,
+        nullable=True,
+    )
+    corners_correct = Column(
+        Boolean,
+        nullable=True,
+    )
+
+    actual_home_yellow_cards = Column(
+        Float,
+        nullable=True,
+    )
+    actual_away_yellow_cards = Column(
+        Float,
+        nullable=True,
+    )
+    actual_total_yellow_cards = Column(
+        Float,
+        nullable=True,
+    )
+    yellow_cards_correct = Column(
         Boolean,
         nullable=True,
     )

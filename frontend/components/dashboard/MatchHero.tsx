@@ -66,6 +66,22 @@ type PredictionEvaluation = {
     under_probability?: number;
   };
 
+  corners?: {
+    available?: boolean;
+    actual_total?: number | null;
+    expected_min?: number | null;
+    expected_max?: number | null;
+    correct?: boolean | null;
+  };
+
+  yellow_cards?: {
+    available?: boolean;
+    actual_total?: number | null;
+    expected_min?: number | null;
+    expected_max?: number | null;
+    correct?: boolean | null;
+  };
+
   correct_checks?: number;
   total_checks?: number;
   accuracy_percentage?: number | null;
@@ -136,6 +152,8 @@ const MATCH_HERO_TEXT = {
     exactScore: "النتيجة الدقيقة",
     bttsPrediction: "توقع تسجيل الفريقين",
     overUnder25: "أكثر/أقل من 2.5",
+    cornersEvaluation: "الركنيات",
+    yellowCardsEvaluation: "البطاقات الصفراء",
     yes: "نعم",
     no: "لا",
     over25: "أكثر من 2.5",
@@ -163,7 +181,7 @@ const MATCH_HERO_TEXT = {
     predictionQuality: "جودة التوقع",
     pending: "قيد الانتظار",
     qualityNote:
-      "تقاس الجودة بعد انتهاء المباراة اعتمادًا على الأسواق الأربعة الرسمية.",
+      "تقاس الجودة بعد انتهاء المباراة اعتمادًا على الأسواق الستة الرسمية.",
     scheduled: "قادمة",
     waiting: "قيد الانتظار",
     live: "مباشرة",
@@ -215,6 +233,8 @@ const MATCH_HERO_TEXT = {
     exactScore: "Exact Score",
     bttsPrediction: "Both Teams to Score",
     overUnder25: "Over/Under 2.5",
+    cornersEvaluation: "Corners",
+    yellowCardsEvaluation: "Yellow Cards",
     yes: "Yes",
     no: "No",
     over25: "Over 2.5",
@@ -242,7 +262,7 @@ const MATCH_HERO_TEXT = {
     predictionQuality: "Prediction Quality",
     pending: "Pending",
     qualityNote:
-      "Quality is measured after the match using the four official evaluation markets.",
+      "Quality is measured after the match using the six official evaluation markets.",
     scheduled: "Upcoming",
     waiting: "Pending",
     live: "Live",
@@ -294,6 +314,8 @@ const MATCH_HERO_TEXT = {
     exactScore: "Exakt resultat",
     bttsPrediction: "Båda lagen gör mål",
     overUnder25: "Över/Under 2,5",
+    cornersEvaluation: "Hörnor",
+    yellowCardsEvaluation: "Gula kort",
     yes: "Ja",
     no: "Nej",
     over25: "Över 2,5",
@@ -321,7 +343,7 @@ const MATCH_HERO_TEXT = {
     predictionQuality: "Prognoskvalitet",
     pending: "Väntar",
     qualityNote:
-      "Kvaliteten mäts efter matchen utifrån de fyra officiella utvärderingsmarknaderna.",
+      "Kvaliteten mäts efter matchen utifrån de sex officiella utvärderingsmarknaderna.",
     scheduled: "Kommande",
     waiting: "Väntar",
     live: "Live",
@@ -703,6 +725,34 @@ export default function MatchHero({
   const over25Correct =
     evaluation?.over_2_5?.correct === true;
 
+  const cornersCorrect =
+    evaluation?.corners?.correct === true;
+
+  const yellowCardsCorrect =
+    evaluation?.yellow_cards?.correct === true;
+
+  const cornersPredictedLabel =
+    evaluation?.corners?.expected_min != null &&
+    evaluation?.corners?.expected_max != null
+      ? `${evaluation.corners.expected_min}–${evaluation.corners.expected_max}`
+      : text.unavailable;
+
+  const cornersActualLabel =
+    evaluation?.corners?.actual_total != null
+      ? String(evaluation.corners.actual_total)
+      : text.unavailable;
+
+  const yellowCardsPredictedLabel =
+    evaluation?.yellow_cards?.expected_min != null &&
+    evaluation?.yellow_cards?.expected_max != null
+      ? `${evaluation.yellow_cards.expected_min}–${evaluation.yellow_cards.expected_max}`
+      : text.unavailable;
+
+  const yellowCardsActualLabel =
+    evaluation?.yellow_cards?.actual_total != null
+      ? String(evaluation.yellow_cards.actual_total)
+      : text.unavailable;
+
   const correctChecks =
     evaluation?.correct_checks ?? 0;
 
@@ -802,6 +852,18 @@ export default function MatchHero({
       correct: over25Correct,
       predicted: predictedOver25Label,
       actual: actualOver25Label,
+    },
+    {
+      label: text.cornersEvaluation,
+      correct: cornersCorrect,
+      predicted: cornersPredictedLabel,
+      actual: cornersActualLabel,
+    },
+    {
+      label: text.yellowCardsEvaluation,
+      correct: yellowCardsCorrect,
+      predicted: yellowCardsPredictedLabel,
+      actual: yellowCardsActualLabel,
     },
   ];
 
@@ -1110,12 +1172,12 @@ export default function MatchHero({
                         : "border-rose-400/20 bg-rose-400/10 text-rose-300",
                   ].join(" ")}
                 >
-                  {totalChecks} / {correctChecks}
+                  {correctChecks} / {totalChecks}
                 </span>
               </div>
 
               <div className="p-5">
-                <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-4">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {evaluationItems.map((item) => (
                     <div
                       key={item.label}

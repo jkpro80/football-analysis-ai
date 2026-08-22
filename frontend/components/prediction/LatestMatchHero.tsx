@@ -53,6 +53,22 @@ type PredictionEvaluation = {
     under_probability?: number;
   };
 
+  corners?: {
+    available?: boolean;
+    actual_total?: number | null;
+    expected_min?: number | null;
+    expected_max?: number | null;
+    correct?: boolean | null;
+  };
+
+  yellow_cards?: {
+    available?: boolean;
+    actual_total?: number | null;
+    expected_min?: number | null;
+    expected_max?: number | null;
+    correct?: boolean | null;
+  };
+
   correct_checks?: number;
   total_checks?: number;
   accuracy_percentage?: number | null;

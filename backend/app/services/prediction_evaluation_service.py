@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.database.models import (
     Match,
+    MatchStatistic,
     PredictionRecord,
 )
 
@@ -318,6 +319,118 @@ class PredictionEvaluationService:
             3,
         )
 
+        # Evaluate match-event markets from persisted match statistics.
+        # fixture_id in match_statistics references the local matches.id.
+        statistics = list(
+            self.db.scalars(
+                select(MatchStatistic).where(
+                    MatchStatistic.fixture_id == match.id,
+                    MatchStatistic.team_id.in_(
+                        (
+                            match.home_team_id,
+                            match.away_team_id,
+                        )
+                    ),
+                )
+            ).all()
+        )
+
+        statistics_by_team = {
+            statistic.team_id: statistic
+            for statistic in statistics
+        }
+
+        home_statistics = statistics_by_team.get(
+            match.home_team_id
+        )
+        away_statistics = statistics_by_team.get(
+            match.away_team_id
+        )
+
+        # Corners
+        actual_home_corners = None
+        actual_away_corners = None
+        actual_total_corners = None
+        corners_correct = None
+
+        if (
+            home_statistics is not None
+            and away_statistics is not None
+            and home_statistics.corners is not None
+            and away_statistics.corners is not None
+        ):
+            actual_home_corners = int(
+                home_statistics.corners
+            )
+            actual_away_corners = int(
+                away_statistics.corners
+            )
+            actual_total_corners = (
+                actual_home_corners
+                + actual_away_corners
+            )
+
+            if (
+                record.expected_corners_min is not None
+                and record.expected_corners_max is not None
+            ):
+                corners_correct = (
+                    int(record.expected_corners_min)
+                    <= actual_total_corners
+                    <= int(record.expected_corners_max)
+                )
+
+        record.actual_home_corners = actual_home_corners
+        record.actual_away_corners = actual_away_corners
+        record.actual_total_corners = actual_total_corners
+        record.corners_correct = corners_correct
+
+        # Yellow cards
+        actual_home_yellow_cards = None
+        actual_away_yellow_cards = None
+        actual_total_yellow_cards = None
+        yellow_cards_correct = None
+
+        if (
+            home_statistics is not None
+            and away_statistics is not None
+            and home_statistics.yellow_cards is not None
+            and away_statistics.yellow_cards is not None
+        ):
+            actual_home_yellow_cards = int(
+                home_statistics.yellow_cards
+            )
+            actual_away_yellow_cards = int(
+                away_statistics.yellow_cards
+            )
+            actual_total_yellow_cards = (
+                actual_home_yellow_cards
+                + actual_away_yellow_cards
+            )
+
+            if (
+                record.expected_yellow_cards_min is not None
+                and record.expected_yellow_cards_max is not None
+            ):
+                yellow_cards_correct = (
+                    int(record.expected_yellow_cards_min)
+                    <= actual_total_yellow_cards
+                    <= int(record.expected_yellow_cards_max)
+                )
+
+        record.actual_home_yellow_cards = (
+            actual_home_yellow_cards
+        )
+        record.actual_away_yellow_cards = (
+            actual_away_yellow_cards
+        )
+        record.actual_total_yellow_cards = (
+            actual_total_yellow_cards
+        )
+        record.yellow_cards_correct = (
+            yellow_cards_correct
+        )
+
         record.evaluated = True
 
         try:
@@ -450,6 +563,48 @@ class PredictionEvaluationService:
             "exact_score_correct": (
                 record.exact_score_correct
             ),
+            "match_events": {
+                "corners": {
+                    "actual_home": (
+                        record.actual_home_corners
+                    ),
+                    "actual_away": (
+                        record.actual_away_corners
+                    ),
+                    "actual_total": (
+                        record.actual_total_corners
+                    ),
+                    "expected_min": (
+                        record.expected_corners_min
+                    ),
+                    "expected_max": (
+                        record.expected_corners_max
+                    ),
+                    "correct": (
+                        record.corners_correct
+                    ),
+                },
+                "yellow_cards": {
+                    "actual_home": (
+                        record.actual_home_yellow_cards
+                    ),
+                    "actual_away": (
+                        record.actual_away_yellow_cards
+                    ),
+                    "actual_total": (
+                        record.actual_total_yellow_cards
+                    ),
+                    "expected_min": (
+                        record.expected_yellow_cards_min
+                    ),
+                    "expected_max": (
+                        record.expected_yellow_cards_max
+                    ),
+                    "correct": (
+                        record.yellow_cards_correct
+                    ),
+                },
+            },
             "errors": {
                 "home_goals": (
                     record.home_goals_error
@@ -462,5 +617,3 @@ class PredictionEvaluationService:
                 ),
             },
         }
-
-

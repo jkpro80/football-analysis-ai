@@ -106,6 +106,11 @@ class PredictionEvaluationResponse(BaseModel):
     winner_correct: Optional[bool] = None
     exact_score_correct: Optional[bool] = None
 
+    actual_corners: Optional[Dict[str, Any]] = None
+    actual_yellow_cards: Optional[Dict[str, Any]] = None
+
+    corners: Optional[Dict[str, Any]] = None
+    yellow_cards: Optional[Dict[str, Any]] = None
     btts: Dict[str, Any] = Field(
         default_factory=dict
     )

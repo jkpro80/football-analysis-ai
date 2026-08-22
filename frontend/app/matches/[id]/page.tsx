@@ -303,6 +303,20 @@ type PredictionEvaluation = {
   winner_correct?: boolean | null;
   exact_score_correct?: boolean | null;
 
+  actual_corners?: {
+    available?: boolean;
+    home?: number | null;
+    away?: number | null;
+    total?: number | null;
+  } | null;
+
+  actual_yellow_cards?: {
+    available?: boolean;
+    home?: number | null;
+    away?: number | null;
+    total?: number | null;
+  } | null;
+
   btts?: {
     predicted?: boolean;
     actual?: boolean;
@@ -317,6 +331,22 @@ type PredictionEvaluation = {
     correct?: boolean;
     over_probability?: number;
     under_probability?: number;
+  };
+
+  corners?: {
+    available?: boolean;
+    actual_total?: number | null;
+    expected_min?: number | null;
+    expected_max?: number | null;
+    correct?: boolean | null;
+  };
+
+  yellow_cards?: {
+    available?: boolean;
+    actual_total?: number | null;
+    expected_min?: number | null;
+    expected_max?: number | null;
+    correct?: boolean | null;
   };
 
   correct_checks?: number;
@@ -1700,6 +1730,16 @@ export default async function MatchPage({
   const yellowCardsForecast =
     data.match_events.yellow_cards;
 
+  const actualCorners =
+    data.evaluation?.actual_corners?.available
+      ? data.evaluation.actual_corners
+      : null;
+
+  const actualYellowCards =
+    data.evaluation?.actual_yellow_cards?.available
+      ? data.evaluation.actual_yellow_cards
+      : null;
+
   const cornersExplanation =
     cornersForecast?.explanation ?? null;
 
@@ -1870,6 +1910,9 @@ export default async function MatchPage({
           formula: "Formel:",
           expectedCornersNote: "Förväntade hörnor",
           expectedCardsNote: "Förväntade kort",
+          actualResult: "Faktiskt resultat",
+          actualCornersNote: "Faktiska hörnor",
+          actualCardsNote: "Faktiska gula kort",
           matchTotal: "Matchtotal",
           likelyRange: "Troligt intervall",
           expectedTotal: "Förväntad total",
@@ -1957,6 +2000,9 @@ export default async function MatchPage({
             formula: "Formula:",
             expectedCornersNote: "Expected corners",
             expectedCardsNote: "Expected cards",
+            actualResult: "Actual Result",
+            actualCornersNote: "Actual corners",
+            actualCardsNote: "Actual yellow cards",
             matchTotal: "Match Total",
             likelyRange: "Likely range",
             expectedTotal: "Expected total",
@@ -2042,6 +2088,9 @@ export default async function MatchPage({
             formula: "المعادلة:",
             expectedCornersNote: "ركنيات متوقعة",
             expectedCardsNote: "بطاقات متوقعة",
+            actualResult: "النتيجة الفعلية",
+            actualCornersNote: "الركنيات الفعلية",
+            actualCardsNote: "البطاقات الصفراء الفعلية",
             matchTotal: "إجمالي المباراة",
             likelyRange: "النطاق المرجح",
             expectedTotal: "الإجمالي المتوقع",
@@ -2563,6 +2612,40 @@ export default async function MatchPage({
                               }
                             />
                           </div>
+
+                          {actualCorners && (
+                            <div className="mt-5 rounded-2xl border border-emerald-500/25 bg-emerald-950/10 p-4">
+                              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                                <p className="text-sm font-black text-emerald-300">
+                                  {pageText.actualResult}
+                                </p>
+
+                                <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-300">
+                                  {pageText.actualCornersNote}
+                                </span>
+                              </div>
+
+                              <div className="grid gap-3 sm:grid-cols-3">
+                                <StatCard
+                                  title={home.name}
+                                  value={Number(actualCorners.home ?? 0).toFixed(0)}
+                                  note={pageText.actualCornersNote}
+                                />
+
+                                <StatCard
+                                  title={away.name}
+                                  value={Number(actualCorners.away ?? 0).toFixed(0)}
+                                  note={pageText.actualCornersNote}
+                                />
+
+                                <StatCard
+                                  title={pageText.matchTotal}
+                                  value={Number(actualCorners.total ?? 0).toFixed(0)}
+                                  note={pageText.actualResult}
+                                />
+                              </div>
+                            </div>
+                          )}
         
                           <div className="mt-5 grid gap-3 sm:grid-cols-2">
                             {cornerLines.map(([key, value]) => (
@@ -2642,6 +2725,40 @@ export default async function MatchPage({
                               }
                             />
                           </div>
+
+                          {actualYellowCards && (
+                            <div className="mt-5 rounded-2xl border border-emerald-500/25 bg-emerald-950/10 p-4">
+                              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                                <p className="text-sm font-black text-emerald-300">
+                                  {pageText.actualResult}
+                                </p>
+
+                                <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-300">
+                                  {pageText.actualCardsNote}
+                                </span>
+                              </div>
+
+                              <div className="grid gap-3 sm:grid-cols-3">
+                                <StatCard
+                                  title={home.name}
+                                  value={Number(actualYellowCards.home ?? 0).toFixed(0)}
+                                  note={pageText.actualCardsNote}
+                                />
+
+                                <StatCard
+                                  title={away.name}
+                                  value={Number(actualYellowCards.away ?? 0).toFixed(0)}
+                                  note={pageText.actualCardsNote}
+                                />
+
+                                <StatCard
+                                  title={pageText.matchTotal}
+                                  value={Number(actualYellowCards.total ?? 0).toFixed(0)}
+                                  note={pageText.actualResult}
+                                />
+                              </div>
+                            </div>
+                          )}
         
                           <div className="mt-5 grid gap-3 sm:grid-cols-2">
                             {yellowCardLines.map(([key, value]) => (
