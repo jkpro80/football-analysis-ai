@@ -1104,19 +1104,20 @@ class PredictionEngineV11:
 
     @staticmethod
     def _validate_match_id(match_id: Any) -> int:
-        try:
-            value = int(match_id)
-        except (TypeError, ValueError) as exc:
-            raise ValueError(
+        if isinstance(match_id, bool) or not isinstance(
+            match_id,
+            int,
+        ):
+            raise TypeError(
                 "match_id يجب أن يكون عددًا صحيحًا."
-            ) from exc
+            )
 
-        if value <= 0:
+        if match_id <= 0:
             raise ValueError(
                 "match_id يجب أن يكون أكبر من صفر."
             )
 
-        return value
+        return match_id
 
     @staticmethod
     def _number(
