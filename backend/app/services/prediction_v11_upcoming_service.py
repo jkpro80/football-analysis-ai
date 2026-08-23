@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.api.latest.mapper_v11 import PredictionMapperV11
 from app.database.models import Match
+from app.engine.prediction_engine_v11 import PredictionEngineV11
 from app.services.prediction_v11_service import PredictionV11Service
 from app.services.prediction_v11_record_service import (
     PredictionV11RecordService,
@@ -12,6 +13,11 @@ from app.services.prediction_v11_record_service import (
 
 
 class PredictionV11UpcomingService:
+    ENGINE_VERSION = (
+        f"{PredictionEngineV11.MODEL_NAME} "
+        f"{PredictionEngineV11.VERSION}"
+    )
+
     """
     إنشاء توقعات V11 للمباريات القادمة.
 
@@ -555,7 +561,7 @@ class PredictionV11UpcomingService:
             "model_version": cls._first_value(
                 result.get("model"),
                 mapped.get("engine_version"),
-                default="Prediction Engine V11 11.0.1",
+                default=cls.ENGINE_VERSION,
             ),
         }
 
@@ -625,7 +631,7 @@ class PredictionV11UpcomingService:
                 engine_version = str(
                     result.get(
                         "model",
-                        "Prediction Engine V11 11.0.1",
+                        self.ENGINE_VERSION,
                     )
                 )
 
@@ -653,7 +659,7 @@ class PredictionV11UpcomingService:
 
         engine_version = (
             detected_engine_version
-            or "Prediction Engine V11 11.0.1"
+            or self.ENGINE_VERSION
         )
 
         return {
@@ -731,7 +737,7 @@ class PredictionV11UpcomingService:
                 engine_version = str(
                     result.get(
                         "model",
-                        "Prediction Engine V11 11.0.1",
+                        self.ENGINE_VERSION,
                     )
                 )
 
@@ -757,7 +763,7 @@ class PredictionV11UpcomingService:
 
         engine_version = (
             detected_engine_version
-            or "Prediction Engine V11 11.0.1"
+            or self.ENGINE_VERSION
         )
 
         return {
@@ -830,7 +836,7 @@ class PredictionV11UpcomingService:
                 engine_version = str(
                     result.get(
                         "model",
-                        "Prediction Engine V11 11.0.1",
+                        self.ENGINE_VERSION,
                     )
                 )
 
@@ -856,7 +862,7 @@ class PredictionV11UpcomingService:
 
         engine_version = (
             detected_engine_version
-            or "Prediction Engine V11 11.0.1"
+            or self.ENGINE_VERSION
         )
 
         return {

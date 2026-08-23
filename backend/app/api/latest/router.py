@@ -8,8 +8,14 @@ from app.database.database import get_db
 from app.database.models import Match
 from app.services.prediction_v11_service import PredictionV11Service
 from app.services.prediction_v11_upcoming_service import PredictionV11UpcomingService
+from app.engine.prediction_engine_v11 import PredictionEngineV11
 
 
+
+V11_ENGINE_VERSION = (
+    f"{PredictionEngineV11.MODEL_NAME} "
+    f"{PredictionEngineV11.VERSION}"
+)
 router = APIRouter(
     prefix="/predictions/latest",
     tags=["Latest Predictions"],
@@ -208,7 +214,7 @@ def get_latest_prediction(
             api_version="Latest Prediction API V1",
             engine_version=result.get(
                 "model",
-                "Prediction Engine V11 11.0.1",
+                V11_ENGINE_VERSION,
             ),
             **mapped,
             **match_metadata,
