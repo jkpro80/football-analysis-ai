@@ -36,8 +36,11 @@ class SystemUpdateOrchestrator:
     Current workflow:
         1. Synchronize teams and fixtures.
         2. Synchronize team statistics.
-        3. Apply pending ELO updates.
-        4. Generate stored predictions for upcoming fixtures.
+        3. Refresh fixtures with pending V11 evaluations.
+        4. Apply pending ELO updates.
+        5. Evaluate finished V11 predictions.
+        6. Build calibration and tuning previews.
+        7. Generate stored predictions for upcoming fixtures.
 
     The orchestrator isolates failures at operation level and returns
     one unified execution report.
@@ -94,6 +97,13 @@ class SystemUpdateOrchestrator:
             operations=operations,
         )
 
+        pending_fixture_result = (
+            await self._refresh_pending_prediction_fixtures(
+                prediction_limit=prediction_limit,
+                operations=operations,
+            )
+        )
+
         elo_result = self._apply_pending_elo(
             elo_limit=elo_limit,
             operations=operations,
@@ -128,6 +138,7 @@ class SystemUpdateOrchestrator:
         total_failures = (
             team_sync_result["failed"]
             + statistics_result["failed"]
+            + pending_fixture_result["failed"]
             + (1 if elo_result["status"] == "failed" else 0)
             + evaluation_result["failed"]
             + calibration_result["failed"]
@@ -179,6 +190,21 @@ class SystemUpdateOrchestrator:
                 "statistics_updated": statistics_result["success"],
                 "statistics_skipped": statistics_result["skipped"],
                 "statistics_failed": statistics_result["failed"],
+                "pending_fixtures_found": (
+                    pending_fixture_result["found"]
+                ),
+                "pending_fixtures_updated": (
+                    pending_fixture_result["updated"]
+                ),
+                "pending_fixtures_created": (
+                    pending_fixture_result["created"]
+                ),
+                "pending_fixtures_skipped": (
+                    pending_fixture_result["skipped"]
+                ),
+                "pending_fixture_sync_failed": (
+                    pending_fixture_result["failed"]
+                ),
                 "elo_status": elo_result["status"],
                 "evaluation_records_found": (
                     evaluation_result["found"]
@@ -384,6 +410,122 @@ class SystemUpdateOrchestrator:
             "skipped": skipped,
             "failed": failed,
         }
+
+    async def _refresh_pending_prediction_fixtures(
+        self,
+        *,
+        prediction_limit: int,
+        operations: list[dict[str, Any]],
+    ) -> dict[str, int]:
+        """
+        Refresh fixtures with unevaluated V11 predictions whose
+        kickoff time has passed before ELO and evaluation run.
+        """
+
+        try:
+            result = (
+                await self.sync_service
+                .sync_pending_prediction_fixtures(
+                    limit=prediction_limit,
+                )
+            )
+
+            failed = int(
+                result.get("failed", 0)
+            )
+
+            results = result.get(
+                "results",
+                [],
+            )
+
+            errors = (
+                [
+                    item
+                    for item in results
+                    if isinstance(item, dict)
+                    and item.get("status") == "failed"
+                ]
+                if isinstance(results, list)
+                else []
+            )
+
+            summary = {
+                "found": int(
+                    result.get(
+                        "fixtures_found",
+                        0,
+                    )
+                ),
+                "updated": int(
+                    result.get(
+                        "updated",
+                        0,
+                    )
+                ),
+                "created": int(
+                    result.get(
+                        "created",
+                        0,
+                    )
+                ),
+                "skipped": int(
+                    result.get(
+                        "skipped",
+                        0,
+                    )
+                ),
+                "failed": failed,
+            }
+
+            operations.append(
+                {
+                    "step": (
+                        "refresh_pending_prediction_fixtures_v11"
+                    ),
+                    "status": (
+                        "success"
+                        if failed == 0
+                        else "completed_with_errors"
+                    ),
+                    "summary": summary,
+                    "errors": errors,
+                }
+            )
+
+            return summary
+
+        except Exception as error:
+            self.db.rollback()
+
+            error_message = self._format_error(
+                error
+            )
+
+            operations.append(
+                {
+                    "step": (
+                        "refresh_pending_prediction_fixtures_v11"
+                    ),
+                    "status": "failed",
+                    "summary": {
+                        "found": 0,
+                        "updated": 0,
+                        "created": 0,
+                        "skipped": 0,
+                        "failed": 1,
+                    },
+                    "error": error_message,
+                }
+            )
+
+            return {
+                "found": 0,
+                "updated": 0,
+                "created": 0,
+                "skipped": 0,
+                "failed": 1,
+            }
 
     def _apply_pending_elo(
         self,
