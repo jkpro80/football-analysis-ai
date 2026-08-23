@@ -12,11 +12,11 @@ from app.database.models import (
 
 class PredictionEvaluationService:
     """
-    مقارنة توقعات V3 بالنتائج الفعلية
+    مقارنة توقعات V11 بالنتائج الفعلية
     وتخزين مؤشرات الدقة.
     """
 
-    DEFAULT_MODEL_VERSION = "Prediction Engine V3"
+    DEFAULT_MODEL_VERSION = "Prediction Engine V11"
 
     def __init__(
         self,
@@ -56,7 +56,7 @@ class PredictionEvaluationService:
         match_id: int,
     ) -> PredictionRecord:
         """
-        جلب أحدث سجل توقع V3 للمباراة.
+        جلب أحدث سجل توقع V11 للمباراة.
         """
 
         statement = (
@@ -450,7 +450,7 @@ class PredictionEvaluationService:
         self,
     ) -> dict[str, Any]:
         """
-        تقييم جميع سجلات V3 غير المقيّمة
+        تقييم جميع سجلات V11 غير المقيّمة
         التي انتهت مبارياتها.
         """
 
