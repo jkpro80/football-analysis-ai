@@ -13,12 +13,30 @@ from app.services.model_accuracy_service import (
 from app.services.model_tuning_service import (
     ModelTuningService,
 )
+from app.services.prediction_v11_record_service import (
+    PredictionV11RecordService,
+)
 
 
 router = APIRouter(
     prefix="/model",
     tags=["Model"],
 )
+
+V11_MODEL_VERSION = PredictionV11RecordService.MODEL_VERSION
+V11_TUNED_MODEL_VERSION = "Prediction Engine V11.1"
+V11_CONFIG_PATH = "/app/app/config/model_weights_v11.json"
+
+
+def get_v11_tuning_service(
+    db: Session,
+) -> ModelTuningService:
+    return ModelTuningService(
+        db=db,
+        source_model_version=V11_MODEL_VERSION,
+        tuned_model_version=V11_TUNED_MODEL_VERSION,
+        config_path=V11_CONFIG_PATH,
+    )
 
 
 @router.get(
@@ -29,20 +47,20 @@ def get_model_status(
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """
-    عرض حالة نموذج V3.1
-    والمعاملات المستخدمة حاليًا.
+    عرض حالة نموذج V11
+    ومعاملات V11.1 المستخدمة حاليًا.
     """
 
     try:
-        service = ModelTuningService(db)
+        service = get_v11_tuning_service(db)
 
         status = service.get_status()
 
         return {
             "active_model": (
-                "Prediction Engine V3.1"
+                V11_TUNED_MODEL_VERSION
                 if status["enabled"]
-                else "Prediction Engine V3"
+                else V11_MODEL_VERSION
             ),
             **status,
         }
@@ -50,9 +68,7 @@ def get_model_status(
     except Exception as error:
         raise HTTPException(
             status_code=500,
-            detail=(
-                "Failed to read model status."
-            ),
+            detail="Failed to read model status.",
         ) from error
 
 
@@ -61,13 +77,11 @@ def get_model_status(
     response_model=dict[str, Any],
 )
 def get_model_accuracy(
-    model_version: str = (
-        "Prediction Engine V3.1"
-    ),
+    model_version: str = V11_MODEL_VERSION,
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """
-    عرض تقرير دقة إصدار محدد من النموذج.
+    عرض تقرير دقة Prediction Engine V11.
     """
 
     try:
@@ -96,17 +110,15 @@ def get_model_calibration(
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """
-    إنشاء تقرير معايرة جديد لـV3
-    دون حفظ أو تطبيق المعاملات.
+    إنشاء تقرير معايرة لـV11
+    دون تطبيق معاملات V11.1.
     """
 
     try:
         service = AutoCalibrationService(db)
 
         return service.calibrate(
-            model_version=(
-                "Prediction Engine V3"
-            ),
+            model_version=V11_MODEL_VERSION,
             limit=limit,
         )
 
@@ -129,11 +141,11 @@ def save_model_tuning(
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """
-    تشغيل المعايرة وحفظ معاملات V3.1.
+    تشغيل المعايرة وحفظ معاملات V11.1.
     """
 
     try:
-        service = ModelTuningService(db)
+        service = get_v11_tuning_service(db)
 
         return service.save_config(
             limit=limit
@@ -163,11 +175,11 @@ def disable_model_tuning(
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """
-    تعطيل V3.1 والعودة إلى معاملات 1.0.
+    تعطيل معاملات V11.1 والعودة إلى V11 الأساسي.
     """
 
     try:
-        service = ModelTuningService(db)
+        service = get_v11_tuning_service(db)
 
         return service.disable_config()
 
