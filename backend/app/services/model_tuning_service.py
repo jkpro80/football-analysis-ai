@@ -13,15 +13,15 @@ from app.services.auto_calibration_service import (
 class ModelTuningService:
     """
     إنشاء وحفظ معاملات المعايرة الخاصة
-    بمحرك Prediction Engine V3.1.
+    بمحرك Prediction Engine V11.1.
 
     لا تُعدّل هذه الخدمة بيانات الفرق،
     وإنما تحفظ ملف إعدادات مستقل يمكن
     لمحرك التوقعات قراءته لاحقًا.
     """
 
-    MODEL_VERSION = "Prediction Engine V3"
-    TUNED_MODEL_VERSION = "Prediction Engine V3.1"
+    MODEL_VERSION = "Prediction Engine V11"
+    TUNED_MODEL_VERSION = "Prediction Engine V11.1"
 
     DEFAULT_CONFIG: dict[str, Any] = {
         "source_model_version": MODEL_VERSION,
@@ -71,7 +71,7 @@ class ModelTuningService:
                 backend_root
                 / "app"
                 / "config"
-                / "model_weights.json"
+                / "model_weights_v11.json"
             )
 
         else:
@@ -505,5 +505,3 @@ class ModelTuningService:
                 "updated_at"
             ),
         }
-
-

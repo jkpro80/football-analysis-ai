@@ -15,7 +15,7 @@ class AutoCalibrationService:
     هي تُرجع توصيات آمنة لاختبارها أولًا.
     """
 
-    MODEL_VERSION = "Prediction Engine V3"
+    MODEL_VERSION = "Prediction Engine V11"
     MINIMUM_SAMPLE_SIZE = 30
 
     def __init__(
