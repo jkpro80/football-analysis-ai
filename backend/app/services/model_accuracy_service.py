@@ -12,7 +12,7 @@ class ModelAccuracyService:
     على السجلات التي تم تقييمها.
     """
 
-    MODEL_VERSION = "Prediction Engine V3"
+    MODEL_VERSION = "Prediction Engine V11"
 
     def __init__(
         self,
@@ -163,6 +163,39 @@ class ModelAccuracyService:
 
         return result
 
+    @classmethod
+    def build_market_accuracy(
+        cls,
+        records: list[PredictionRecord],
+        field_name: str,
+    ) -> dict[str, int | float]:
+        """
+        Calculate market accuracy using only records
+        where that market has an evaluation result.
+        """
+
+        values = [
+            getattr(record, field_name)
+            for record in records
+            if getattr(record, field_name) is not None
+        ]
+
+        available = len(values)
+        correct = sum(
+            1
+            for value in values
+            if value is True
+        )
+
+        return {
+            "available": available,
+            "correct": correct,
+            "accuracy": cls.percentage(
+                correct,
+                available,
+            ),
+        }
+
     def get_accuracy_report(
         self,
         model_version: str | None = None,
@@ -182,6 +215,32 @@ class ModelAccuracyService:
 
         total = len(records)
 
+        market_accuracy = {
+            "match_result": self.build_market_accuracy(
+                records,
+                "result_prediction_correct",
+            ),
+            "over_2_5": self.build_market_accuracy(
+                records,
+                "over_2_5_correct",
+            ),
+            "btts": self.build_market_accuracy(
+                records,
+                "btts_correct",
+            ),
+            "exact_score": self.build_market_accuracy(
+                records,
+                "exact_score_correct",
+            ),
+            "corners": self.build_market_accuracy(
+                records,
+                "corners_correct",
+            ),
+            "yellow_cards": self.build_market_accuracy(
+                records,
+                "yellow_cards_correct",
+            ),
+        }
         if total == 0:
             return {
                 "model_version": (
@@ -268,23 +327,11 @@ class ModelAccuracyService:
             "evaluated_predictions": total,
             "sample_status": sample_status,
             "accuracy": {
-                "match_result": self.percentage(
-                    result_correct,
-                    total,
-                ),
-                "over_2_5": self.percentage(
-                    over_2_5_correct,
-                    total,
-                ),
-                "btts": self.percentage(
-                    btts_correct,
-                    total,
-                ),
-                "exact_score": self.percentage(
-                    exact_score_correct,
-                    total,
-                ),
+                market: values["accuracy"]
+                for market, values
+                in market_accuracy.items()
             },
+            "market_accuracy": market_accuracy,
             "correct_counts": {
                 "match_result": result_correct,
                 "over_2_5": over_2_5_correct,
