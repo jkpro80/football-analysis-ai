@@ -1,20 +1,17 @@
-from typing import Any, Literal
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
-from app.services.backtest_service import (
-    BacktestService,
-)
-from app.services.backtest_v31_service import (
-    BacktestV31Service,
+from app.services.backtest_v11_service import (
+    BacktestV11Service,
 )
 
 
 router = APIRouter(
     prefix="/backtest",
-    tags=["Backtest"],
+    tags=["Backtest V11"],
 )
 
 
@@ -23,41 +20,46 @@ router = APIRouter(
     response_model=dict[str, Any],
 )
 def run_backtest(
-    model_version: Literal["v3", "v3.1"] = Query(
-        default="v3.1",
-    ),
     limit: int = Query(
-        default=30,
+        default=100,
         ge=1,
-        le=500,
+        le=1000,
     ),
-    before_date: str | None = Query(
+    history_limit: int = Query(
+        default=5,
+        ge=1,
+        le=20,
+    ),
+    max_goals: int | None = Query(
         default=None,
+        ge=1,
+        le=20,
     ),
-    after_date: str | None = Query(
+    top_scores_count: int | None = Query(
         default=None,
+        ge=1,
+        le=50,
     ),
-    skip_existing: bool = Query(
+    include_details: bool = Query(
         default=True,
     ),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """
-    تشغيل Backtest على V3 أو V3.1.
+    تشغيل Backtest على Prediction Engine V11
+    باستخدام نفس MatchAnalysisPipelineV11
+    المستخدم في الإنتاج.
     """
 
     try:
-        if model_version == "v3":
-            service = BacktestService(db)
+        service = BacktestV11Service(db)
 
-        else:
-            service = BacktestV31Service(db)
-
-        return service.run_backtest(
+        return service.run(
             limit=limit,
-            before_date=before_date,
-            after_date=after_date,
-            skip_existing=skip_existing,
+            history_limit=history_limit,
+            max_goals=max_goals,
+            top_scores_count=top_scores_count,
+            include_details=include_details,
         )
 
     except ValueError as error:
@@ -69,5 +71,5 @@ def run_backtest(
     except Exception as error:
         raise HTTPException(
             status_code=500,
-            detail="Failed to run backtest.",
+            detail="Failed to run V11 backtest.",
         ) from error
