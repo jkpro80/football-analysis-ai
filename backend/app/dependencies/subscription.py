@@ -1,4 +1,4 @@
-﻿from collections.abc import Callable
+from collections.abc import Callable
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database.database import get_db
@@ -22,6 +22,13 @@ def require_plan(
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db),
     ) -> User:
+        current_role = str(
+            getattr(current_user, "role", "")
+        ).strip().lower()
+
+        if current_role == "admin":
+            return current_user
+
         service = AuthService(db)
         subscription = service.get_active_subscription(
             current_user.id,

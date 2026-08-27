@@ -133,6 +133,15 @@ class PredictionEvaluationResponse(BaseModel):
     )
 
 
+
+class PredictionAccessResponse(BaseModel):
+    plan_code: str = "free"
+
+    advanced_markets: bool = False
+    score_matrix: bool = False
+    features: bool = False
+    raw_data: bool = False
+
 class PredictionResponse(BaseModel):
     """
     الاستجابة النهائية لمحرك Prediction Engine V11.
@@ -165,6 +174,10 @@ class PredictionResponse(BaseModel):
     score_matrix: Optional[Any] = None
     features: Optional[Dict[str, Any]] = None
     raw_data: Optional[Dict[str, Any]] = None
+
+    access: PredictionAccessResponse = Field(
+        default_factory=PredictionAccessResponse
+    )
 
     model_config = ConfigDict(
         extra="allow",

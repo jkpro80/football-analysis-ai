@@ -8,6 +8,7 @@ from app.database.models import (
     MatchStatistic,
     PredictionRecord,
 )
+from app.services.strong_picks_service import StrongPicksService
 
 
 class PredictionEvaluationService:
@@ -440,6 +441,15 @@ class PredictionEvaluationService:
         except Exception:
             self.db.rollback()
             raise
+
+
+        # Evaluate the persisted Strong Pick for this match,
+        # when one exists and the match has finished.
+        StrongPicksService(
+            db=self.db,
+        ).evaluate_pending_pick(
+            match_id=match_id,
+        )
 
         return self.serialize_result(
             record=record,

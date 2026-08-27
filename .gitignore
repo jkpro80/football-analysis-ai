@@ -63,3 +63,6 @@ Thumbs.db
 *.bak-*
 *.bak_*
 *.encoding-backup
+
+# Local deployment backup
+_deploy_20260824/

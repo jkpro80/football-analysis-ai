@@ -346,6 +346,7 @@ class StatisticsSyncService:
                     Match.away_team_id == team.id,
                 ),
                 Match.sportmonks_id.is_not(None),
+                Match.status == "5",
             )
             .order_by(Match.date.desc(), Match.id.desc())
             .limit(safe_limit)

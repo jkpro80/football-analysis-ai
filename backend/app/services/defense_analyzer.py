@@ -155,10 +155,10 @@ class DefenseAnalyzer:
             )
 
             opponent_possession = cls._safe_float(
-                cls._get_attr(opponent_statistic, "ball_possession"),
+                cls._get_attr(opponent_statistic, "possession"),
                 100.0
                 - cls._safe_float(
-                    cls._get_attr(own_statistic, "ball_possession"),
+                    cls._get_attr(own_statistic, "possession"),
                     cls.DEFAULT_POSSESSION,
                 ),
             )
@@ -169,12 +169,12 @@ class DefenseAnalyzer:
             )
 
             yellow_cards = cls._safe_float(
-                cls._get_attr(own_statistic, "yellowcards"),
+                cls._get_attr(own_statistic, "yellow_cards"),
                 cls.DEFAULT_YELLOW_CARDS,
             )
 
             red_cards = cls._safe_float(
-                cls._get_attr(own_statistic, "redcards"),
+                cls._get_attr(own_statistic, "red_cards"),
                 cls.DEFAULT_RED_CARDS,
             )
 

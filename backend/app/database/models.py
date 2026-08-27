@@ -250,6 +250,13 @@ class Match(Base):
         cascade="all, delete-orphan",
     )
 
+    strong_pick = relationship(
+        "StrongPick",
+        back_populates="match",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
 
 class PredictionRecord(Base):
     __tablename__ = "prediction_records"
@@ -489,6 +496,111 @@ class PredictionRecord(Base):
     match = relationship(
         "Match",
         back_populates="prediction_records",
+    )
+
+    strong_picks = relationship(
+        "StrongPick",
+        back_populates="prediction_record",
+        cascade="all, delete-orphan",
+    )
+
+class StrongPick(Base):
+    __tablename__ = "strong_picks"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    match_id = Column(
+        Integer,
+        ForeignKey(
+            "matches.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+
+    prediction_record_id = Column(
+        Integer,
+        ForeignKey(
+            "prediction_records.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    market = Column(
+        String(100),
+        nullable=False,
+    )
+
+    selection = Column(
+        String(200),
+        nullable=False,
+    )
+
+    probability = Column(
+        Float,
+        nullable=False,
+    )
+
+    confidence = Column(
+        Float,
+        nullable=False,
+    )
+
+    strength_score = Column(
+        Float,
+        nullable=False,
+    )
+
+    status = Column(
+        String(20),
+        nullable=False,
+        default="pending",
+    )
+
+    actual_result = Column(
+        String(100),
+        nullable=True,
+    )
+
+    actual_value = Column(
+        Float,
+        nullable=True,
+    )
+
+    is_winner = Column(
+        Boolean,
+        nullable=True,
+    )
+
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(
+            timezone.utc,
+        ),
+    )
+
+    evaluated_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    match = relationship(
+        "Match",
+        back_populates="strong_pick",
+    )
+
+    prediction_record = relationship(
+        "PredictionRecord",
+        back_populates="strong_picks",
     )
 
 class MatchStatistic(Base):
@@ -1644,7 +1756,3 @@ class FavoriteMatch(Base):
     match = relationship(
         "Match",
     )
-
-
-
-

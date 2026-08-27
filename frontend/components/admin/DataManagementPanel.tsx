@@ -286,6 +286,32 @@ const primaryButtonStyle: React.CSSProperties = {
   fontSize: "16px",
 };
 
+function formatLocalDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function getDefaultDateRange(): {
+  startDate: string;
+  endDate: string;
+} {
+  const today = new Date();
+
+  const start = new Date(today);
+  start.setDate(start.getDate() - 7);
+
+  const end = new Date(today);
+  end.setDate(end.getDate() + 14);
+
+  return {
+    startDate: formatLocalDate(start),
+    endDate: formatLocalDate(end),
+  };
+}
+
 export default function DataManagementPanel() {
   const [systemStatus, setSystemStatus] =
     useState<SystemStatus | null>(null);
@@ -296,8 +322,13 @@ export default function DataManagementPanel() {
   const [predictionLimit, setPredictionLimit] = useState("50");
 
   const [allTeamIds, setAllTeamIds] = useState("");
-  const [startDate, setStartDate] = useState("2026-07-22");
-  const [endDate, setEndDate] = useState("2026-08-31");
+  const [defaultDateRange] = useState(() => getDefaultDateRange());
+  const [startDate, setStartDate] = useState(
+    defaultDateRange.startDate,
+  );
+  const [endDate, setEndDate] = useState(
+    defaultDateRange.endDate,
+  );
 
   const [updateAllState, setUpdateAllState] =
     useState<OperationState>(initialState);

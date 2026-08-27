@@ -13,6 +13,7 @@ from app.services.fixture_context_analyzer import (
 from app.services.match_fatigue_analyzer import (
     MatchFatigueAnalyzer,
 )
+from app.services.referee_impact_analyzer import RefereeImpactAnalyzer
 from app.services.expected_goals_calculator import ExpectedGoalsCalculator
 from app.services.poisson_engine import PoissonEngine
 from app.engine.match_events_engine import MatchEventsEngine
@@ -167,6 +168,41 @@ class PredictionEngineV11:
                     "fatigue_context_warnings": [
                         "Match fatigue context could not be analyzed."
                     ],
+                }
+            )
+
+        try:
+            referee_analysis = RefereeImpactAnalyzer(
+                db=self.db
+            ).analyze(
+                fixture_id=validated_match_id
+            )
+
+            referee_features = referee_analysis.get(
+                "features",
+                {},
+            )
+
+            if isinstance(referee_features, dict):
+                features.update(referee_features)
+
+            features["referee_analysis"] = referee_analysis
+
+        except Exception as exc:
+            features.update(
+                {
+                    "referee_profile_available": False,
+                    "referee_card_factor": 1.0,
+                    "referee_sample_confidence": 0.0,
+                    "referee_confidence_level": "unavailable",
+                    "referee_strictness": "unknown",
+                    "referee_analysis": {
+                        "available": False,
+                        "profile": None,
+                        "warnings": [
+                            f"Referee analysis failed: {exc}"
+                        ],
+                    },
                 }
             )
 

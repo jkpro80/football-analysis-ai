@@ -1,4 +1,5 @@
 import os
+import time
 from typing import Any
 
 import httpx
@@ -42,37 +43,85 @@ class SportmonksClient:
             f"{endpoint.lstrip('/')}"
         )
 
+        max_retries = 4
+        base_delay = 5.0
+
         try:
             with httpx.Client(
                 timeout=30.0,
             ) as client:
-                response = client.get(
-                    url,
-                    params=request_params,
-                )
+                for attempt in range(max_retries + 1):
+                    try:
+                        response = client.get(
+                            url,
+                            params=request_params,
+                        )
+
+                    except httpx.TimeoutException as error:
+                        raise SportmonksError(
+                            "Sportmonks request timed out"
+                        ) from error
+
+                    except httpx.RequestError as error:
+                        raise SportmonksError(
+                            "Could not connect to Sportmonks"
+                        ) from error
+
+                    if response.status_code != 429:
+                        break
+
+                    if attempt >= max_retries:
+                        try:
+                            error_body = response.json()
+                        except ValueError:
+                            error_body = response.text
+
+                        raise SportmonksError(
+                            (
+                                "Sportmonks returned HTTP 429 "
+                                "after retry attempts: "
+                                f"{error_body}"
+                            )
+                        )
+
+                    retry_after = response.headers.get(
+                        "Retry-After"
+                    )
+
+                    delay = base_delay * (2 ** attempt)
+
+                    if retry_after:
+                        try:
+                            delay = max(
+                                delay,
+                                float(retry_after),
+                            )
+                        except ValueError:
+                            pass
+
+                    print(
+                        "Sportmonks rate limit reached. "
+                        f"Retrying in {delay:.1f}s "
+                        f"(attempt {attempt + 1}/{max_retries})..."
+                    )
+
+                    time.sleep(delay)
 
                 response.raise_for_status()
-
-        except httpx.TimeoutException as error:
-            raise SportmonksError(
-                "Sportmonks request timed out"
-            ) from error
 
         except httpx.HTTPStatusError as error:
             status_code = error.response.status_code
 
             try:
                 error_body = error.response.json()
-            except Exception:
+            except ValueError:
                 error_body = error.response.text
 
             raise SportmonksError(
-                f"Sportmonks returned HTTP {status_code}: {error_body}"
-            ) from error
-
-        except httpx.RequestError as error:
-            raise SportmonksError(
-                "Could not connect to Sportmonks"
+                (
+                    f"Sportmonks returned HTTP "
+                    f"{status_code}: {error_body}"
+                )
             ) from error
 
         try:

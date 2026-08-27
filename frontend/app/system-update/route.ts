@@ -130,7 +130,7 @@ export async function POST(
   try {
     if (action === "finalize") {
       const parameters = new URLSearchParams({
-        team_ids: String(teamIds[0]),
+        team_ids: teamIds.join(","),
         start_date: startDate,
         end_date: endDate,
         statistics_limit: "5",

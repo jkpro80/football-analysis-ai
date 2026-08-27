@@ -21,8 +21,14 @@ class MatchRepository(BaseRepository):
             .first()
         )
 
-    def get_recent_matches(self, team_id: int, limit: int = 5):
-        return (
+    def get_recent_matches(
+        self,
+        team_id: int,
+        limit: int = 5,
+        before_date=None,
+        exclude_match_id: int | None = None,
+    ):
+        query = (
             self.db.query(Match)
             .filter(
                 (
@@ -32,6 +38,75 @@ class MatchRepository(BaseRepository):
                 Match.home_score.isnot(None),
                 Match.away_score.isnot(None),
             )
+        )
+
+        if before_date is not None:
+            query = query.filter(
+                Match.date < before_date
+            )
+
+        if exclude_match_id is not None:
+            query = query.filter(
+                Match.id != exclude_match_id
+            )
+
+        return (
+            query
+            .order_by(
+                Match.date.desc(),
+                Match.id.desc(),
+            )
+            .limit(limit)
+            .all()
+        )
+    def get_recent_matches_by_venue(
+        self,
+        team_id: int,
+        venue: str,
+        limit: int = 5,
+        before_date=None,
+        exclude_match_id: int | None = None,
+    ):
+        normalized_venue = (
+            venue.strip().lower()
+            if isinstance(venue, str)
+            else ""
+        )
+
+        if normalized_venue == "home":
+            venue_filter = (
+                Match.home_team_id == team_id
+            )
+        elif normalized_venue == "away":
+            venue_filter = (
+                Match.away_team_id == team_id
+            )
+        else:
+            raise ValueError(
+                "venue must be 'home' or 'away'."
+            )
+
+        query = (
+            self.db.query(Match)
+            .filter(
+                venue_filter,
+                Match.home_score.isnot(None),
+                Match.away_score.isnot(None),
+            )
+        )
+
+        if before_date is not None:
+            query = query.filter(
+                Match.date < before_date
+            )
+
+        if exclude_match_id is not None:
+            query = query.filter(
+                Match.id != exclude_match_id
+            )
+
+        return (
+            query
             .order_by(
                 Match.date.desc(),
                 Match.id.desc(),
@@ -44,8 +119,10 @@ class MatchRepository(BaseRepository):
         home_team_id: int,
         away_team_id: int,
         limit: int = 10,
+        before_date=None,
+        exclude_match_id: int | None = None,
     ):
-        return (
+        query = (
             self.db.query(Match)
             .filter(
                 (
@@ -62,6 +139,20 @@ class MatchRepository(BaseRepository):
                 Match.home_score.isnot(None),
                 Match.away_score.isnot(None),
             )
+        )
+
+        if before_date is not None:
+            query = query.filter(
+                Match.date < before_date
+            )
+
+        if exclude_match_id is not None:
+            query = query.filter(
+                Match.id != exclude_match_id
+            )
+
+        return (
+            query
             .order_by(
                 Match.date.desc(),
                 Match.id.desc(),
@@ -69,4 +160,3 @@ class MatchRepository(BaseRepository):
             .limit(limit)
             .all()
         )
-

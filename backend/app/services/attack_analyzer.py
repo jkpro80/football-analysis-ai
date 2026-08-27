@@ -20,6 +20,8 @@ class AttackAnalyzer:
     DEFAULT_CORNERS = 5.0
     DEFAULT_ASSISTS = 0.80
     DEFAULT_DRIBBLES = 50.0
+    DEFAULT_SHOTS = 12.0
+    DEFAULT_SHOTS_ON_TARGET = 5.0
 
     @staticmethod
     def _safe_float(value: Any, default: float = 0.0) -> float:
@@ -161,6 +163,26 @@ class AttackAnalyzer:
                         ),
                         cls.DEFAULT_DRIBBLES,
                     ),
+                    "shots": cls._safe_float(
+                        (
+                            cls._get_attr(
+                                statistic,
+                                "raw_statistics",
+                            )
+                            or {}
+                        ).get("shots_total"),
+                        cls.DEFAULT_SHOTS,
+                    ),
+                    "shots_on_target": cls._safe_float(
+                        (
+                            cls._get_attr(
+                                statistic,
+                                "raw_statistics",
+                            )
+                            or {}
+                        ).get("shots_on_target"),
+                        cls.DEFAULT_SHOTS_ON_TARGET,
+                    ),
                 }
             )
 
@@ -196,6 +218,14 @@ class AttackAnalyzer:
             sample["successful_dribbles_percentage"]
             for sample in samples
         ]
+        shots = [
+            sample["shots"]
+            for sample in samples
+        ]
+        shots_on_target = [
+            sample["shots_on_target"]
+            for sample in samples
+        ]
 
         average_goals = cls._weighted_average(
             goals,
@@ -221,6 +251,16 @@ class AttackAnalyzer:
             dribbles,
             weights,
             cls.DEFAULT_DRIBBLES,
+        )
+        average_shots = cls._weighted_average(
+            shots,
+            weights,
+            cls.DEFAULT_SHOTS,
+        )
+        average_shots_on_target = cls._weighted_average(
+            shots_on_target,
+            weights,
+            cls.DEFAULT_SHOTS_ON_TARGET,
         )
 
         recent_goal_rating = cls._clamp(
@@ -283,6 +323,14 @@ class AttackAnalyzer:
             "average_corners": round(average_corners, 2),
             "successful_dribbles_percentage": round(
                 average_dribbles,
+                2,
+            ),
+            "shots": round(
+                average_shots,
+                2,
+            ),
+            "shots_on_target": round(
+                average_shots_on_target,
                 2,
             ),
             "xg": round(team_xg, 3),

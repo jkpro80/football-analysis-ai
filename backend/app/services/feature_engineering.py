@@ -72,17 +72,23 @@ class FeatureEngineering:
         # =====================================
 
         home_attack = AttackAnalyzer.analyze(
-            match_data["recent_home"],
+            match_data["recent_home_at_home"],
             home.id,
             home,
             "home",
+            statistics=match_data.get(
+                "historical_statistics"
+            ),
         )
 
         away_attack = AttackAnalyzer.analyze(
-            match_data["recent_away"],
+            match_data["recent_away_at_away"],
             away.id,
             away,
             "away",
+            statistics=match_data.get(
+                "historical_statistics"
+            ),
         )
 
         home_shots = self._number(
@@ -126,17 +132,23 @@ class FeatureEngineering:
         # =====================================
 
         home_defense_analysis = DefenseAnalyzer.analyze(
-            match_data["recent_home"],
+            match_data["recent_home_at_home"],
             home.id,
             home,
             "home",
+            statistics=match_data.get(
+                "historical_statistics"
+            ),
         )
 
         away_defense_analysis = DefenseAnalyzer.analyze(
-            match_data["recent_away"],
+            match_data["recent_away_at_away"],
             away.id,
             away,
             "away",
+            statistics=match_data.get(
+                "historical_statistics"
+            ),
         )
 
         return {
@@ -374,6 +386,13 @@ class FeatureEngineering:
                 away_attack.get("played")
             ),
 
+            "home_attack_sample_confidence": self._number(
+                home_attack.get("sample_confidence")
+            ),
+            "away_attack_sample_confidence": self._number(
+                away_attack.get("sample_confidence")
+            ),
+
             "home_attack_goals": self._number(
                 home_attack.get("goals_for")
             ),
@@ -454,6 +473,13 @@ class FeatureEngineering:
             ),
             "away_defense_played": self._number(
                 away_defense_analysis.get("played")
+            ),
+
+            "home_defense_sample_confidence": self._number(
+                home_defense_analysis.get("sample_confidence")
+            ),
+            "away_defense_sample_confidence": self._number(
+                away_defense_analysis.get("sample_confidence")
             ),
 
             "home_defense_goals_against": self._number(

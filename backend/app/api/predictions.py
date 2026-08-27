@@ -103,13 +103,34 @@ def get_prediction(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Pro subscription required.",
         )
+    is_pro_or_higher = plan_code in {
+        "pro",
+        "premium",
+    }
+
+    is_premium = plan_code == "premium"
+
+    allow_advanced_markets = is_pro_or_higher
+    allow_score_matrix = (
+        is_pro_or_higher
+        and include_score_matrix
+    )
+    allow_features = (
+        is_pro_or_higher
+        and include_features
+    )
+    allow_raw_data = (
+        is_premium
+        and include_raw_data
+    )
+
     try:
         engine = PredictionEngineV11(db=db)
         result = engine.predict(
             match_id=match_id,
-            include_score_matrix=include_score_matrix,
-            include_features=include_features,
-            include_raw_data=include_raw_data,
+            include_score_matrix=allow_score_matrix,
+            include_features=allow_features,
+            include_raw_data=allow_raw_data,
         )
         response = PredictionResponse.model_validate(
             result,
@@ -157,6 +178,13 @@ def get_prediction(
 
         elif plan_code == "pro":
             response.raw_data = None
+
+        response.access.plan_code = plan_code
+        response.access.advanced_markets = allow_advanced_markets
+        response.access.score_matrix = allow_score_matrix
+        response.access.features = allow_features
+        response.access.raw_data = allow_raw_data
+
         if (
             current_user is not None
             and usage_service is not None

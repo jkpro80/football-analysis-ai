@@ -103,10 +103,13 @@ export async function apiFetch<T>(
           "لقد استهلكت الحد الشهري لتحليلات حسابك. يرجى ترقية الاشتراك.",
         );
       case "Pro subscription required.":
+      case "The pro plan or higher is required for this feature.":
         throw new Error(
           "هذه الميزة متاحة لمشتركي Pro أو أعلى.",
         );
+
       case "Premium subscription required.":
+      case "The premium plan or higher is required for this feature.":
         throw new Error(
           "هذه الميزة متاحة لمشتركي Premium فقط.",
         );
@@ -129,5 +132,3 @@ export async function getPrediction(
     `/predictions/${matchId}`,
   );
 }
-
-

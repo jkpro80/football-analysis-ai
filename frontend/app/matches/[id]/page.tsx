@@ -269,6 +269,24 @@ type LatestPredictionResponse = {
     home_team: Team;
     away_team: Team;
     differences?: Record<string, number>;
+
+    home_possession?: number;
+    away_possession?: number;
+
+    home_shots?: number;
+    away_shots?: number;
+
+    home_shots_on_target?: number;
+    away_shots_on_target?: number;
+
+    home_corners?: number;
+    away_corners?: number;
+
+    home_yellow_cards?: number;
+    away_yellow_cards?: number;
+
+    home_fouls?: number;
+    away_fouls?: number;
   };
   meta: {
     execution_time_ms?: number;
@@ -410,6 +428,14 @@ type OfficialPredictionResponse = {
   score_distribution?: ScoreDistribution | null;
   top_scores: Score[];
   score_matrix?: Score[] | null;
+
+  access: {
+    plan_code: string;
+    advanced_markets: boolean;
+    score_matrix: boolean;
+    features: boolean;
+    raw_data: boolean;
+  };
 
   btts: {
     yes?: number;
@@ -609,7 +635,7 @@ async function getPrediction(
     ),
 
     apiFetch<OfficialPredictionResponse>(
-      `/predictions/${matchId}`,
+      `/predictions/${matchId}?include_features=true&include_score_matrix=true&include_raw_data=true`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -845,12 +871,7 @@ async function getPrediction(
 
     markets: {
       advanced_available:
-        Object.keys(prediction.btts ?? {}).length > 0 ||
-        Object.keys(prediction.totals ?? {}).length > 0 ||
-        Object.keys(prediction.double_chance ?? {}).length > 0 ||
-        Object.keys(prediction.draw_no_bet ?? {}).length > 0 ||
-        Object.keys(prediction.clean_sheet ?? {}).length > 0 ||
-        Object.keys(prediction.win_to_nil ?? {}).length > 0,
+        prediction.access.advanced_markets,
       match_result: {
         home_win:
           safeNumber(
@@ -1051,7 +1072,37 @@ async function getPrediction(
           predictionAway.logo ??
           null,
       },
-      differences: {},
+      differences: prediction.features?.differences ?? {},
+
+      home_possession:
+        prediction.features?.home_possession,
+      away_possession:
+        prediction.features?.away_possession,
+
+      home_shots:
+        prediction.features?.home_shots,
+      away_shots:
+        prediction.features?.away_shots,
+
+      home_shots_on_target:
+        prediction.features?.home_shots_on_target,
+      away_shots_on_target:
+        prediction.features?.away_shots_on_target,
+
+      home_corners:
+        prediction.features?.home_corners,
+      away_corners:
+        prediction.features?.away_corners,
+
+      home_yellow_cards:
+        prediction.features?.home_yellow_cards,
+      away_yellow_cards:
+        prediction.features?.away_yellow_cards,
+
+      home_fouls:
+        prediction.features?.home_fouls,
+      away_fouls:
+        prediction.features?.away_fouls,
     },
 
     meta: {
@@ -2840,7 +2891,7 @@ export default async function MatchPage({
             />
     
             <ProScoreMatrix
-              matchId={matchId}
+              matrix={data.markets.score_matrix}
               mostLikelyScore={
                 data.prediction.most_likely_score.score
               }
@@ -2945,76 +2996,3 @@ export default async function MatchPage({
     </main>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -4,15 +4,23 @@ export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   const loginPath = "/admin/login";
+  const loginApiPath = "/api/admin/login";
+
   const isAdminApi =
     pathname.startsWith("/api/admin/") &&
-    pathname !== "/api/admin/login";
+    pathname !== loginApiPath;
 
   const sessionToken =
     process.env.ADMIN_SESSION_TOKEN;
 
   const currentSession =
     request.cookies.get("admin_session")?.value;
+
+  // The login API must remain public so it can create
+  // the admin session after validating the password.
+  if (pathname === loginApiPath) {
+    return NextResponse.next();
+  }
 
   if (!sessionToken) {
     console.error(
@@ -72,4 +80,3 @@ export const config = {
     "/api/admin/:path*",
   ],
 };
-

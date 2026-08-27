@@ -964,15 +964,6 @@ export default function MatchHero({
                     )}
                   </strong>
                 </div>
-
-                <span
-                  className={[
-                    "border-r border-white/10 pr-3 text-xs font-black",
-                    predictionStrength.textClass,
-                  ].join(" ")}
-                >
-                  {predictionStrength.label}
-                </span>
               </div>
             </div>
 
@@ -1599,7 +1590,3 @@ export default function MatchHero({
     </section>
   );
 }
-
-
-
-

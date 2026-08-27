@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Awaitable, Callable
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -80,9 +80,27 @@ class SystemUpdateOrchestrator:
         prediction_limit: int,
         recent_limit: int,
         replace_existing_predictions: bool,
+        progress_callback: (
+            Callable[[int, str], Awaitable[None]] | None
+        ) = None,
     ) -> dict[str, Any]:
         started_at = datetime.now(timezone.utc)
         operations: list[dict[str, Any]] = []
+
+        async def report_progress(
+            progress: int,
+            message: str,
+        ) -> None:
+            if progress_callback is not None:
+                await progress_callback(
+                    progress,
+                    message,
+                )
+
+        await report_progress(
+            5,
+            "Synchronizing teams and fixtures...",
+        )
 
         team_sync_result = await self._sync_teams_and_fixtures(
             team_ids=team_ids,
@@ -91,10 +109,20 @@ class SystemUpdateOrchestrator:
             operations=operations,
         )
 
+        await report_progress(
+            25,
+            "Synchronizing team statistics...",
+        )
+
         statistics_result = self._sync_team_statistics(
             team_ids=team_sync_result["successful_team_ids"],
             statistics_limit=statistics_limit,
             operations=operations,
+        )
+
+        await report_progress(
+            45,
+            "Refreshing finished fixtures for V11 evaluation...",
         )
 
         pending_fixture_result = (
@@ -104,9 +132,19 @@ class SystemUpdateOrchestrator:
             )
         )
 
+        await report_progress(
+            60,
+            "Applying pending ELO updates...",
+        )
+
         elo_result = self._apply_pending_elo(
             elo_limit=elo_limit,
             operations=operations,
+        )
+
+        await report_progress(
+            72,
+            "Evaluating finished V11 predictions...",
         )
 
         evaluation_result = (
@@ -115,10 +153,20 @@ class SystemUpdateOrchestrator:
             )
         )
 
+        await report_progress(
+            82,
+            "Building calibration report...",
+        )
+
         calibration_result = (
             self._build_calibration_report(
                 operations=operations,
             )
+        )
+
+        await report_progress(
+            88,
+            "Building V11 tuning preview...",
         )
 
         tuning_preview_result = (
@@ -126,6 +174,11 @@ class SystemUpdateOrchestrator:
                 calibration_result=calibration_result,
                 operations=operations,
             )
+        )
+
+        await report_progress(
+            94,
+            "Generating upcoming V11 predictions...",
         )
 
         prediction_result = self.generate_predictions(

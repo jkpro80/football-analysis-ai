@@ -29,6 +29,7 @@ from app.api.team_statistics import router as team_statistics_router
 from app.api.teams import router as teams_router
 
 from app.api.predictions import router as prediction_router
+from app.api.strong_picks import router as strong_picks_router
 from app.api.latest.router import router as latest_prediction_router
 logger.info("Application started")
 
@@ -65,6 +66,7 @@ app.include_router(team_statistics_router)
 app.include_router(matches_router)
 app.include_router(latest_prediction_router)
 app.include_router(prediction_router)
+app.include_router(strong_picks_router)
 # Prediction APIs
 app.include_router(standings_router)
 app.include_router(system_update_router)

@@ -12,6 +12,7 @@ import AIInsights from "./AIInsights";
 import { confidenceClasses, normalizeStatus } from "./helpers";
 import MatchExplorer from "./MatchExplorer";
 import PredictionResultsTicker from "./PredictionResultsTicker";
+import PremiumStrongPicks from "./PremiumStrongPicks";
 import StatCard from "./StatCard";
 import TopPickCard from "./TopPickCard";
 import type { HomeDashboardProps } from "./types";
@@ -265,6 +266,8 @@ export default function HomeDashboard({
           )}
         </section>
 
+        <PremiumStrongPicks />
+
         <section className="mt-8 sm:mt-12">
           <AIInsights fixtures={fixtures} />
         </section>
@@ -280,12 +283,3 @@ export default function HomeDashboard({
     </main>
   );
 }
-
-
-
-
-
-
-
-
-

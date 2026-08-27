@@ -418,6 +418,15 @@ class ExpectedGoalsCalculator:
             shot_accuracy
         )
 
+        shots = cls._number(
+            features.get(f"{side}_shots"),
+            default=12.0,
+        )
+
+        shot_volume_factor = cls._shot_volume_factor(
+            shots
+        )
+
         # ==========================================================
         # Elo
         # ==========================================================
@@ -455,9 +464,37 @@ class ExpectedGoalsCalculator:
             )
         )
 
+        attack_sample_confidence = cls._clamp(
+            cls._number(
+                features.get(
+                    f"{side}_attack_sample_confidence"
+                ),
+                default=1.0,
+            ),
+            0.0,
+            1.0,
+        )
+
+        defense_sample_confidence = cls._clamp(
+            cls._number(
+                features.get(
+                    f"{opponent}_defense_sample_confidence"
+                ),
+                default=1.0,
+            ),
+            0.0,
+            1.0,
+        )
+
         reliability = cls._data_reliability(
             attack_played=attack_played,
             defense_played=defense_played,
+            attack_sample_confidence=(
+                attack_sample_confidence
+            ),
+            defense_sample_confidence=(
+                defense_sample_confidence
+            ),
         )
 
         # ==========================================================
@@ -519,6 +556,7 @@ class ExpectedGoalsCalculator:
             * defense_factor
             * form_factor
             * shot_accuracy_factor
+            * shot_volume_factor
             * elo_factor
             * clean_sheet_factor
             * home_advantage_factor
@@ -634,6 +672,35 @@ class ExpectedGoalsCalculator:
         )
 
     @staticmethod
+    def _shot_volume_factor(
+        shots: float,
+    ) -> float:
+        """
+        Conservative adjustment based on recent shot volume.
+
+        12 shots is approximately neutral.
+        The effect is intentionally capped to prevent
+        double-counting attacking strength.
+        """
+
+        normalized_shots = ExpectedGoalsCalculator._clamp(
+            shots,
+            6.0,
+            20.0,
+        )
+
+        factor = (
+            1.0
+            + (normalized_shots - 12.0) * 0.01
+        )
+
+        return ExpectedGoalsCalculator._clamp(
+            factor,
+            0.94,
+            1.06,
+        )
+
+    @staticmethod
     def _elo_factor(
         team_elo: float,
         opponent_elo: float,
@@ -707,6 +774,8 @@ class ExpectedGoalsCalculator:
     def _data_reliability(
         attack_played: int,
         defense_played: int,
+        attack_sample_confidence: float = 1.0,
+        defense_sample_confidence: float = 1.0,
     ) -> float:
         """
         يقلل تأثير التحليل الديناميكي عند قلة المباريات.
@@ -726,9 +795,29 @@ class ExpectedGoalsCalculator:
             1.0,
         )
 
+        sample_confidence = (
+            ExpectedGoalsCalculator._clamp(
+                attack_sample_confidence,
+                0.0,
+                1.0,
+            )
+            * 0.50
+            + ExpectedGoalsCalculator._clamp(
+                defense_sample_confidence,
+                0.0,
+                1.0,
+            )
+            * 0.50
+        )
+
         reliability = (
             attack_reliability * 0.50
             + defense_reliability * 0.50
+        )
+
+        reliability *= (
+            0.70
+            + sample_confidence * 0.30
         )
 
         return ExpectedGoalsCalculator._clamp(

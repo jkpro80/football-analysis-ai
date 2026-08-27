@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import select
@@ -589,6 +590,7 @@ class PredictionV11UpcomingService:
             .where(
                 Match.home_score.is_(None),
                 Match.away_score.is_(None),
+                Match.date >= datetime.now(timezone.utc).replace(tzinfo=None),
             )
             .order_by(
                 Match.date.asc(),
@@ -881,7 +883,3 @@ class PredictionV11UpcomingService:
             "predictions": predictions,
             "errors": errors,
         }
-
-
-
-

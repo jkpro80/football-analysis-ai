@@ -18,6 +18,7 @@ from app.services.job_manager import (
     fail_job,
     get_job,
     start_job,
+    update_job_progress,
 )
 from app.services.system_update_orchestrator import (
     SystemUpdateOrchestrator,
@@ -98,6 +99,22 @@ async def _run_system_update_job(
 
         orchestrator = SystemUpdateOrchestrator(db=db)
 
+        async def report_job_progress(
+            progress: int,
+            message: str,
+        ) -> None:
+            current_job = get_job(db, job_id)
+
+            if current_job is None:
+                return
+
+            update_job_progress(
+                db=db,
+                job=current_job,
+                progress=progress,
+                message=message,
+            )
+
         result = await orchestrator.run(
             team_ids=team_ids,
             start_date=start_date,
@@ -109,6 +126,7 @@ async def _run_system_update_job(
             replace_existing_predictions=(
                 replace_existing_predictions
             ),
+            progress_callback=report_job_progress,
         )
 
         refreshed_job = get_job(db, job_id)

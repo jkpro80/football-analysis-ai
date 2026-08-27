@@ -102,10 +102,6 @@ async def sync_team(
 
 
 @router.post(
-    "/fixture/{fixture_sportmonks_id}/statistics",
-    response_model=dict[str, Any],
-)
-@router.post(
     "/teams",
     response_model=dict[str, Any],
 )

@@ -992,11 +992,31 @@ class MatchEventsEngine:
             1.08,
         )
 
+        referee_profile_available = bool(
+            features.get(
+                "referee_profile_available",
+                False,
+            )
+        )
+
+        referee_factor = cls._clamp(
+            cls._number(
+                features.get("referee_card_factor"),
+                default=1.0,
+            ),
+            0.85,
+            1.20,
+        )
+
+        if not referee_profile_available:
+            referee_factor = 1.0
+
         home_expected = (
             home_base
             * home_low_possession_factor
             * home_fatigue_card_factor
             * 0.98
+            * referee_factor
         )
 
         away_expected = (
@@ -1004,6 +1024,7 @@ class MatchEventsEngine:
             * away_low_possession_factor
             * away_fatigue_card_factor
             * 1.02
+            * referee_factor
         )
 
         home_expected = cls._clamp(
@@ -1102,10 +1123,10 @@ class MatchEventsEngine:
                         "venue": 1.02,
                     },
                 },
-                "referee_adjusted": False,
+                "referee_adjusted": referee_profile_available,
                 "formula": (
                     "base_average * low_possession_factor * "
-                    "fatigue_card_factor * venue_factor"
+                    "fatigue_card_factor * venue_factor * referee_factor"
                 ),
             },
             "most_likely_range": (
@@ -1115,7 +1136,7 @@ class MatchEventsEngine:
                     maximum=10,
                 )
             ),
-            "referee_adjusted": False,
+            "referee_adjusted": referee_profile_available,
         }
 
     @classmethod
@@ -1255,7 +1276,12 @@ class MatchEventsEngine:
             "possession_complete": (
                 possession_complete
             ),
-            "uses_referee_profile": False,
+            "uses_referee_profile": bool(
+                features.get(
+                    "referee_profile_available",
+                    False,
+                )
+            ),
         }
 
     @staticmethod

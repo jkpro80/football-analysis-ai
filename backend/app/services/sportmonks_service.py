@@ -1,3 +1,4 @@
+import asyncio
 import os
 from datetime import date
 from typing import Any
@@ -54,8 +55,11 @@ class SportmonksService:
         params: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
-        تنفيذ طلب GET إلى Sportmonks
-        وإرجاع استجابة JSON.
+        Execute a GET request to Sportmonks.
+
+        Rate-limit responses (HTTP 429) are retried with
+        bounded exponential backoff. Retry-After is respected
+        when provided by the upstream API.
         """
 
         request_params: dict[str, Any] = {
@@ -70,27 +74,65 @@ class SportmonksService:
             f"{endpoint.lstrip('/')}"
         )
 
-        try:
-            async with httpx.AsyncClient(
-                timeout=self.timeout,
-            ) as client:
-                response = await client.get(
-                    url,
-                    params=request_params,
-                    headers={
-                        "Accept": "application/json",
-                    },
+        max_retries = 4
+        base_delay = 5.0
+
+        async with httpx.AsyncClient(
+            timeout=self.timeout,
+        ) as client:
+            for attempt in range(max_retries + 1):
+                try:
+                    response = await client.get(
+                        url,
+                        params=request_params,
+                        headers={
+                            "Accept": "application/json",
+                        },
+                    )
+
+                except httpx.TimeoutException as error:
+                    raise SportmonksAPIError(
+                        "Sportmonks request timed out."
+                    ) from error
+
+                except httpx.RequestError as error:
+                    raise SportmonksAPIError(
+                        "Could not connect to Sportmonks API."
+                    ) from error
+
+                if response.status_code != 429:
+                    break
+
+                if attempt >= max_retries:
+                    raise SportmonksAPIError(
+                        (
+                            "Sportmonks request limit has been "
+                            "reached after retry attempts."
+                        )
+                    )
+
+                retry_after = response.headers.get(
+                    "Retry-After"
                 )
 
-        except httpx.TimeoutException as error:
-            raise SportmonksAPIError(
-                "Sportmonks request timed out."
-            ) from error
+                delay = base_delay * (2 ** attempt)
 
-        except httpx.RequestError as error:
-            raise SportmonksAPIError(
-                "Could not connect to Sportmonks API."
-            ) from error
+                if retry_after:
+                    try:
+                        delay = max(
+                            delay,
+                            float(retry_after),
+                        )
+                    except ValueError:
+                        pass
+
+                print(
+                    "Sportmonks rate limit reached. "
+                    f"Retrying in {delay:.1f}s "
+                    f"(attempt {attempt + 1}/{max_retries})..."
+                )
+
+                await asyncio.sleep(delay)
 
         if response.status_code == 401:
             raise SportmonksAPIError(
@@ -108,14 +150,6 @@ class SportmonksService:
         if response.status_code == 404:
             raise SportmonksAPIError(
                 "Sportmonks resource was not found."
-            )
-
-        if response.status_code == 429:
-            raise SportmonksAPIError(
-                (
-                    "Sportmonks request limit "
-                    "has been reached."
-                )
             )
 
         if not response.is_success:
@@ -179,7 +213,6 @@ class SportmonksService:
             )
 
         return result
-
     async def search_teams(
         self,
         name: str,
