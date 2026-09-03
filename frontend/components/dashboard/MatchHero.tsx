@@ -1,153 +1,150 @@
 "use client";
 
-import Link from "next/link";
-
 import { useLocale } from "@/context/locale-context";
-import type { Locale } from "@/lib/i18n/config";
-type Team = {
-  id?: number;
+
+type HeroTeam = {
+  id: number;
+  sportmonks_id?: number;
   name: string;
-  short_name?: string | null;
+  country?: string;
   logo?: string | null;
   logo_url?: string | null;
   image_path?: string | null;
-  country?: string | null;
+  [key: string]: unknown;
 };
 
-type MatchData = {
+type MatchInfo = {
   id: number;
-  date?: string | null;
-  status?: string | null;
+  date: string;
+  status: string;
   home_score?: number | null;
   away_score?: number | null;
   is_finished?: boolean;
   actual_outcome?: string | null;
-  venue?: string | null;
   league?: string | null;
-  home_team?: Team | string;
-  away_team?: Team | string;
+  venue?: string | null;
 };
 
 type PredictionEvaluation = {
   available: boolean;
-  reason?: string | null;
-
-  actual_score?: {
-    home?: number;
-    away?: number;
-    total?: number;
-  } | null;
-
-  predicted_score?: {
-    home?: number | null;
-    away?: number | null;
-    score?: string | null;
-  } | null;
-
-  actual_outcome?: string | null;
-  predicted_outcome?: string | null;
 
   winner_correct?: boolean | null;
   exact_score_correct?: boolean | null;
 
+  predicted_outcome?: string | null;
+  actual_outcome?: string | null;
+
+  predicted_score?: {
+    score?: string | null;
+  } | null;
+
   btts?: {
-    predicted?: boolean;
-    actual?: boolean;
-    correct?: boolean;
-    yes_probability?: number;
-    no_probability?: number;
-  };
+    predicted?: boolean | null;
+    actual?: boolean | null;
+    correct?: boolean | null;
+  } | null;
 
   over_2_5?: {
-    predicted?: boolean;
-    actual?: boolean;
-    correct?: boolean;
-    over_probability?: number;
-    under_probability?: number;
-  };
+    predicted?: boolean | null;
+    actual?: boolean | null;
+    correct?: boolean | null;
+  } | null;
 
   corners?: {
-    available?: boolean;
-    actual_total?: number | null;
+    available?: boolean | null;
+    line?: number | null;
+    predicted?: "over" | "under" | string | null;
+    probability?: number | null;
+    over_probability?: number | null;
+    under_probability?: number | null;
     expected_min?: number | null;
     expected_max?: number | null;
+    actual_total?: number | null;
     correct?: boolean | null;
-  };
+  } | null;
 
   yellow_cards?: {
-    available?: boolean;
-    actual_total?: number | null;
+    available?: boolean | null;
+    line?: number | null;
+    predicted?: "over" | "under" | string | null;
+    probability?: number | null;
+    over_probability?: number | null;
+    under_probability?: number | null;
     expected_min?: number | null;
     expected_max?: number | null;
+    actual_total?: number | null;
     correct?: boolean | null;
-  };
+  } | null;
 
-  correct_checks?: number;
-  total_checks?: number;
+  correct_checks?: number | null;
+  total_checks?: number | null;
   accuracy_percentage?: number | null;
+
+  [key: string]: unknown;
 };
 
 type MatchHeroProps = {
-  match: MatchData;
-  homeTeam: Team;
-  awayTeam: Team;
-
+  match: MatchInfo;
+  homeTeam: HeroTeam;
+  awayTeam: HeroTeam;
   expectedGoals: {
     home: number;
     away: number;
-    total?: number;
+    total: number;
   };
-
   probabilities: {
     homeWin: number;
     draw: number;
     awayWin: number;
   };
-
   mostLikelyScore: {
     score: string;
     probability: number;
   };
-
   evaluation?: PredictionEvaluation;
 };
 
-const MATCH_HERO_TEXT = {
+const TEXT = {
   ar: {
-    analysisNumber: (id: number) => `تحليل المباراة رقم ${id}`,
-    home: "الرئيسية",
-    backToMatches: "العودة للمباريات",
-    homeTeam: "الفريق المضيف",
+    prediction: "النتيجة الأكثر احتمالًا",
+    aiPrediction: "توقع الذكاء الاصطناعي",
+    win: "فوز",
+    draw: "تعادل",
+    homeTeam: "صاحب الأرض",
     awayTeam: "الفريق الضيف",
-    teamLogo: "شعار",
-    expectedGoals: "الأهداف المتوقعة",
-    mostLikelyScore: "النتيجة الأكثر احتمالًا",
+    expectedXg: "المتوقع xG",
+    totalXg: "إجمالي xG",
     scoreProbability: "احتمال النتيجة",
     strongPrediction: "توقع قوي",
     mediumPrediction: "توقع متوسط",
     lowPrediction: "توقع منخفض",
-    scoreNote:
-      "النتيجة الدقيقة الأكثر احتمالًا لا تعني وحدها أن التعادل هو اتجاه المباراة المتوقع.",
-    matchStatus: "حالة المباراة",
-    competition: "البطولة",
+    highestProbability: "أعلى احتمال",
+    predictionProbability: "احتمال التوقع",
+    highest: "الأعلى",
+    difference: "الفارق",
+    predictionDirection: "اتجاه التوقع",
+    directionNote: "أعلى احتمال منفرد قبل انطلاق المباراة.",
+    predictionSummary: "ملخص التوقع",
+    predictionQuality: "جودة التوقع",
+    pending: "قيد الانتظار",
+    qualityNote: "تقاس الجودة بعد انتهاء المباراة اعتمادًا على الأسواق الستة الرسمية.",
+    fixture: "المباراة",
     venue: "الملعب",
-    dateTime: "التاريخ والوقت",
-    unavailable: "غير متوفر",
-    unavailableFeminine: "غير متوفرة",
-    matchTimeUnavailable: "موعد المباراة غير متوفر",
+    actualScore: "النتيجة الفعلية",
+    predictionCorrect: "توقع الفائز صحيح",
+    predictionWrong: "توقع الفائز غير صحيح",
     resultComparison: "مقارنة النتيجة",
     predictedVsActual: "المتوقع مقابل الفعلي",
     predictedScore: "النتيجة المتوقعة",
-    actualScore: "النتيجة الفعلية",
     predictionEvaluation: "تقييم التوقعات",
-    enginePerformance: "أداء المحرك في هذه المباراة",
+    enginePerformance: "دقة التوقعات في هذه المباراة",
     correct: "صحيح",
     incorrect: "غير صحيح",
     predicted: "المتوقع",
     actual: "الفعلي",
     matchAccuracy: "دقة هذه المباراة",
     accuracySummary: (correct: number, total: number) =>
-      `نجح المحرك في ${correct} من ${total} مؤشرات`,
+      `نجح ${correct} من ${total} أسواق متاحة`,
     matchDirection: "اتجاه المباراة",
     exactScore: "النتيجة الدقيقة",
     bttsPrediction: "توقع تسجيل الفريقين",
@@ -158,78 +155,49 @@ const MATCH_HERO_TEXT = {
     no: "لا",
     over25: "أكثر من 2.5",
     under25: "أقل من 2.5",
-    draw: "التعادل",
-    win: (team: string) => `فوز ${team}`,
-    resultProbabilities: "احتمالات نتيجة المباراة",
-    probabilities1x2: "احتمالات 1X2",
-    highestProbability: "أعلى احتمال",
-    highest: "الأعلى",
-    expectedGoalsComparison: "مقارنة الأهداف المتوقعة",
-    total: "المجموع",
-    homeXg: "xG المضيف",
-    difference: "الفارق",
-    awayXg: "xG الضيف",
-    predictionDirection: "اتجاه التوقع",
-    directionNote: "أعلى احتمال منفرد قبل انطلاق المباراة.",
-    predictionSummary: "ملخص التوقع",
-    predictionSummaryText: (
-      outcome: string,
-      probability: string,
-      score: string,
-    ) =>
-      `رجّح المحرك ${outcome} بنسبة ${probability}، وكانت النتيجة الدقيقة الأكثر احتمالًا ${score}.`,
-    predictionQuality: "جودة التوقع",
-    pending: "قيد الانتظار",
-    qualityNote:
-      "تقاس الجودة بعد انتهاء المباراة اعتمادًا على الأسواق الستة الرسمية.",
-    scheduled: "قادمة",
-    waiting: "قيد الانتظار",
-    live: "مباشرة",
-    paused: "متوقفة مؤقتًا",
-    finished: "منتهية",
-    postponed: "مؤجلة",
-    cancelled: "ملغاة",
-    suspended: "متوقفة",
-    abandoned: "تم التخلي عنها",
-    unknown: "غير معروفة",
+    unavailable: "غير متوفر",
   },
-
   en: {
-    analysisNumber: (id: number) => `Match Analysis #${id}`,
-    home: "Home",
-    backToMatches: "Back to Matches",
-    homeTeam: "Home Team",
-    awayTeam: "Away Team",
-    teamLogo: "Logo of",
-    expectedGoals: "Expected Goals",
-    mostLikelyScore: "Most Likely Score",
+    prediction: "Most Likely Score",
+    aiPrediction: "AI Prediction",
+    win: "Win",
+    draw: "Draw",
+    homeTeam: "Home",
+    awayTeam: "Away",
+    expectedXg: "Expected xG",
+    totalXg: "Total xG",
     scoreProbability: "Score Probability",
     strongPrediction: "Strong Prediction",
     mediumPrediction: "Medium Prediction",
     lowPrediction: "Low Prediction",
-    scoreNote:
-      "The most likely exact score does not by itself mean that a draw is the expected match outcome.",
-    matchStatus: "Match Status",
-    competition: "Competition",
+    highestProbability: "Highest Probability",
+    predictionProbability: "Prediction Probability",
+    highest: "Highest",
+    difference: "Difference",
+    predictionDirection: "Prediction Direction",
+    directionNote: "Highest single probability before kickoff.",
+    predictionSummary: "Prediction Summary",
+    predictionQuality: "Prediction Quality",
+    pending: "Pending",
+    qualityNote: "Quality is measured after the match using the six official evaluation markets.",
+    fixture: "Match",
     venue: "Venue",
-    dateTime: "Date & Time",
-    unavailable: "Not available",
-    unavailableFeminine: "Not available",
-    matchTimeUnavailable: "Match time is not available",
-    resultComparison: "Score Comparison",
+    actualScore: "Actual Score",
+    predictionCorrect: "Winner Prediction Correct",
+    predictionWrong: "Winner Prediction Incorrect",
+    resultComparison: "Result Comparison",
     predictedVsActual: "Predicted vs Actual",
     predictedScore: "Predicted Score",
-    actualScore: "Actual Score",
     predictionEvaluation: "Prediction Evaluation",
-    enginePerformance: "Engine performance in this match",
+    enginePerformance: "Prediction Accuracy in This Match",
     correct: "Correct",
     incorrect: "Incorrect",
     predicted: "Predicted",
     actual: "Actual",
     matchAccuracy: "Match Accuracy",
     accuracySummary: (correct: number, total: number) =>
-      `The engine got ${correct} of ${total} indicators correct`,
-    matchDirection: "Match Outcome",
+      `${correct} of ${total} available markets were correct`,
+    matchDirection: "Match Direction",
     exactScore: "Exact Score",
     bttsPrediction: "Both Teams to Score",
     overUnder25: "Over/Under 2.5",
@@ -239,450 +207,291 @@ const MATCH_HERO_TEXT = {
     no: "No",
     over25: "Over 2.5",
     under25: "Under 2.5",
-    draw: "Draw",
-    win: (team: string) => `${team} Win`,
-    resultProbabilities: "Match Result Probabilities",
-    probabilities1x2: "1X2 Probabilities",
-    highestProbability: "Highest Probability",
-    highest: "Highest",
-    expectedGoalsComparison: "Expected Goals Comparison",
-    total: "Total",
-    homeXg: "Home xG",
-    difference: "Difference",
-    awayXg: "Away xG",
-    predictionDirection: "Prediction Direction",
-    directionNote: "Highest single probability before kickoff.",
-    predictionSummary: "Prediction Summary",
-    predictionSummaryText: (
-      outcome: string,
-      probability: string,
-      score: string,
-    ) =>
-      `The engine favors ${outcome} at ${probability}, with ${score} as the most likely exact score.`,
-    predictionQuality: "Prediction Quality",
-    pending: "Pending",
-    qualityNote:
-      "Quality is measured after the match using the six official evaluation markets.",
-    scheduled: "Upcoming",
-    waiting: "Pending",
-    live: "Live",
-    paused: "Paused",
-    finished: "Finished",
-    postponed: "Postponed",
-    cancelled: "Cancelled",
-    suspended: "Suspended",
-    abandoned: "Abandoned",
-    unknown: "Unknown",
+    unavailable: "Unavailable",
   },
-
   sv: {
-    analysisNumber: (id: number) => `Matchanalys #${id}`,
-    home: "Hem",
-    backToMatches: "Tillbaka till matcher",
-    homeTeam: "Hemmalag",
-    awayTeam: "Bortalag",
-    teamLogo: "Logotyp för",
-    expectedGoals: "Förväntade mål",
-    mostLikelyScore: "Troligaste resultat",
+    prediction: "Troligaste resultat",
+    aiPrediction: "AI-prognos",
+    win: "Vinst",
+    draw: "Oavgjort",
+    homeTeam: "Hemma",
+    awayTeam: "Borta",
+    expectedXg: "Förväntat xG",
+    totalXg: "Totalt xG",
     scoreProbability: "Resultatsannolikhet",
     strongPrediction: "Stark prognos",
     mediumPrediction: "Medelstark prognos",
     lowPrediction: "Svag prognos",
-    scoreNote:
-      "Det troligaste exakta resultatet innebär inte i sig att oavgjort är det förväntade matchutfallet.",
-    matchStatus: "Matchstatus",
-    competition: "Tävling",
+    highestProbability: "Högsta sannolikhet",
+    predictionProbability: "Prognossannolikhet",
+    highest: "Högst",
+    difference: "Skillnad",
+    predictionDirection: "Prognosriktning",
+    directionNote: "Högsta enskilda sannolikhet före avspark.",
+    predictionSummary: "Prognossammanfattning",
+    predictionQuality: "Prognoskvalitet",
+    pending: "Väntar",
+    qualityNote: "Kvaliteten mäts efter matchen utifrån de sex officiella utvärderingsmarknaderna.",
+    fixture: "Match",
     venue: "Arena",
-    dateTime: "Datum och tid",
-    unavailable: "Inte tillgängligt",
-    unavailableFeminine: "Inte tillgängligt",
-    matchTimeUnavailable: "Matchtiden är inte tillgänglig",
+    actualScore: "Slutresultat",
+    predictionCorrect: "Vinnartipset rätt",
+    predictionWrong: "Vinnartipset fel",
     resultComparison: "Resultatjämförelse",
-    predictedVsActual: "Prognos mot faktiskt resultat",
+    predictedVsActual: "Prognos mot utfall",
     predictedScore: "Förväntat resultat",
-    actualScore: "Faktiskt resultat",
-    predictionEvaluation: "Utvärdering av prognosen",
-    enginePerformance: "Modellens resultat i den här matchen",
+    predictionEvaluation: "Prognosutvärdering",
+    enginePerformance: "Prognosprecision i denna match",
     correct: "Rätt",
     incorrect: "Fel",
     predicted: "Prognos",
-    actual: "Faktiskt",
-    matchAccuracy: "Träffsäkerhet för matchen",
+    actual: "Utfall",
+    matchAccuracy: "Matchprecision",
     accuracySummary: (correct: number, total: number) =>
-      `Modellen hade rätt på ${correct} av ${total} indikatorer`,
-    matchDirection: "Matchutfall",
+      `${correct} av ${total} tillgängliga marknader blev rätt`,
+    matchDirection: "Matchriktning",
     exactScore: "Exakt resultat",
     bttsPrediction: "Båda lagen gör mål",
-    overUnder25: "Över/Under 2,5",
+    overUnder25: "Över/Under 2.5",
     cornersEvaluation: "Hörnor",
     yellowCardsEvaluation: "Gula kort",
     yes: "Ja",
     no: "Nej",
-    over25: "Över 2,5",
-    under25: "Under 2,5",
-    draw: "Oavgjort",
-    win: (team: string) => `${team} vinner`,
-    resultProbabilities: "Sannolikheter för matchresultat",
-    probabilities1x2: "1X2-sannolikheter",
-    highestProbability: "Högsta sannolikhet",
-    highest: "Högst",
-    expectedGoalsComparison: "Jämförelse av förväntade mål",
-    total: "Totalt",
-    homeXg: "Hemma-xG",
-    difference: "Skillnad",
-    awayXg: "Borta-xG",
-    predictionDirection: "Prognosriktning",
-    directionNote: "Högsta enskilda sannolikhet före avspark.",
-    predictionSummary: "Prognossammanfattning",
-    predictionSummaryText: (
-      outcome: string,
-      probability: string,
-      score: string,
-    ) =>
-      `Modellen bedömer ${outcome} som troligast med ${probability}, och ${score} som det troligaste exakta resultatet.`,
-    predictionQuality: "Prognoskvalitet",
-    pending: "Väntar",
-    qualityNote:
-      "Kvaliteten mäts efter matchen utifrån de sex officiella utvärderingsmarknaderna.",
-    scheduled: "Kommande",
-    waiting: "Väntar",
-    live: "Live",
-    paused: "Pausad",
-    finished: "Avslutad",
-    postponed: "Uppskjuten",
-    cancelled: "Inställd",
-    suspended: "Avbruten",
-    abandoned: "Övergiven",
-    unknown: "Okänd",
+    over25: "Över 2.5",
+    under25: "Under 2.5",
+    unavailable: "Ej tillgängligt",
   },
-} satisfies Record<Locale, Record<string, unknown>>;
-function normalizeProbability(value: number): number {
+} as const;
+
+function clamp(value: number) {
   if (!Number.isFinite(value)) {
     return 0;
   }
 
-  return value <= 1 ? value * 100 : value;
+  return Math.min(100, Math.max(0, value));
 }
 
-function formatPercent(value: number): string {
-  return `${normalizeProbability(value).toFixed(1)}%`;
-}
+function teamLogo(team: HeroTeam) {
+  const candidates = [
+    team.logo_url,
+    team.logo,
+    team.image_path,
+  ];
 
-function getPredictionStrength(value: number, locale: Locale) {
-  const text = MATCH_HERO_TEXT[locale];
-  const probability = normalizeProbability(value);
-
-  if (probability >= 65) {
-    return {
-      label: text.strongPrediction,
-      textClass: "text-emerald-300",
-      borderClass: "border-emerald-400/30",
-      backgroundClass: "bg-emerald-400/10",
-      ringClass: "ring-emerald-400/20",
-      dotClass: "bg-emerald-400",
-    };
+  for (const candidate of candidates) {
+    if (
+      typeof candidate === "string" &&
+      candidate.trim().length > 0
+    ) {
+      return candidate;
+    }
   }
 
-  if (probability >= 40) {
-    return {
-      label: text.mediumPrediction,
-      textClass: "text-amber-300",
-      borderClass: "border-amber-400/30",
-      backgroundClass: "bg-amber-400/10",
-      ringClass: "ring-amber-400/20",
-      dotClass: "bg-amber-400",
-    };
+  return null;
+}
+
+function formatDate(value: string, locale: string) {
+  if (!value) {
+    return "";
   }
 
-  return {
-    label: text.lowPrediction,
-    textClass: "text-rose-300",
-    borderClass: "border-rose-400/30",
-    backgroundClass: "bg-rose-400/10",
-    ringClass: "ring-rose-400/20",
-    dotClass: "bg-rose-400",
-  };
-}
+  const normalized = value.includes("T")
+    ? value
+    : value.replace(" ", "T");
 
-function getTeamInitials(name: string): string {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join("");
-}
+  const date = new Date(normalized);
 
-function formatMatchDate(
-  date: string | null | undefined,
-  locale: Locale,
-): string {
-  const text = MATCH_HERO_TEXT[locale];
-
-  if (!date) {
-    return text.matchTimeUnavailable as string;
+  if (Number.isNaN(date.getTime())) {
+    return value;
   }
 
-  const parsedDate = new Date(date);
+  const localeMap = {
+    ar: "ar-IQ",
+    en: "en-GB",
+    sv: "sv-SE",
+  } as const;
 
-  if (Number.isNaN(parsedDate.getTime())) {
-    return date;
-  }
-
-  const intlLocale =
-    locale === "sv"
-      ? "sv-SE"
-      : locale === "en"
-        ? "en-US"
-        : "ar-IQ";
-
-  return new Intl.DateTimeFormat(intlLocale, {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(parsedDate);
+  return new Intl.DateTimeFormat(
+    localeMap[locale as keyof typeof localeMap] ??
+      "en-GB",
+    {
+      dateStyle: "medium",
+      timeStyle: "short",
+    },
+  ).format(date);
 }
 
-function translateStatus(
-  status: string | null | undefined,
-  locale: Locale,
-): string {
-  const text = MATCH_HERO_TEXT[locale];
-
-  const normalized = String(status ?? "")
-    .trim()
-    .toLowerCase();
-
-  const statuses: Record<string, string> = {
-    "1": text.scheduled as string,
-    "2": text.waiting as string,
-    "3": text.live as string,
-    "4": text.paused as string,
-    "5": text.finished as string,
-    "6": text.postponed as string,
-    "7": text.cancelled as string,
-    "8": text.suspended as string,
-    "9": text.abandoned as string,
-
-    scheduled: text.scheduled as string,
-    not_started: text.scheduled as string,
-    pending: text.waiting as string,
-    live: text.live as string,
-    inplay: text.live as string,
-    "in-play": text.live as string,
-    finished: text.finished as string,
-    ended: text.finished as string,
-    completed: text.finished as string,
-    ft: text.finished as string,
-    halftime: text.paused as string,
-    ht: text.paused as string,
-    postponed: text.postponed as string,
-    cancelled: text.cancelled as string,
-    canceled: text.cancelled as string,
-    abandoned: text.abandoned as string,
-    suspended: text.suspended as string,
-  };
-
-  if (!normalized) {
-    return text.scheduled as string;
-  }
-
-  return (
-    statuses[normalized] ??
-    status ??
-    (text.unknown as string)
-  );
-}
-function ComparisonBadge({
-  label,
-  correct,
-}: {
-  label: string;
-  correct: boolean;
-}) {
-  const { locale } = useLocale();
-  const text = MATCH_HERO_TEXT[locale];
-
-  return (
-    <div
-      className={[
-        "flex items-center justify-between gap-3",
-        "rounded-xl border px-3 py-2 text-xs",
-        correct
-          ? "border-emerald-500/20 bg-emerald-500/10"
-          : "border-rose-500/20 bg-rose-500/10",
-      ].join(" ")}
-    >
-      <span className="font-bold text-slate-300">
-        {label}
-      </span>
-
-      <strong
-        className={
-          correct
-            ? "text-emerald-300"
-            : "text-rose-300"
-        }
-      >
-        {correct ? text.correct : text.incorrect}
-      </strong>
-    </div>
-  );
-}
-
-function TeamPanel({
-  team,
-  label,
-  expectedGoals,
-  alignment,
-}: {
-  team: Team;
-  label: string;
-  expectedGoals: number;
-  alignment: "right" | "left";
-}) {
-  const { locale } = useLocale();
-  const text = MATCH_HERO_TEXT[locale];
-
-  const justifyClass =
-    alignment === "right"
-      ? "lg:justify-start"
-      : "lg:justify-end";
-
-  return (
-    <div
-      className={[
-        "flex flex-col items-center gap-4 text-center",
-        "lg:flex-row lg:text-start",
-        justifyClass,
-        alignment === "left" ? "lg:flex-row-reverse" : "",
-      ].join(" ")}
-    >
-      <div className="relative">
-        <div className="absolute inset-0 rounded-full bg-cyan-400/20 blur-2xl" />
-
-        <div className="relative grid h-24 w-24 place-items-center overflow-hidden rounded-full border border-white/10 bg-slate-900 shadow-2xl sm:h-28 sm:w-28">
-          {(team.logo_url ?? team.logo ?? team.image_path) ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={team.logo_url ?? team.logo ?? team.image_path ?? ""}
-              alt={`${text.teamLogo} ${team.name}`}
-              className="h-20 w-20 object-contain sm:h-24 sm:w-24"
-            />
-          ) : (
-            <span className="text-2xl font-black text-cyan-300">
-              {getTeamInitials(team.name)}
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div>
-        <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-500">
-          {label}
-        </p>
-
-        <h2 className="mt-2 text-2xl font-black text-white sm:text-3xl">
-          {team.name}
-        </h2>
-
-        {team.country &&
-team.country.trim().toLowerCase() !== "unknown" ? (
-  <p className="mt-1 text-sm text-slate-500">
-    {team.country}
-  </p>
-) : null}
-
-        <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-cyan-400/15 bg-cyan-400/5 px-4 py-2">
-          <span className="text-xs text-slate-400">
-            {text.expectedGoals}
-          </span>
-
-          <strong className="text-lg font-black text-cyan-300">
-            {expectedGoals.toFixed(2)}
-          </strong>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ProbabilityItem({
-  label,
+function ProbabilityRing({
   value,
-  accentClass,
+  label,
+  variant: _variant,
+  size = "large",
 }: {
-  label: string;
   value: number;
-  accentClass: string;
+  label: string;
+  variant: "home" | "away" | "draw";
+  size?: "large" | "small";
 }) {
-  const percent = Math.max(
-    0,
-    Math.min(100, normalizeProbability(value)),
-  );
+  const percent = clamp(value);
+  const degree = percent * 3.6;
+  const colors =
+    percent >= 60
+      ? {
+          active: "rgb(52 211 153)",
+          track: "rgb(6 78 59 / 0.42)",
+          text: "text-emerald-300",
+          glow: "shadow-[0_0_42px_rgba(52,211,153,0.10)]",
+        }
+      : percent >= 40
+        ? {
+            active: "rgb(251 191 36)",
+            track: "rgb(120 53 15 / 0.42)",
+            text: "text-amber-300",
+            glow: "shadow-[0_0_42px_rgba(251,191,36,0.10)]",
+          }
+        : {
+            active: "rgb(251 113 133)",
+            track: "rgb(136 19 55 / 0.42)",
+            text: "text-rose-300",
+            glow: "shadow-[0_0_42px_rgba(251,113,133,0.10)]",
+          };
+
+  const outerSize =
+    size === "large"
+      ? "h-28 w-28 sm:h-32 sm:w-32"
+      : "h-24 w-24 sm:h-28 sm:w-28";
+
+  const innerSize =
+    size === "large"
+      ? "h-[90px] w-[90px] sm:h-[104px] sm:w-[104px]"
+      : "h-[76px] w-[76px] sm:h-[90px] sm:w-[90px]";
 
   return (
-    <div className="rounded-2xl border border-white/5 bg-slate-950/55 p-3">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-bold text-slate-500">
-          {label}
-        </span>
-
-        <strong className={accentClass}>
-          {percent.toFixed(1)}%
-        </strong>
-      </div>
-
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-800">
-        <div
-          className="h-full rounded-full bg-current transition-all duration-700"
-          style={{
-            width: `${percent}%`,
-          }}
-        />
+    <div
+      className={`relative grid ${outerSize} shrink-0 place-items-center rounded-full ${colors.glow}`}
+      style={{
+        background: `conic-gradient(${colors.active} 0deg ${degree}deg, ${colors.track} ${degree}deg 360deg)`,
+      }}
+    >
+      <div className={`grid ${innerSize} place-items-center rounded-full border border-white/[0.06] bg-[#071225]/95 shadow-inner backdrop-blur-xl`}>
+        <div className="text-center">
+          <p className={`${size === "large" ? "text-2xl sm:text-3xl" : "text-xl sm:text-2xl"} font-black tracking-tight text-white`}>
+            {Math.round(percent)}%
+          </p>
+          <p className={`mt-1 text-[13px] font-bold ${colors.text}`}>{label}</p>
+        </div>
       </div>
     </div>
   );
 }
 
-function MatchMetaItem({
-  label,
-  value,
-  icon,
-  accentClass = "text-white",
+function TeamLogo({
+  team,
+  accent,
 }: {
-  label: string;
-  value: string;
-  icon: React.ReactNode;
-  accentClass?: string;
+  team: HeroTeam;
+  accent: "home" | "away";
 }) {
-  const { locale } = useLocale();
-  const text = MATCH_HERO_TEXT[locale];
+  const logo = teamLogo(team);
+
+  const accentClass =
+    accent === "home"
+      ? "border-emerald-400/15 shadow-[0_18px_60px_rgba(16,185,129,0.08)]"
+      : "border-blue-400/15 shadow-[0_18px_60px_rgba(59,130,246,0.08)]";
 
   return (
-    <div className="group flex min-h-24 items-center justify-center gap-3 border-white/5 p-4 text-center transition hover:bg-white/[0.025]">
-      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.035] text-lg text-slate-400 transition group-hover:border-cyan-400/20 group-hover:text-cyan-300">
-        {icon}
-      </span>
+    <div
+      className={`grid h-20 w-20 place-items-center rounded-2xl border bg-slate-950/35 p-2.5 backdrop-blur-md sm:h-24 sm:w-24 ${accentClass}`}
+    >
+      {logo ? (
+        <img
+          src={logo}
+          alt={team.name}
+          className="h-full w-full object-contain"
+        />
+      ) : (
+        <span className="text-4xl font-black text-slate-500">
+          {team.name.slice(0, 1).toUpperCase()}
+        </span>
+      )}
+    </div>
+  );
+}
 
-      <div className="min-w-0 text-start">
-        <p className="text-[11px] font-bold text-slate-600">
-          {label}
-        </p>
+function XgCard({
+  value,
+  label,
+  variant,
+}: {
+  value: number;
+  label: string;
+  variant: "home" | "away" | "total";
+}) {
+  const styles = {
+    home: "text-emerald-300 border-emerald-400/10",
+    away: "text-blue-300 border-blue-400/10",
+    total: "text-violet-300 border-violet-400/10",
+  }[variant];
 
-        <strong
+  return (
+    <div
+      className={`rounded-2xl border bg-slate-950/45 px-4 py-3 text-center backdrop-blur-md ${styles}`}
+    >
+      <p className="text-2xl font-black">
+        {Number(value ?? 0).toFixed(2)}
+      </p>
+
+      <p className="mt-1 text-[13px] font-semibold text-slate-400">
+        {label}
+      </p>
+    </div>
+  );
+}
+
+
+function normalizeForm(value: unknown): string[] {
+  if (typeof value === "string") {
+    return value
+      .toUpperCase()
+      .replace(/[^WDL]/g, "")
+      .slice(-5)
+      .split("");
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item).trim().toUpperCase().slice(0, 1))
+      .filter((item) => ["W", "D", "L"].includes(item))
+      .slice(-5);
+  }
+
+  return [];
+}
+
+function FormDots({ value }: { value: unknown }) {
+  const form = normalizeForm(value);
+
+  if (form.length === 0) {
+    return null;
+  }
+
+  return (
+    <div dir="ltr" className="mt-3 flex items-center justify-center gap-1.5">
+      {form.map((result, index) => (
+        <span
+          key={`${result}-${index}`}
           className={[
-            "mt-1 block truncate text-sm font-black",
-            accentClass,
+            "grid h-6 w-6 place-items-center rounded-full border text-[11px] font-black",
+            result === "W"
+              ? "border-emerald-400/25 bg-emerald-400/12 text-emerald-300"
+              : result === "D"
+                ? "border-slate-400/25 bg-slate-400/10 text-slate-300"
+                : "border-rose-400/25 bg-rose-400/10 text-rose-300",
           ].join(" ")}
-          title={value}
         >
-          {value}
-        </strong>
-      </div>
+          {result}
+        </span>
+      ))}
     </div>
   );
 }
@@ -697,18 +506,22 @@ export default function MatchHero({
   evaluation,
 }: MatchHeroProps) {
   const { locale, direction } = useLocale();
-  const text = MATCH_HERO_TEXT[locale];
+  const text = TEXT[locale];
 
-  const hasFinalScore =
-    match.is_finished === true &&
-    typeof match.home_score === "number" &&
-    typeof match.away_score === "number";
+  const formattedDate = formatDate(
+    match.date,
+    locale,
+  );
 
-  const actualHomeScore =
-    match.home_score ?? 0;
+  const hasActualScore =
+    Boolean(match.is_finished) &&
+    match.home_score !== null &&
+    match.home_score !== undefined &&
+    match.away_score !== null &&
+    match.away_score !== undefined;
 
-  const actualAwayScore =
-    match.away_score ?? 0;
+  const actualHomeScore = match.home_score ?? 0;
+  const actualAwayScore = match.away_score ?? 0;
 
   const officialEvaluationAvailable =
     evaluation?.available === true;
@@ -732,10 +545,21 @@ export default function MatchHero({
     evaluation?.yellow_cards?.correct === true;
 
   const cornersPredictedLabel =
-    evaluation?.corners?.expected_min != null &&
-    evaluation?.corners?.expected_max != null
-      ? `${evaluation.corners.expected_min}–${evaluation.corners.expected_max}`
-      : text.unavailable;
+    evaluation?.corners?.line != null &&
+    evaluation?.corners?.predicted === "over"
+      ? locale === "ar"
+        ? `أكثر من ${evaluation.corners.line}`
+        : locale === "sv"
+          ? `Över ${evaluation.corners.line}`
+          : `Over ${evaluation.corners.line}`
+      : evaluation?.corners?.line != null &&
+          evaluation?.corners?.predicted === "under"
+        ? locale === "ar"
+          ? `أقل من ${evaluation.corners.line}`
+          : locale === "sv"
+            ? `Under ${evaluation.corners.line}`
+            : `Under ${evaluation.corners.line}`
+        : text.unavailable;
 
   const cornersActualLabel =
     evaluation?.corners?.actual_total != null
@@ -743,10 +567,21 @@ export default function MatchHero({
       : text.unavailable;
 
   const yellowCardsPredictedLabel =
-    evaluation?.yellow_cards?.expected_min != null &&
-    evaluation?.yellow_cards?.expected_max != null
-      ? `${evaluation.yellow_cards.expected_min}–${evaluation.yellow_cards.expected_max}`
-      : text.unavailable;
+    evaluation?.yellow_cards?.line != null &&
+    evaluation?.yellow_cards?.predicted === "over"
+      ? locale === "ar"
+        ? `أكثر من ${evaluation.yellow_cards.line}`
+        : locale === "sv"
+          ? `Över ${evaluation.yellow_cards.line}`
+          : `Over ${evaluation.yellow_cards.line}`
+      : evaluation?.yellow_cards?.line != null &&
+          evaluation?.yellow_cards?.predicted === "under"
+        ? locale === "ar"
+          ? `أقل من ${evaluation.yellow_cards.line}`
+          : locale === "sv"
+            ? `Under ${evaluation.yellow_cards.line}`
+            : `Under ${evaluation.yellow_cards.line}`
+        : text.unavailable;
 
   const yellowCardsActualLabel =
     evaluation?.yellow_cards?.actual_total != null
@@ -762,27 +597,6 @@ export default function MatchHero({
   const matchAccuracy = Math.round(
     evaluation?.accuracy_percentage ?? 0,
   );
-
-  const predictionStrength =
-    getPredictionStrength(
-      mostLikelyScore.probability,
-      locale,
-    );
-
-  const highestProbability = Math.max(
-    normalizeProbability(probabilities.homeWin),
-    normalizeProbability(probabilities.draw),
-    normalizeProbability(probabilities.awayWin),
-  );
-
-  const predictedOutcomeLabel =
-    normalizeProbability(probabilities.homeWin)
-      === highestProbability
-      ? text.win(homeTeam.name)
-      : normalizeProbability(probabilities.awayWin)
-          === highestProbability
-        ? text.win(awayTeam.name)
-        : text.draw;
 
   const predictedBttsLabel =
     evaluation?.btts?.predicted === true
@@ -806,32 +620,74 @@ export default function MatchHero({
         : text.unavailable;
 
   const actualOver25Label =
-    evaluation?.over_2_5?.actual === true
-      ? text.over25
-      : evaluation?.over_2_5?.actual === false
-        ? text.under25
-        : text.unavailable;
+    officialEvaluationAvailable
+      ? String(actualHomeScore + actualAwayScore)
+      : text.unavailable;
 
+  const highestProbability = Math.max(
+    probabilities.homeWin,
+    probabilities.draw,
+    probabilities.awayWin,
+  );
+
+  const xgDifference = Math.abs(
+    expectedGoals.home - expectedGoals.away,
+  );
+
+  const predictionStrength =
+    highestProbability >= 60
+      ? {
+          label: text.strongPrediction,
+          className:
+            "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
+        }
+      : highestProbability >= 40
+        ? {
+            label: text.mediumPrediction,
+            className:
+              "border-amber-400/20 bg-amber-400/10 text-amber-300",
+          }
+        : {
+            label: text.lowPrediction,
+            className:
+              "border-rose-400/20 bg-rose-400/10 text-rose-300",
+          };
+
+  const fallbackOutcome =
+    probabilities.homeWin >= probabilities.draw &&
+    probabilities.homeWin >= probabilities.awayWin
+      ? "home_win"
+      : probabilities.awayWin >= probabilities.draw &&
+          probabilities.awayWin >= probabilities.homeWin
+        ? "away_win"
+        : "draw";
+
+  const outcomeLabel = (
+    outcome: string | null | undefined,
+  ) => {
+    if (outcome === "home_win") return `${homeTeam.name} — ${text.win}`;
+    if (outcome === "away_win") return `${awayTeam.name} — ${text.win}`;
+    if (outcome === "draw") return text.draw;
+    return text.unavailable;
+  };
+
+  const predictedOutcomeLabel =
+    outcomeLabel(fallbackOutcome);
+
+  const predictionSummary =
+    locale === "ar"
+      ? `رجّح المحرك ${predictedOutcomeLabel} بنسبة ${highestProbability.toFixed(1)}%، وكانت النتيجة الدقيقة الأكثر احتمالًا ${mostLikelyScore.score}.`
+      : locale === "sv"
+        ? `Modellen bedömer ${predictedOutcomeLabel} som troligast med ${highestProbability.toFixed(1)}%, och ${mostLikelyScore.score} som det troligaste exakta resultatet.`
+        : `The engine favors ${predictedOutcomeLabel} at ${highestProbability.toFixed(1)}%, with ${mostLikelyScore.score} as the most likely exact score.`;
   const evaluationItems = [
     {
       label: text.matchDirection,
       correct: outcomeCorrect,
-      predicted:
-        evaluation?.predicted_outcome === "home_win"
-          ? text.win(homeTeam.name)
-          : evaluation?.predicted_outcome === "away_win"
-            ? text.win(awayTeam.name)
-            : evaluation?.predicted_outcome === "draw"
-              ? text.draw
-              : predictedOutcomeLabel,
-      actual:
-        evaluation?.actual_outcome === "home_win"
-          ? text.win(homeTeam.name)
-          : evaluation?.actual_outcome === "away_win"
-            ? text.win(awayTeam.name)
-            : evaluation?.actual_outcome === "draw"
-              ? text.draw
-              : text.unavailable,
+      predicted: outcomeLabel(
+        evaluation?.predicted_outcome ?? fallbackOutcome,
+      ),
+      actual: outcomeLabel(evaluation?.actual_outcome),
     },
     {
       label: text.exactScore,
@@ -853,739 +709,204 @@ export default function MatchHero({
       predicted: predictedOver25Label,
       actual: actualOver25Label,
     },
-    {
-      label: text.cornersEvaluation,
-      correct: cornersCorrect,
-      predicted: cornersPredictedLabel,
-      actual: cornersActualLabel,
-    },
-    {
-      label: text.yellowCardsEvaluation,
-      correct: yellowCardsCorrect,
-      predicted: yellowCardsPredictedLabel,
-      actual: yellowCardsActualLabel,
-    },
+    ...(evaluation?.corners?.available === true
+      ? [
+          {
+            label: text.cornersEvaluation,
+            correct: cornersCorrect,
+            predicted: cornersPredictedLabel,
+            actual: cornersActualLabel,
+            probability: evaluation?.corners?.probability ?? null,
+          },
+        ]
+      : []),
+    ...(evaluation?.yellow_cards?.available === true
+      ? [
+          {
+            label: text.yellowCardsEvaluation,
+            correct: yellowCardsCorrect,
+            predicted: yellowCardsPredictedLabel,
+            actual: yellowCardsActualLabel,
+            probability: evaluation?.yellow_cards?.probability ?? null,
+          },
+        ]
+      : []),
   ];
 
   return (
     <section
       dir={direction}
-      className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-slate-900/75 shadow-2xl shadow-slate-950/40 backdrop-blur-xl"
+      className="malx-hero relative isolate overflow-hidden rounded-[26px] border border-cyan-400/15 bg-[#030914] shadow-[0_30px_90px_rgba(0,0,0,0.38)]"
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.12),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(139,92,246,0.12),transparent_36%)]" />
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_18%_44%,rgba(244,63,94,0.08),transparent_30%),radial-gradient(circle_at_82%_44%,rgba(16,185,129,0.10),transparent_30%),radial-gradient(circle_at_50%_22%,rgba(34,211,238,0.05),transparent_24%)]" />
+      <div className="pointer-events-none absolute inset-0 -z-10 opacity-60 [background-image:linear-gradient(rgba(255,255,255,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.018)_1px,transparent_1px)] [background-size:36px_36px]" />
 
-      <div className="relative border-b border-white/5 px-5 py-4 sm:px-8">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-xs font-bold text-slate-500">
-              {text.analysisNumber(match.id)}
-            </p>
-
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Link
-                href="/"
-                className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-400/5 px-3.5 py-2 text-xs font-black text-cyan-300 transition hover:border-cyan-300/40 hover:bg-cyan-400/10"
-              >
-                <span aria-hidden="true">⌂</span>
-                {text.home}
-              </Link>
-
-              <Link
-                href="/"
-                className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2 text-xs font-black text-slate-300 transition hover:border-white/20 hover:bg-white/[0.06]"
-              >
-                <span aria-hidden="true">←</span>
-                {text.backToMatches}
-              </Link>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-
-            <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-bold text-emerald-300">
-              {translateStatus(match.status, locale)}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] px-4 py-3 sm:px-6 lg:px-7">
+        <div className="flex flex-wrap items-center gap-2">
+          {match.league && (
+            <span className="rounded-full border border-slate-700/70 bg-slate-950/60 px-3.5 py-1.5 text-[13px] font-bold text-slate-200">
+              ⚽ {match.league}
             </span>
-          </div>
+          )}
+          <span className="rounded-full border border-slate-700/70 bg-slate-950/55 px-3.5 py-1.5 text-[13px] text-slate-400">
+            #{match.id}
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {formattedDate && (
+            <span className="rounded-full border border-slate-700/70 bg-slate-950/55 px-3.5 py-1.5 text-[13px] text-slate-300">
+              ◷ {formattedDate}
+            </span>
+          )}
+          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3.5 py-1.5 text-[13px] font-black text-emerald-300">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)]" />
+            {match.status}
+          </span>
         </div>
       </div>
 
-      <div className="relative px-5 py-6 sm:px-8 lg:px-10">
-        <div
-          dir="ltr"
-          className="grid items-center gap-8 lg:grid-cols-[1fr_300px_1fr]"
-        >
-          <TeamPanel
-            team={homeTeam}
-            label={text.homeTeam}
-            expectedGoals={expectedGoals.home}
-            alignment="right"
-          />
+      {match.venue && (
+        <div className="border-b border-white/[0.045] px-4 py-2 text-center text-[13px] text-slate-500">
+          ◉ {text.venue}: {match.venue}
+        </div>
+      )}
 
-          <div className="mx-auto w-full max-w-sm text-center">
-            <span className="inline-flex rounded-full border border-cyan-500/20 bg-cyan-500/10 px-4 py-2 text-xs font-black text-cyan-300">
-              {text.mostLikelyScore}
+      <div className="px-4 py-5 sm:px-6 lg:px-8">
+        <div dir="ltr" className="grid items-center gap-5 lg:grid-cols-[1fr_0.92fr_1fr] xl:gap-7">
+          <div dir={direction} className="flex min-w-0 flex-col items-center">
+            <div className="flex items-center justify-center gap-3 sm:gap-4">
+              <TeamLogo team={awayTeam} accent="away" />
+              <ProbabilityRing value={probabilities.awayWin} label={text.win} variant="away" />
+            </div>
+            <span className="mt-3 rounded-full border border-rose-400/20 bg-rose-400/[0.07] px-3 py-1 text-[11px] font-black text-rose-300">
+              {text.awayTeam}
+            </span>
+            <h2 className="mt-2 max-w-full truncate text-center text-xl font-black text-white sm:text-2xl">
+              {awayTeam.name}
+            </h2>
+            {awayTeam.country && <p className="mt-1 text-[13px] text-slate-500">{awayTeam.country}</p>}
+            <FormDots value={awayTeam.form} />
+          </div>
+
+          <div dir={direction} className="flex min-w-0 flex-col items-center text-center">
+            <p className="text-[12px] font-black tracking-[0.16em] text-cyan-300">✦ {text.prediction}</p>
+            <div className="mt-3 rounded-2xl border border-cyan-400/30 bg-cyan-950/10 px-8 py-3 shadow-[0_0_35px_rgba(34,211,238,0.10)] sm:px-10">
+              <p dir="ltr" className="whitespace-nowrap text-4xl font-black tracking-[0.08em] text-white sm:text-5xl">
+                {mostLikelyScore.score}
+              </p>
+            </div>
+
+            <div dir="ltr" className="mt-2 grid w-full max-w-[330px] grid-cols-[1fr_auto_1fr] items-center gap-2 text-[11px] font-bold text-slate-500">
+              <span className="truncate text-left">{homeTeam.name}</span>
+              <span className="text-slate-600">HOME — AWAY</span>
+              <span className="truncate text-right">{awayTeam.name}</span>
+            </div>
+
+            <span className="mt-3 rounded-full border border-cyan-500/20 bg-cyan-500/[0.08] px-4 py-1.5 text-[11px] font-black tracking-[0.10em] text-cyan-300">
+              ✦ {text.aiPrediction}
             </span>
 
-            <div dir="ltr" className="mt-4">
-              <strong className="bg-gradient-to-r from-cyan-300 via-white to-violet-300 bg-clip-text text-7xl font-black tracking-tight text-transparent sm:text-8xl">
-                {mostLikelyScore.score}
-              </strong>
+            <div className="mt-4">
+              <ProbabilityRing value={probabilities.draw} label={text.draw} variant="draw" size="small" />
             </div>
 
-            <div className="mt-4 flex justify-center">
-              <div
-                className={[
-                  "inline-flex items-center gap-3 rounded-full border px-4 py-2 ring-4",
-                  predictionStrength.borderClass,
-                  predictionStrength.backgroundClass,
-                  predictionStrength.ringClass,
-                ].join(" ")}
-              >
-                <span
-                  className={[
-                    "h-2.5 w-2.5 rounded-full",
-                    predictionStrength.dotClass,
-                  ].join(" ")}
-                />
-
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-400">
-                    {text.scoreProbability}
-                  </span>
-
-                  <strong
-                    className={[
-                      "text-sm font-black",
-                      predictionStrength.textClass,
-                    ].join(" ")}
-                  >
-                    {formatPercent(
-                      mostLikelyScore.probability,
-                    )}
-                  </strong>
-                </div>
+            <div className="mt-3 w-full max-w-[300px]">
+              <div className="flex justify-between text-[12px] text-slate-500">
+                <span>{text.scoreProbability}</span>
+                <strong dir="ltr" className="text-cyan-300">{mostLikelyScore.probability.toFixed(1)}%</strong>
+              </div>
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-800">
+                <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400" style={{ width: `${clamp(mostLikelyScore.probability)}%` }} />
               </div>
             </div>
 
-            <p className="mt-2 text-xs leading-5 text-slate-600">
-              {text.scoreNote}
-            </p>
-          </div>
-
-          <TeamPanel
-            team={awayTeam}
-            label={text.awayTeam}
-            expectedGoals={expectedGoals.away}
-            alignment="left"
-          />
-        </div>
-
-        <div className="mt-8 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/45 shadow-inner shadow-black/20">
-          <div className="grid divide-y divide-white/5 sm:grid-cols-2 sm:divide-x sm:divide-x-reverse sm:divide-y-0 xl:grid-cols-4">
-            <MatchMetaItem
-              label={text.matchStatus}
-              value={translateStatus(match.status, locale)}
-              accentClass="text-emerald-300"
-              icon={
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  className="h-5 w-5"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="m7 12 3 3 7-7"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <circle
-                    cx="12"
-                    cy="12"
-                    r="9"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                  />
-                </svg>
-              }
-            />
-
-            <MatchMetaItem
-              label={text.competition}
-              value={match.league ?? text.unavailableFeminine}
-              icon={
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  className="h-5 w-5"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M8 4h8v3c0 3-1.8 5-4 5s-4-2-4-5V4Z"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M8 6H5v1c0 2.3 1.4 4 3.6 4.5M16 6h3v1c0 2.3-1.4 4-3.6 4.5M12 12v4M9 20h6M10 16h4"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              }
-            />
-
-            <MatchMetaItem
-              label={text.venue}
-              value={match.venue ?? text.unavailable}
-              icon={
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  className="h-5 w-5"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M4 9c2.2-2 5-3 8-3s5.8 1 8 3v8H4V9Z"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M8 17v-4h8v4M4 10h16M7 7V4M17 7V4"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              }
-            />
-
-            <MatchMetaItem
-              label={text.dateTime}
-              value={formatMatchDate(match.date, locale)}
-              icon={
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  className="h-5 w-5"
-                  aria-hidden="true"
-                >
-                  <rect
-                    x="4"
-                    y="5"
-                    width="16"
-                    height="15"
-                    rx="2"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                  />
-                  <path
-                    d="M8 3v4M16 3v4M4 10h16"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M8 14h3M13 14h3M8 17h3"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              }
-            />
-          </div>
-        </div>
-
-        {hasFinalScore && officialEvaluationAvailable ? (
-          <div className="mt-6 grid gap-5 xl:grid-cols-[290px_1fr]">
-            <div className="overflow-hidden rounded-3xl border border-white/10 bg-slate-950/55">
-              <div className="border-b border-white/5 px-5 py-4">
-                <p className="text-xs font-bold text-slate-500">
-                  {text.resultComparison}
-                </p>
-                <h3 className="mt-1 font-black text-white">
-                  {text.predictedVsActual}
-                </h3>
-              </div>
-
-              <div className="space-y-3 p-4">
-                <div className="rounded-2xl border border-cyan-400/15 bg-cyan-400/5 p-4">
-                  <p className="text-xs text-slate-500">
-                    {text.predictedScore}
-                  </p>
-
-                  <strong
-                    dir="ltr"
-                    className="mt-2 block text-center text-4xl font-black text-cyan-300"
-                  >
-                    {mostLikelyScore.score}
-                  </strong>
-                </div>
-
-                <div className="rounded-2xl border border-violet-400/15 bg-violet-400/5 p-4">
-                  <p className="text-xs text-slate-500">
-                    {text.actualScore}
-                  </p>
-
-                  <strong
-                    dir="ltr"
-                    className="mt-2 block text-center text-4xl font-black text-violet-300"
-                  >
-                    {actualHomeScore}-{actualAwayScore}
-                  </strong>
-                </div>
-              </div>
-            </div>
-
-            <div className="overflow-hidden rounded-3xl border border-white/10 bg-slate-950/45">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 px-5 py-4">
-                <div>
-                  <p className="text-xs font-bold text-slate-500">
-                    {text.predictionEvaluation}
-                  </p>
-                  <h3 className="mt-1 font-black text-white">
-                    {text.enginePerformance}
-                  </h3>
-                </div>
-
-                <span
-                  className={[
-                    "inline-flex min-w-20 items-center justify-center rounded-full border px-4 py-2 text-sm font-black shadow-lg",
-                    matchAccuracy >= 67
-                      ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
-                      : matchAccuracy >= 34
-                        ? "border-amber-400/20 bg-amber-400/10 text-amber-300"
-                        : "border-rose-400/20 bg-rose-400/10 text-rose-300",
-                  ].join(" ")}
-                >
-                  {correctChecks} / {totalChecks}
+            {hasActualScore && (
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                <span className="rounded-xl border border-slate-700/70 bg-slate-950/55 px-4 py-2 text-[13px] text-slate-500">
+                  {text.actualScore}: <strong dir="ltr" className="ms-1 text-lg text-white">{match.home_score}-{match.away_score}</strong>
                 </span>
+                {evaluation?.available && evaluation.winner_correct != null && (
+                  <span className={`rounded-full border px-3 py-1.5 text-[13px] font-bold ${evaluation.winner_correct ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300" : "border-rose-500/25 bg-rose-500/10 text-rose-300"}`}>
+                    {evaluation.winner_correct ? `✓ ${text.predictionCorrect}` : `✕ ${text.predictionWrong}`}
+                  </span>
+                )}
               </div>
-
-              <div className="p-5">
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  {evaluationItems.map((item) => (
-                    <div
-                      key={item.label}
-                      className={[
-                        "rounded-2xl border p-4",
-                        item.correct
-                          ? "border-emerald-400/20 bg-emerald-400/[0.07]"
-                          : "border-rose-400/20 bg-rose-400/[0.07]",
-                      ].join(" ")}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={[
-                              "grid h-7 w-7 shrink-0 place-items-center rounded-full border text-sm font-black",
-                              item.correct
-                                ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
-                                : "border-rose-400/30 bg-rose-400/10 text-rose-300",
-                            ].join(" ")}
-                          >
-                            {item.correct ? "✓" : "✕"}
-                          </span>
-
-                          <p className="text-xs font-black leading-6 text-slate-200">
-                            {item.label}
-                          </p>
-                        </div>
-
-                        <span
-                          className={[
-                            "rounded-full border px-2.5 py-1 text-[11px] font-black",
-                            item.correct
-                              ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
-                              : "border-rose-400/20 bg-rose-400/10 text-rose-300",
-                          ].join(" ")}
-                        >
-                          {item.correct ? text.correct : text.incorrect}
-                        </span>
-                      </div>
-
-                      <div className="mt-4 space-y-2.5 text-xs">
-                        <div className="flex items-center justify-between gap-3 rounded-xl bg-black/10 px-3 py-2">
-                          <span className="text-slate-600">
-                            {text.predicted}
-                          </span>
-                          <strong className="text-slate-300">
-                            {item.predicted}
-                          </strong>
-                        </div>
-
-                        <div className="flex items-center justify-between gap-3 rounded-xl bg-black/10 px-3 py-2">
-                          <span className="text-slate-600">
-                            {text.actual}
-                          </span>
-                          <strong className="text-white">
-                            {item.actual}
-                          </strong>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-5 rounded-2xl border border-white/10 bg-slate-900/70 p-4 shadow-inner shadow-black/20">
-                  <div className="flex items-end justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-black text-white">
-                        {text.matchAccuracy}
-                      </p>
-
-                      <p className="mt-1 text-xs text-slate-500">
-                        {text.accuracySummary(
-                          correctChecks,
-                          totalChecks,
-                        )}
-                      </p>
-                    </div>
-
-                    <strong
-                      className={[
-                        "text-4xl font-black",
-                        matchAccuracy >= 67
-                          ? "text-emerald-300"
-                          : matchAccuracy >= 34
-                            ? "text-amber-300"
-                            : "text-rose-300",
-                      ].join(" ")}
-                    >
-                      {matchAccuracy}%
-                    </strong>
-                  </div>
-
-                  <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-800">
-                    <div
-                      className={[
-                        "h-full rounded-full transition-all duration-700",
-                        matchAccuracy >= 67
-                          ? "bg-emerald-400"
-                          : matchAccuracy >= 34
-                            ? "bg-amber-400"
-                            : "bg-rose-400",
-                      ].join(" ")}
-                      style={{
-                        width:
-                          matchAccuracy > 0
-                            ? `${matchAccuracy}%`
-                            : "6px",
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        <div className="mt-6 grid gap-5 xl:grid-cols-2">
-          <div className="rounded-3xl border border-white/10 bg-slate-950/45 p-5 shadow-inner shadow-black/20">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-bold text-slate-500">
-                  {text.resultProbabilities}
-                </p>
-
-                <h3 className="mt-1 text-lg font-black text-white">
-                  {text.probabilities1x2}
-                </h3>
-              </div>
-
-              <span className="rounded-full border border-cyan-400/15 bg-cyan-400/5 px-3 py-1.5 text-xs font-bold text-cyan-300">
-                {text.highestProbability} {highestProbability.toFixed(1)}%
-              </span>
-            </div>
-
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              {[
-                {
-                  label: text.win(homeTeam.name),
-                  value: normalizeProbability(
-                    probabilities.homeWin,
-                  ),
-                  accent: "cyan",
-                },
-                {
-                  label: text.draw,
-                  value: normalizeProbability(
-                    probabilities.draw,
-                  ),
-                  accent: "slate",
-                },
-                {
-                  label: text.win(awayTeam.name),
-                  value: normalizeProbability(
-                    probabilities.awayWin,
-                  ),
-                  accent: "violet",
-                },
-              ].map((item) => {
-                const isHighest =
-                  item.value === highestProbability;
-
-                const cardClass =
-                  item.accent === "cyan"
-                    ? "border-cyan-400/20 bg-cyan-400/[0.055]"
-                    : item.accent === "violet"
-                      ? "border-violet-400/20 bg-violet-400/[0.055]"
-                      : "border-white/10 bg-white/[0.025]";
-
-                const valueClass =
-                  item.accent === "cyan"
-                    ? "text-cyan-300"
-                    : item.accent === "violet"
-                      ? "text-violet-300"
-                      : "text-white";
-
-                const barClass =
-                  item.accent === "cyan"
-                    ? "bg-cyan-400"
-                    : item.accent === "violet"
-                      ? "bg-violet-400"
-                      : "bg-slate-300";
-
-                return (
-                  <div
-                    key={item.label}
-                    className={[
-                      "relative overflow-hidden rounded-2xl border p-4 transition",
-                      cardClass,
-                      isHighest
-                        ? "ring-1 ring-cyan-300/30"
-                        : "",
-                    ].join(" ")}
-                  >
-                    {isHighest ? (
-                      <span className="absolute left-3 top-3 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-[10px] font-black text-emerald-300">
-                        {text.highest}
-                      </span>
-                    ) : null}
-
-                    <p className="truncate text-xs font-bold text-slate-500">
-                      {item.label}
-                    </p>
-
-                    <strong
-                      className={[
-                        "mt-3 block text-3xl font-black",
-                        valueClass,
-                      ].join(" ")}
-                    >
-                      {item.value.toFixed(1)}%
-                    </strong>
-
-                    <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-800">
-                      <div
-                        className={[
-                          "h-full rounded-full transition-all duration-700",
-                          barClass,
-                        ].join(" ")}
-                        style={{
-                          width: `${item.value}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            )}
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-slate-950/45 p-5 shadow-inner shadow-black/20">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-bold text-slate-500">
-                  {text.expectedGoalsComparison}
-                </p>
-
-                <h3 className="mt-1 text-lg font-black text-white">
-                  Expected Goals (xG)
-                </h3>
-              </div>
-
-              <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-bold text-slate-400">
-                {text.total}{" "}
-                {(
-                  expectedGoals.total ??
-                  expectedGoals.home +
-                    expectedGoals.away
-                ).toFixed(2)}
-              </span>
+          <div dir={direction} className="flex min-w-0 flex-col items-center">
+            <div className="flex items-center justify-center gap-3 sm:gap-4">
+              <ProbabilityRing value={probabilities.homeWin} label={text.win} variant="home" />
+              <TeamLogo team={homeTeam} accent="home" />
             </div>
-
-            <div
-              dir="ltr"
-              className="mt-6 grid grid-cols-[1fr_auto_1fr] items-center gap-4"
-            >
-              <div className="min-w-0">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="truncate text-xs font-bold text-slate-500">
-                    {homeTeam.name}
-                  </p>
-
-                  <strong className="text-3xl font-black text-cyan-300">
-                    {expectedGoals.home.toFixed(2)}
-                  </strong>
-                </div>
-
-                <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-slate-800">
-                  <div
-                    className="h-full rounded-full bg-cyan-400 transition-all duration-700"
-                    style={{
-                      width: `${
-                        (
-                          expectedGoals.home /
-                          Math.max(
-                            expectedGoals.home +
-                              expectedGoals.away,
-                            0.01,
-                          )
-                        ) * 100
-                      }%`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              <span className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-white/[0.03] text-xs font-black text-slate-500">
-                VS
-              </span>
-
-              <div className="min-w-0">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="truncate text-xs font-bold text-slate-500">
-                    {awayTeam.name}
-                  </p>
-
-                  <strong className="text-3xl font-black text-violet-300">
-                    {expectedGoals.away.toFixed(2)}
-                  </strong>
-                </div>
-
-                <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-slate-800">
-                  <div
-                    className="h-full rounded-full bg-violet-400 transition-all duration-700"
-                    style={{
-                      width: `${
-                        (
-                          expectedGoals.away /
-                          Math.max(
-                            expectedGoals.home +
-                              expectedGoals.away,
-                            0.01,
-                          )
-                        ) * 100
-                      }%`,
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.04] p-4 text-center">
-                <p className="text-xs text-slate-500">
-                  {text.homeXg}
-                </p>
-
-                <strong className="mt-2 block text-2xl font-black text-cyan-300">
-                  {expectedGoals.home.toFixed(2)}
-                </strong>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 text-center">
-                <p className="text-xs text-slate-500">
-                  {text.difference}
-                </p>
-
-                <strong className="mt-2 block text-2xl font-black text-white">
-                  {Math.abs(
-                    expectedGoals.home -
-                      expectedGoals.away,
-                  ).toFixed(2)}
-                </strong>
-              </div>
-
-              <div className="rounded-2xl border border-violet-400/15 bg-violet-400/[0.04] p-4 text-center">
-                <p className="text-xs text-slate-500">
-                  {text.awayXg}
-                </p>
-
-                <strong className="mt-2 block text-2xl font-black text-violet-300">
-                  {expectedGoals.away.toFixed(2)}
-                </strong>
-              </div>
-            </div>
+            <span className="mt-3 rounded-full border border-emerald-400/20 bg-emerald-400/[0.07] px-3 py-1 text-[11px] font-black text-emerald-300">
+              {text.homeTeam}
+            </span>
+            <h2 className="mt-2 max-w-full truncate text-center text-xl font-black text-white sm:text-2xl">
+              {homeTeam.name}
+            </h2>
+            {homeTeam.country && <p className="mt-1 text-[13px] text-slate-500">{homeTeam.country}</p>}
+            <FormDots value={homeTeam.form} />
           </div>
         </div>
 
-        <div className="mt-6 grid gap-4 lg:grid-cols-3">
-          <div className="rounded-3xl border border-cyan-400/15 bg-cyan-400/[0.04] p-5">
-            <p className="text-xs font-bold text-slate-500">
-              {text.predictionDirection}
-            </p>
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <XgCard value={expectedGoals.away} label={`${awayTeam.name} — ${text.expectedXg}`} variant="away" />
+          <XgCard value={expectedGoals.total} label={text.totalXg} variant="total" />
+          <XgCard value={expectedGoals.home} label={`${homeTeam.name} — ${text.expectedXg}`} variant="home" />
+        </div>
 
-            <strong className="mt-3 block text-xl font-black text-cyan-300">
-              {predictedOutcomeLabel}
-            </strong>
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-2 border-t border-white/[0.05] pt-3">
+          <span className={["rounded-full border px-3 py-1.5 text-[12px] font-black", predictionStrength.className].join(" ")}>
+            {predictionStrength.label}
+          </span>
+          <span className="rounded-full border border-cyan-400/15 bg-cyan-400/[0.06] px-3 py-1.5 text-[12px] text-slate-400">
+            {text.highestProbability}: <strong dir="ltr" className="text-cyan-300">{highestProbability.toFixed(1)}%</strong>
+          </span>
+          <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[12px] text-slate-400">
+            {text.difference} xG: <strong dir="ltr" className="text-white">{xgDifference.toFixed(2)}</strong>
+          </span>
+        </div>
 
-            <p className="mt-2 text-xs leading-5 text-slate-600">
-              {text.directionNote}
-            </p>
-          </div>
-
-          <div className="rounded-3xl border border-white/10 bg-slate-950/45 p-5">
-            <p className="text-xs font-bold text-slate-500">
-              {text.predictionSummary}
-            </p>
-
-            <p className="mt-3 text-sm leading-7 text-slate-300">
-              {text.predictionSummaryText(
-                predictedOutcomeLabel,
-                `${highestProbability.toFixed(1)}%`,
-                mostLikelyScore.score,
-              )}
-            </p>
-          </div>
-
-          <div className="rounded-3xl border border-violet-400/15 bg-violet-400/[0.04] p-5">
-            <p className="text-xs font-bold text-slate-500">
-              {text.predictionQuality}
-            </p>
-
-            <div className="mt-3 flex items-end justify-between">
-              <strong
-                className={[
-                  "text-4xl font-black",
-                  matchAccuracy >= 67
-                    ? "text-emerald-300"
-                    : matchAccuracy >= 34
-                      ? "text-amber-300"
-                      : "text-rose-300",
-                ].join(" ")}
-              >
-                {officialEvaluationAvailable
-                  ? `${matchAccuracy}%`
-                  : text.pending}
+        {hasActualScore && officialEvaluationAvailable && (
+          <div className="mt-4 rounded-2xl border border-white/[0.07] bg-slate-950/35 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[13px] font-bold text-slate-400">{text.predictionEvaluation}</p>
+                <h3 className="mt-1 text-base font-black text-white">{text.enginePerformance}</h3>
+                <p className="mt-1 text-xs font-semibold text-slate-500">
+                  {text.accuracySummary(correctChecks, totalChecks)}
+                </p>
+              </div>
+              <strong className={matchAccuracy >= 67 ? "text-emerald-300" : matchAccuracy >= 34 ? "text-amber-300" : "text-rose-300"}>
+                {matchAccuracy}% · <span dir="ltr">{correctChecks}/{totalChecks}</span>
               </strong>
-
-              <span className="text-xs text-slate-600">
-                {correctChecks}/{totalChecks}
-              </span>
             </div>
-
-            <p className="mt-2 text-xs leading-5 text-slate-600">
-              {text.qualityNote}
-            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+              {evaluationItems.map((item) => (
+                <div key={item.label} className={`min-h-[112px] rounded-xl border px-3 py-3 ${item.correct ? "border-emerald-400/15 bg-emerald-400/[0.05]" : "border-rose-400/15 bg-rose-400/[0.05]"}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[13px] font-black leading-5 text-slate-200">{item.label}</span>
+                    <span className={item.correct ? "shrink-0 text-xl font-black text-emerald-300" : "shrink-0 text-xl font-black text-rose-300"}>{item.correct ? "✓" : "✕"}</span>
+                  </div>
+                  <div className="mt-3 grid gap-1.5 text-[13px] leading-4">
+                    <div className="flex items-start justify-between gap-2 rounded-lg bg-black/10 px-2 py-1.5"><span className="shrink-0 font-bold text-slate-500">{text.predicted}</span><strong className="min-w-0 break-words text-end font-black text-slate-200">{item.predicted}</strong></div>
+                    <div className="flex items-start justify-between gap-2 rounded-lg bg-black/10 px-2 py-1.5"><span className="shrink-0 font-bold text-slate-500">{text.actual}</span><strong className="min-w-0 break-words text-end font-black text-white">{item.actual}</strong></div>
+                    {"probability" in item && item.probability != null && (
+                      <div className="flex items-start justify-between gap-2 rounded-lg bg-black/10 px-2 py-1.5">
+                        <span className="shrink-0 font-bold text-slate-500">{text.predictionProbability}</span>
+                        <strong dir="ltr" className="min-w-0 text-end font-black text-cyan-300">
+                          {Number(item.probability).toFixed(1)}%
+                        </strong>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </section>
   );
