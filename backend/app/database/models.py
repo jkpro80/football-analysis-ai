@@ -231,6 +231,8 @@ class Match(Base):
     round_name = Column(String(255), nullable=True)
     stage_name = Column(String(255), nullable=True)
 
+    odds_last_attempt_at = Column(DateTime(timezone=True), nullable=True)
+
     # Venue
     venue_name = Column(String(255), nullable=True)
     venue_city = Column(String(255), nullable=True)
@@ -252,6 +254,12 @@ class Match(Base):
         back_populates="away_matches",
     )
 
+    odds = relationship(
+        "MatchOdd",
+        back_populates="match",
+        cascade="all, delete-orphan",
+    )
+
     prediction_records = relationship(
         "PredictionRecord",
         back_populates="match",
@@ -264,6 +272,39 @@ class Match(Base):
         uselist=False,
         cascade="all, delete-orphan",
     )
+
+
+class MatchOdd(Base):
+    __tablename__ = "match_odds"
+    __table_args__ = (
+        UniqueConstraint("provider_odd_id", name="uq_match_odds_provider_odd_id"),
+    )
+
+    id = Column(BigInteger, primary_key=True, index=True)
+    match_id = Column(Integer, ForeignKey("matches.id", ondelete="CASCADE"), nullable=False, index=True)
+    provider_fixture_id = Column(Integer, nullable=False, index=True)
+    provider_odd_id = Column(BigInteger, nullable=False)
+    market_id = Column(Integer, nullable=False, index=True)
+    market_name = Column(String(255), nullable=True)
+    market_developer_name = Column(String(255), nullable=True, index=True)
+    market_description = Column(String(255), nullable=True)
+    bookmaker_id = Column(Integer, nullable=False, index=True)
+    bookmaker_name = Column(String(255), nullable=True)
+    label = Column(String(255), nullable=True)
+    selection_name = Column(String(255), nullable=True)
+    original_label = Column(String(255), nullable=True)
+    decimal_odds = Column(Float, nullable=False)
+    probability = Column(Float, nullable=True)
+    total = Column(String(50), nullable=True)
+    handicap = Column(String(50), nullable=True)
+    sort_order = Column(Integer, nullable=True)
+    winning = Column(Boolean, nullable=False, default=False)
+    stopped = Column(Boolean, nullable=False, default=False, index=True)
+    provider_created_at = Column(DateTime(timezone=True), nullable=True)
+    latest_bookmaker_update = Column(DateTime(timezone=False), nullable=True, index=True)
+    synced_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    match = relationship("Match", back_populates="odds")
 
 
 class PredictionRecord(Base):
@@ -1922,6 +1963,12 @@ class PredictionCardItem(Base):
         String(50),
         nullable=True,
     )
+
+    decimal_odds = Column(Float, nullable=True)
+
+    bookmaker_name = Column(String(255), nullable=True)
+
+    provider_odd_id = Column(BigInteger, nullable=True)
 
     created_at = Column(
         DateTime(timezone=True),

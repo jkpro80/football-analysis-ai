@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -25,6 +26,8 @@ import type {
 
 type MatchExplorerProps = {
   fixtures: DashboardFixture[];
+  initialHasMore?: boolean;
+  initialNextOffset?: number;
 };
 
 const PAGE_SIZE = 12;
@@ -70,6 +73,10 @@ function getText(locale: Locale) {
       previous: "السابق",
       next: "التالي",
       last: "الأخير",
+      loadMore: "تحميل 50 مباراة إضافية",
+      loadingMore: "جارٍ تحميل المباريات...",
+      loadMoreError:
+        "تعذر تحميل المزيد من المباريات. حاول مرة أخرى.",
 
       quickFilters: {
         all: "جميع المباريات",
@@ -125,6 +132,10 @@ function getText(locale: Locale) {
       previous: "Föregående",
       next: "Nästa",
       last: "Sista",
+      loadMore: "Ladda 50 matcher till",
+      loadingMore: "Laddar matcher...",
+      loadMoreError:
+        "Det gick inte att ladda fler matcher. Försök igen.",
 
       quickFilters: {
         all: "Alla matcher",
@@ -179,6 +190,10 @@ function getText(locale: Locale) {
     previous: "Previous",
     next: "Next",
     last: "Last",
+    loadMore: "Load 50 more matches",
+    loadingMore: "Loading matches...",
+    loadMoreError:
+      "Could not load more matches. Please try again.",
 
     quickFilters: {
       all: "All matches",
@@ -196,6 +211,8 @@ function getText(locale: Locale) {
 
 export default function MatchExplorer({
   fixtures,
+  initialHasMore = false,
+  initialNextOffset = 50,
 }: MatchExplorerProps) {
   const {
     locale,
@@ -208,10 +225,10 @@ export default function MatchExplorer({
     useState("");
 
   const [statusFilter, setStatusFilter] =
-    useState<StatusFilter>("all");
+    useState<StatusFilter>("scheduled");
 
   const [sortOption, setSortOption] =
-    useState<SortOption>("confidence");
+    useState<SortOption>("date");
 
   const [quickFilter, setQuickFilter] =
     useState<QuickFilter>("all");
@@ -219,11 +236,30 @@ export default function MatchExplorer({
   const [currentPage, setCurrentPage] =
     useState(1);
 
+  const [loadedFixtures, setLoadedFixtures] =
+    useState<DashboardFixture[]>(fixtures);
+
+  const [
+    nextUpcomingOffset,
+    setNextUpcomingOffset,
+  ] = useState(initialNextOffset);
+
+  const [
+    hasMoreUpcoming,
+    setHasMoreUpcoming,
+  ] = useState(initialHasMore);
+
+  const [isLoadingMore, setIsLoadingMore] =
+    useState(false);
+
+  const [loadMoreError, setLoadMoreError] =
+    useState<string | null>(null);
+
   const filteredFixtures = useMemo(() => {
     const normalizedSearch =
       normalizeText(search);
 
-    const result = fixtures.filter(
+    const result = loadedFixtures.filter(
       (fixture) => {
         const matchesSearch =
           normalizedSearch.length === 0 ||
@@ -293,7 +329,7 @@ export default function MatchExplorer({
       },
     );
   }, [
-    fixtures,
+    loadedFixtures,
     search,
     statusFilter,
     sortOption,
@@ -391,17 +427,116 @@ export default function MatchExplorer({
       filteredFixtures.length,
     );
 
+  const loadMoreUpcoming = useCallback(
+    async () => {
+      if (
+        isLoadingMore ||
+        !hasMoreUpcoming
+      ) {
+        return;
+      }
+
+      setIsLoadingMore(true);
+      setLoadMoreError(null);
+
+      try {
+        const response = await fetch(
+          `/dashboard-data/upcoming?offset=${nextUpcomingOffset}`,
+          {
+            method: "GET",
+            cache: "no-store",
+            headers: {
+              Accept: "application/json",
+            },
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `Load more failed: ${response.status}`,
+          );
+        }
+
+        const payload = (await response.json()) as {
+          fixtures?: DashboardFixture[];
+          hasMore?: boolean;
+          nextOffset?: number;
+        };
+
+        const incoming =
+          Array.isArray(payload.fixtures)
+            ? payload.fixtures
+            : [];
+
+        setLoadedFixtures((current) => {
+          const byId =
+            new Map<number, DashboardFixture>();
+
+          for (const fixture of current) {
+            byId.set(
+              fixture.id,
+              fixture,
+            );
+          }
+
+          for (const fixture of incoming) {
+            byId.set(
+              fixture.id,
+              fixture,
+            );
+          }
+
+          return Array.from(
+            byId.values(),
+          );
+        });
+
+        const payloadNextOffset =
+          Number(payload.nextOffset);
+
+        setNextUpcomingOffset(
+          Number.isFinite(payloadNextOffset) &&
+            payloadNextOffset >
+              nextUpcomingOffset
+            ? payloadNextOffset
+            : nextUpcomingOffset + 50,
+        );
+
+        setHasMoreUpcoming(
+          Boolean(payload.hasMore),
+        );
+      } catch (error) {
+        console.error(
+          "Failed to load more matches:",
+          error,
+        );
+
+        setLoadMoreError(
+          t.loadMoreError,
+        );
+      } finally {
+        setIsLoadingMore(false);
+      }
+    },
+    [
+      hasMoreUpcoming,
+      isLoadingMore,
+      nextUpcomingOffset,
+      t.loadMoreError,
+    ],
+  );
+
   const resetFilters = () => {
     setSearch("");
-    setStatusFilter("all");
-    setSortOption("confidence");
+    setStatusFilter("scheduled");
+    setSortOption("date");
     setQuickFilter("all");
     setCurrentPage(1);
   };
 
   const hasActiveFilters =
     search.length > 0 ||
-    statusFilter !== "all" ||
+    statusFilter !== "scheduled" ||
     quickFilter !== "all";
 
   return (
@@ -415,7 +550,7 @@ export default function MatchExplorer({
           {t.title}
         </h2>
 
-        <p className="mt-2 text-slate-500">
+        <p className="mt-2 text-white/50">
           {t.description}
         </p>
       </div>
@@ -439,7 +574,7 @@ export default function MatchExplorer({
                   "rounded-full border px-4 py-2 text-sm font-bold transition",
                   isActive
                     ? "border-cyan-400 bg-cyan-500 text-slate-950"
-                    : "border-slate-700 bg-slate-950/50 text-slate-300 hover:border-cyan-500/50",
+                    : "border-[#242B33] bg-[#11161C]/50 text-white/80 hover:border-cyan-500/50",
                 ].join(" ")}
               >
                 {
@@ -453,7 +588,7 @@ export default function MatchExplorer({
         )}
       </div>
 
-      <div className="grid gap-4 rounded-3xl border border-slate-800 bg-slate-950/50 p-5 lg:grid-cols-[1fr_auto_auto]">
+      <div className="grid gap-4 rounded-3xl border border-[#242B33] bg-[#11161C]/50 p-5 lg:grid-cols-[1fr_auto_auto]">
         <input
           type="search"
           value={search}
@@ -465,7 +600,7 @@ export default function MatchExplorer({
           placeholder={
             t.searchPlaceholder
           }
-          className="w-full rounded-xl border border-slate-700 bg-[#071023] px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-500"
+          className="w-full rounded-xl border border-[#242B33] bg-[#0C1014] px-4 py-3 text-white outline-none transition placeholder:text-white/40 focus:border-cyan-500"
         />
 
         <select
@@ -476,7 +611,7 @@ export default function MatchExplorer({
                 .value as StatusFilter,
             )
           }
-          className="rounded-xl border border-slate-700 bg-[#071023] px-4 py-3 text-white outline-none focus:border-cyan-500"
+          className="rounded-xl border border-[#242B33] bg-[#0C1014] px-4 py-3 text-white outline-none focus:border-cyan-500"
         >
           <option value="all">
             {t.allStatuses}
@@ -503,7 +638,7 @@ export default function MatchExplorer({
                 .value as SortOption,
             )
           }
-          className="rounded-xl border border-slate-700 bg-[#071023] px-4 py-3 text-white outline-none focus:border-cyan-500"
+          className="rounded-xl border border-[#242B33] bg-[#0C1014] px-4 py-3 text-white outline-none focus:border-cyan-500"
         >
           <option value="confidence">
             {t.sortConfidence}
@@ -520,7 +655,7 @@ export default function MatchExplorer({
       </div>
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-white/50">
           {t.resultCount}:{" "}
           <strong className="text-white">
             {filteredFixtures.length}
@@ -529,7 +664,7 @@ export default function MatchExplorer({
 
         {filteredFixtures.length >
         0 ? (
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-white/50">
             {t.showing}{" "}
             <strong className="text-white">
               {firstVisibleResult}
@@ -565,7 +700,7 @@ export default function MatchExplorer({
             {t.noMatches}
           </h3>
 
-          <p className="mt-3 text-slate-400">
+          <p className="mt-3 text-white/65">
             {t.noMatchesDescription}
           </p>
         </div>
@@ -597,7 +732,7 @@ export default function MatchExplorer({
                 onClick={() =>
                   setCurrentPage(1)
                 }
-                className="hidden rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm font-bold text-slate-300 transition hover:border-cyan-500/50 disabled:cursor-not-allowed disabled:opacity-40 sm:block"
+                className="hidden rounded-lg border border-[#242B33] bg-[#11161C]/60 px-3 py-2 text-sm font-bold text-white/80 transition hover:border-cyan-500/50 disabled:cursor-not-allowed disabled:opacity-40 sm:block"
               >
                 {t.first}
               </button>
@@ -616,7 +751,7 @@ export default function MatchExplorer({
                       ),
                   )
                 }
-                className="rounded-lg border border-slate-700 bg-slate-950/60 px-2 py-1.5 text-[11px] font-bold text-slate-300 transition hover:border-cyan-500/50 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3 sm:py-2 sm:text-sm"
+                className="rounded-lg border border-[#242B33] bg-[#11161C]/60 px-2 py-1.5 text-[11px] font-bold text-white/80 transition hover:border-cyan-500/50 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3 sm:py-2 sm:text-sm"
               >
                 {t.previous}
               </button>
@@ -638,7 +773,7 @@ export default function MatchExplorer({
                       pageNumber ===
                       currentPage
                         ? "border-cyan-400 bg-cyan-500 text-slate-950"
-                        : "border-slate-700 bg-slate-950/60 text-slate-300 hover:border-cyan-500/50",
+                        : "border-[#242B33] bg-[#11161C]/60 text-white/80 hover:border-cyan-500/50",
                     ].join(" ")}
                   >
                     {pageNumber}
@@ -661,7 +796,7 @@ export default function MatchExplorer({
                       ),
                   )
                 }
-                className="rounded-lg border border-slate-700 bg-slate-950/60 px-2 py-1.5 text-[11px] font-bold text-slate-300 transition hover:border-cyan-500/50 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3 sm:py-2 sm:text-sm"
+                className="rounded-lg border border-[#242B33] bg-[#11161C]/60 px-2 py-1.5 text-[11px] font-bold text-white/80 transition hover:border-cyan-500/50 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3 sm:py-2 sm:text-sm"
               >
                 {t.next}
               </button>
@@ -677,7 +812,7 @@ export default function MatchExplorer({
                     totalPages,
                   )
                 }
-                className="hidden rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm font-bold text-slate-300 transition hover:border-cyan-500/50 disabled:cursor-not-allowed disabled:opacity-40 sm:block"
+                className="hidden rounded-lg border border-[#242B33] bg-[#11161C]/60 px-3 py-2 text-sm font-bold text-white/80 transition hover:border-cyan-500/50 disabled:cursor-not-allowed disabled:opacity-40 sm:block"
               >
                 {t.last}
               </button>
@@ -685,6 +820,31 @@ export default function MatchExplorer({
           ) : null}
         </>
       )}
+          {filteredFixtures.length > 0 ? (
+        <div className="mt-6 flex flex-col items-center gap-3">
+          {loadMoreError ? (
+            <p
+              role="alert"
+              className="text-center text-sm font-semibold text-rose-300"
+            >
+              {loadMoreError}
+            </p>
+          ) : null}
+
+          {hasMoreUpcoming ? (
+            <button
+              type="button"
+              onClick={loadMoreUpcoming}
+              disabled={isLoadingMore}
+              className="min-w-[220px] rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-5 py-3 text-sm font-black text-cyan-200 transition hover:border-cyan-400 hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isLoadingMore
+                ? t.loadingMore
+                : t.loadMore}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -772,63 +772,114 @@ export default function MatchHero({
         </div>
       )}
 
-      <div className="px-4 py-5 sm:px-6 lg:px-8">
-        <div dir="ltr" className="grid items-center gap-5 lg:grid-cols-[1fr_0.92fr_1fr] xl:gap-7">
+      <div className="px-3 py-3.5 sm:px-6 sm:py-5 lg:px-8">
+        <div dir="ltr" className="grid grid-cols-[1fr_auto_1fr] items-start gap-1.5 sm:gap-3 md:grid-cols-[1fr_0.92fr_1fr] md:items-center md:gap-3 xl:gap-7">
           <div dir={direction} className="flex min-w-0 flex-col items-center">
-            <div className="flex items-center justify-center gap-3 sm:gap-4">
+            <div className="flex items-center justify-center md:gap-4">
               <TeamLogo team={awayTeam} accent="away" />
-              <ProbabilityRing value={probabilities.awayWin} label={text.win} variant="away" />
+
+              <div className="hidden md:block">
+                <ProbabilityRing
+                  value={probabilities.awayWin}
+                  label={text.win}
+                  variant="away"
+                />
+              </div>
             </div>
-            <span className="mt-3 rounded-full border border-rose-400/20 bg-rose-400/[0.07] px-3 py-1 text-[11px] font-black text-rose-300">
+
+            <span className="mt-1.5 rounded-full border border-rose-400/20 bg-rose-400/[0.07] px-2 py-0.5 text-[10px] font-black text-rose-300 md:mt-3 md:px-3 md:py-1 md:text-[12px]">
               {text.awayTeam}
             </span>
-            <h2 className="mt-2 max-w-full truncate text-center text-xl font-black text-white sm:text-2xl">
+
+            <h2 className="mt-1 max-w-full truncate text-center text-[13px] font-black leading-4 text-white sm:text-sm md:mt-2 md:text-2xl">
               {awayTeam.name}
             </h2>
-            {awayTeam.country && <p className="mt-1 text-[13px] text-slate-500">{awayTeam.country}</p>}
-            <FormDots value={awayTeam.form} />
+
+            <div className="mt-2 md:hidden">
+              <ProbabilityRing
+                value={probabilities.awayWin}
+                label={text.win}
+                variant="away"
+                size="small"
+              />
+            </div>
+
+            {awayTeam.country && (
+              <p className="mt-1 hidden text-[14px] text-slate-500 md:block">
+                {awayTeam.country}
+              </p>
+            )}
+
+            <div className="hidden md:block">
+              <FormDots value={awayTeam.form} />
+            </div>
           </div>
 
           <div dir={direction} className="flex min-w-0 flex-col items-center text-center">
-            <p className="text-[12px] font-black tracking-[0.16em] text-cyan-300">✦ {text.prediction}</p>
-            <div className="mt-3 rounded-2xl border border-cyan-400/30 bg-cyan-950/10 px-8 py-3 shadow-[0_0_35px_rgba(34,211,238,0.10)] sm:px-10">
-              <p dir="ltr" className="whitespace-nowrap text-4xl font-black tracking-[0.08em] text-white sm:text-5xl">
+            <p className="whitespace-nowrap text-[10px] font-black tracking-[0.06em] text-cyan-300 sm:text-[11px] md:text-[13px] md:tracking-[0.16em]">
+              ✦ {text.prediction}
+            </p>
+
+            <div className="mt-1.5 rounded-xl border border-cyan-400/30 bg-cyan-950/10 px-2.5 py-2 shadow-[0_0_35px_rgba(34,211,238,0.10)] sm:px-4 md:mt-3 md:rounded-2xl md:px-8 md:py-3 lg:px-10">
+              <p dir="ltr" className="whitespace-nowrap text-2xl font-black tracking-[0.04em] text-white sm:text-3xl md:text-5xl md:tracking-[0.08em]">
                 {mostLikelyScore.score}
               </p>
             </div>
 
-            <div dir="ltr" className="mt-2 grid w-full max-w-[330px] grid-cols-[1fr_auto_1fr] items-center gap-2 text-[11px] font-bold text-slate-500">
+            <div dir="ltr" className="mt-2 hidden w-full max-w-[330px] grid-cols-[1fr_auto_1fr] items-center gap-2 text-[12px] font-bold text-slate-500 md:grid">
               <span className="truncate text-left">{homeTeam.name}</span>
               <span className="text-slate-600">HOME — AWAY</span>
               <span className="truncate text-right">{awayTeam.name}</span>
             </div>
 
-            <span className="mt-3 rounded-full border border-cyan-500/20 bg-cyan-500/[0.08] px-4 py-1.5 text-[11px] font-black tracking-[0.10em] text-cyan-300">
+            <span className="mt-1.5 whitespace-nowrap rounded-full border border-cyan-500/20 bg-cyan-500/[0.08] px-2 py-1 text-[9px] font-black tracking-[0.03em] text-cyan-300 sm:text-[10px] md:mt-3 md:px-4 md:py-1.5 md:text-[12px] md:tracking-[0.10em]">
               ✦ {text.aiPrediction}
             </span>
 
-            <div className="mt-4">
-              <ProbabilityRing value={probabilities.draw} label={text.draw} variant="draw" size="small" />
+            <div className="mt-2 md:mt-4">
+              <ProbabilityRing
+                value={probabilities.draw}
+                label={text.draw}
+                variant="draw"
+                size="small"
+              />
             </div>
 
-            <div className="mt-3 w-full max-w-[300px]">
-              <div className="flex justify-between text-[12px] text-slate-500">
+            <div className="mt-3 hidden w-full max-w-[300px] md:block">
+              <div className="flex justify-between text-[13px] text-slate-500">
                 <span>{text.scoreProbability}</span>
-                <strong dir="ltr" className="text-cyan-300">{mostLikelyScore.probability.toFixed(1)}%</strong>
+                <strong dir="ltr" className="text-cyan-300">
+                  {mostLikelyScore.probability.toFixed(1)}%
+                </strong>
               </div>
               <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-800">
-                <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400" style={{ width: `${clamp(mostLikelyScore.probability)}%` }} />
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400"
+                  style={{ width: `${clamp(mostLikelyScore.probability)}%` }}
+                />
               </div>
             </div>
 
             {hasActualScore && (
-              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-                <span className="rounded-xl border border-slate-700/70 bg-slate-950/55 px-4 py-2 text-[13px] text-slate-500">
-                  {text.actualScore}: <strong dir="ltr" className="ms-1 text-lg text-white">{match.home_score}-{match.away_score}</strong>
+              <div className="mt-2 flex flex-col items-center justify-center gap-1 md:mt-4 md:flex-row md:flex-wrap md:gap-2">
+                <span className="whitespace-nowrap rounded-lg border border-slate-700/70 bg-slate-950/55 px-2 py-1 text-[9px] text-slate-500 md:rounded-xl md:px-4 md:py-2 md:text-[14px]">
+                  {text.actualScore}:{" "}
+                  <strong dir="ltr" className="ms-1 text-xs text-white md:text-lg">
+                    {match.home_score}-{match.away_score}
+                  </strong>
                 </span>
+
                 {evaluation?.available && evaluation.winner_correct != null && (
-                  <span className={`rounded-full border px-3 py-1.5 text-[13px] font-bold ${evaluation.winner_correct ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300" : "border-rose-500/25 bg-rose-500/10 text-rose-300"}`}>
-                    {evaluation.winner_correct ? `✓ ${text.predictionCorrect}` : `✕ ${text.predictionWrong}`}
+                  <span
+                    className={`whitespace-nowrap rounded-full border px-2 py-1 text-[9px] font-bold md:px-3 md:py-1.5 md:text-[14px] ${
+                      evaluation.winner_correct
+                        ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
+                        : "border-rose-500/25 bg-rose-500/10 text-rose-300"
+                    }`}
+                  >
+                    {evaluation.winner_correct
+                      ? `✓ ${text.predictionCorrect}`
+                      : `✕ ${text.predictionWrong}`}
                   </span>
                 )}
               </div>
@@ -836,35 +887,61 @@ export default function MatchHero({
           </div>
 
           <div dir={direction} className="flex min-w-0 flex-col items-center">
-            <div className="flex items-center justify-center gap-3 sm:gap-4">
-              <ProbabilityRing value={probabilities.homeWin} label={text.win} variant="home" />
+            <div className="flex items-center justify-center md:gap-4">
+              <div className="hidden md:block">
+                <ProbabilityRing
+                  value={probabilities.homeWin}
+                  label={text.win}
+                  variant="home"
+                />
+              </div>
+
               <TeamLogo team={homeTeam} accent="home" />
             </div>
-            <span className="mt-3 rounded-full border border-emerald-400/20 bg-emerald-400/[0.07] px-3 py-1 text-[11px] font-black text-emerald-300">
+
+            <span className="mt-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/[0.07] px-2 py-0.5 text-[10px] font-black text-emerald-300 md:mt-3 md:px-3 md:py-1 md:text-[12px]">
               {text.homeTeam}
             </span>
-            <h2 className="mt-2 max-w-full truncate text-center text-xl font-black text-white sm:text-2xl">
+
+            <h2 className="mt-1 max-w-full truncate text-center text-[13px] font-black leading-4 text-white sm:text-sm md:mt-2 md:text-2xl">
               {homeTeam.name}
             </h2>
-            {homeTeam.country && <p className="mt-1 text-[13px] text-slate-500">{homeTeam.country}</p>}
-            <FormDots value={homeTeam.form} />
+
+            <div className="mt-2 md:hidden">
+              <ProbabilityRing
+                value={probabilities.homeWin}
+                label={text.win}
+                variant="home"
+                size="small"
+              />
+            </div>
+
+            {homeTeam.country && (
+              <p className="mt-1 hidden text-[14px] text-slate-500 md:block">
+                {homeTeam.country}
+              </p>
+            )}
+
+            <div className="hidden md:block">
+              <FormDots value={homeTeam.form} />
+            </div>
           </div>
         </div>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <div className="mt-3.5 grid grid-cols-3 gap-1.5 sm:mt-5 sm:gap-3">
           <XgCard value={expectedGoals.away} label={`${awayTeam.name} — ${text.expectedXg}`} variant="away" />
           <XgCard value={expectedGoals.total} label={text.totalXg} variant="total" />
           <XgCard value={expectedGoals.home} label={`${homeTeam.name} — ${text.expectedXg}`} variant="home" />
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-2 border-t border-white/[0.05] pt-3">
-          <span className={["rounded-full border px-3 py-1.5 text-[12px] font-black", predictionStrength.className].join(" ")}>
+        <div className="mt-2.5 flex flex-wrap items-center justify-center gap-1.5 border-t border-white/[0.05] pt-2.5 sm:mt-3 sm:gap-2 sm:pt-3">
+          <span className={["rounded-full border px-3 py-1.5 text-[13px] font-black", predictionStrength.className].join(" ")}>
             {predictionStrength.label}
           </span>
-          <span className="rounded-full border border-cyan-400/15 bg-cyan-400/[0.06] px-3 py-1.5 text-[12px] text-slate-400">
+          <span className="rounded-full border border-cyan-400/15 bg-cyan-400/[0.06] px-3 py-1.5 text-[13px] text-slate-400">
             {text.highestProbability}: <strong dir="ltr" className="text-cyan-300">{highestProbability.toFixed(1)}%</strong>
           </span>
-          <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[12px] text-slate-400">
+          <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[13px] text-slate-400">
             {text.difference} xG: <strong dir="ltr" className="text-white">{xgDifference.toFixed(2)}</strong>
           </span>
         </div>

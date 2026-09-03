@@ -1,6 +1,6 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy.orm import Session, selectinload
@@ -151,6 +151,30 @@ class PredictionCardService:
         if match_id <= 0:
             raise PredictionCardValidationError(
                 "match_id must be greater than zero."
+            )
+
+        match = (
+            self.db.query(Match)
+            .filter(Match.id == match_id)
+            .first()
+        )
+
+        if match is None:
+            raise PredictionCardValidationError(
+                "Match not found."
+            )
+
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        match_status = str(match.status or "").strip().lower()
+
+        if match_status != "scheduled":
+            raise PredictionCardValidationError(
+                "Only scheduled matches can be added to prediction cards."
+            )
+
+        if match.date <= now:
+            raise PredictionCardValidationError(
+                "The match has already started or is no longer eligible."
             )
 
         normalized_market = (
@@ -497,6 +521,8 @@ class PredictionCardService:
         count: int,
         min_probability: float = 0.60,
         max_probability: float = 0.90,
+        min_confidence: float = 0.0,
+        use_strong_ranking: bool = False,
     ) -> list[dict[str, Any]]:
         """
         Rank matches by their strongest eligible prediction-card pick.
@@ -523,6 +549,11 @@ class PredictionCardService:
         if min_probability > max_probability:
             raise PredictionCardValidationError(
                 "min_probability cannot exceed max_probability."
+            )
+
+        if not 0.0 <= min_confidence <= 1.0:
+            raise PredictionCardValidationError(
+                "min_confidence must be between 0 and 1."
             )
 
         unique_match_ids: list[int] = []
@@ -554,6 +585,19 @@ class PredictionCardService:
                 "alternatives",
                 [],
             )
+
+            confidence = recommendation.get("confidence")
+            confidence_value = (
+                float(confidence)
+                if confidence is not None
+                else None
+            )
+
+            if (
+                confidence_value is None
+                or confidence_value < min_confidence
+            ):
+                continue
 
             auto_corner_lines = {
                 "corners_total": (8.5, 9.5, 10.5),
@@ -671,13 +715,26 @@ class PredictionCardService:
                 }
             )
 
-        ranked.sort(
-            key=lambda item: (
-                float(item["confidence"] or 0.0),
-                float(item["probability"]),
-            ),
-            reverse=True,
-        )
+        if use_strong_ranking:
+            ranked.sort(
+                key=lambda item: (
+                    round(
+                        (float(item["probability"]) * 0.80)
+                        + (float(item["confidence"] or 0.0) * 0.20),
+                        6,
+                    ),
+                    float(item["probability"]),
+                ),
+                reverse=True,
+            )
+        else:
+            ranked.sort(
+                key=lambda item: (
+                    float(item["confidence"] or 0.0),
+                    float(item["probability"]),
+                ),
+                reverse=True,
+            )
 
         return ranked[:count]
     def generate_card(
@@ -736,6 +793,7 @@ class PredictionCardService:
         )
 
         finished_statuses = {
+            "5",
             "finished",
             "ft",
             "after extra time",
@@ -914,6 +972,793 @@ class PredictionCardService:
             user=user,
             card_id=card.id,
         )
+
+    def _persist_generated_card(
+        self,
+        *,
+        user: User,
+        title: str | None,
+        recommendations: list[dict[str, Any]],
+    ) -> PredictionCard:
+        """
+        Persist a generated prediction card atomically from already-ranked
+        recommendations. This helper does not run Prediction Engine V11.
+        """
+        if user is None or user.id is None:
+            raise PredictionCardValidationError(
+                "A persisted user is required."
+            )
+
+        if not recommendations:
+            raise PredictionCardValidationError(
+                "No eligible predictions are available for this card."
+            )
+
+        normalized_title = self._normalize_title(title)
+
+        try:
+            card = PredictionCard(
+                user_id=user.id,
+                card_number=self._temporary_card_number(
+                    user_id=user.id
+                ),
+                title=normalized_title,
+                status="draft",
+            )
+
+            self.db.add(card)
+            self.db.flush()
+
+            card.card_number = self._build_card_number(
+                card_id=card.id
+            )
+
+            for recommendation in recommendations:
+                market = str(recommendation["market"])
+                selection = str(recommendation["selection"])
+                line = recommendation.get("line")
+                probability = float(recommendation["probability"])
+                match_id = int(recommendation["match_id"])
+                prediction_record_id = int(
+                    recommendation["prediction_record_id"]
+                )
+
+                decimal_odds = recommendation.get("best_odds")
+                bookmaker_name = recommendation.get("bookmaker")
+                provider_odd_id = recommendation.get("provider_odd_id")
+
+                record = (
+                    self.db.query(PredictionRecord)
+                    .filter(
+                        PredictionRecord.id
+                        == prediction_record_id
+                    )
+                    .first()
+                )
+
+                if record is None:
+                    raise PredictionCardValidationError(
+                        "Prediction record disappeared "
+                        "while generating the card."
+                    )
+
+                effective_line = (
+                    float(line)
+                    if line is not None
+                    else (
+                        2.5
+                        if market == "goals_2_5"
+                        else None
+                    )
+                )
+
+                expected_value = None
+
+                if market == "goals_2_5":
+                    expected_value = record.expected_total_goals
+                elif market == "corners_total":
+                    expected_value = record.expected_total_corners
+                elif market == "corners_home":
+                    expected_value = record.expected_home_corners
+                elif market == "corners_away":
+                    expected_value = record.expected_away_corners
+
+                item = PredictionCardItem(
+                    card_id=card.id,
+                    match_id=match_id,
+                    prediction_record_id=record.id,
+                    market=market,
+                    selection=selection,
+                    line=effective_line,
+                    expected_value=expected_value,
+                    probability=probability,
+                    confidence=self._normalize_confidence(
+                        record.confidence_score
+                    ),
+                    model_version=record.model_version,
+                    decimal_odds=(
+                        float(decimal_odds)
+                        if decimal_odds is not None
+                        else None
+                    ),
+                    bookmaker_name=(
+                        str(bookmaker_name)
+                        if bookmaker_name
+                        else None
+                    ),
+                    provider_odd_id=(
+                        int(provider_odd_id)
+                        if provider_odd_id is not None
+                        else None
+                    ),
+                )
+
+                self.db.add(item)
+
+            self.db.flush()
+            self.db.commit()
+
+        except Exception:
+            self.db.rollback()
+            raise
+
+        return self.get_card(
+            user=user,
+            card_id=card.id,
+        )
+
+    def generate_today_card(
+        self,
+        *,
+        user: User,
+        count: int,
+        title: str | None = None,
+        timezone_offset_minutes: int = 0,
+        min_probability: float = 0.60,
+        max_probability: float = 0.90,
+        min_confidence: float = 0.75,
+    ) -> PredictionCard:
+        """
+        Generate a card only from scheduled matches that fall on the
+        user's current local calendar day.
+
+        timezone_offset_minutes is the user's UTC offset in minutes.
+        Positive values are east of UTC, for example +180 for UTC+3.
+        """
+        if not 1 <= count <= 15:
+            raise PredictionCardValidationError(
+                "count must be between 1 and 15."
+            )
+
+        if not -840 <= timezone_offset_minutes <= 840:
+            raise PredictionCardValidationError(
+                "timezone_offset_minutes must be between -840 and 840."
+            )
+
+        now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+        offset = timedelta(minutes=timezone_offset_minutes)
+        local_now = now_utc + offset
+
+        local_start = local_now.replace(
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0,
+        )
+        local_end = local_start + timedelta(days=1)
+
+        utc_start = local_start - offset
+        utc_end = local_end - offset
+
+        scheduled_statuses = {
+            "1",
+            "scheduled",
+            "ns",
+        }
+
+        matches = (
+            self.db.query(Match)
+            .filter(
+                Match.date >= utc_start,
+                Match.date < utc_end,
+                Match.date > now_utc,
+            )
+            .order_by(
+                Match.date.asc(),
+                Match.id.asc(),
+            )
+            .all()
+        )
+
+        eligible_matches = [
+            match
+            for match in matches
+            if (
+                str(match.status or "")
+                .strip()
+                .lower()
+                in scheduled_statuses
+            )
+        ]
+
+        if not eligible_matches:
+            raise PredictionCardValidationError(
+                "No scheduled matches are available for today."
+            )
+
+        recommendations = self.recommend_matches(
+            match_ids=[
+                match.id
+                for match in eligible_matches
+            ],
+            count=count,
+            min_probability=min_probability,
+            max_probability=max_probability,
+            min_confidence=min_confidence,
+            use_strong_ranking=True,
+        )
+
+        if not recommendations:
+            raise PredictionCardValidationError(
+                "No high-confidence predictions are available for today."
+            )
+
+        return self._persist_generated_card(
+            user=user,
+            title=title,
+            recommendations=recommendations,
+        )
+
+    def generate_single_match_card(
+        self,
+        *,
+        user: User,
+        match_id: int,
+        count: int = 4,
+        title: str | None = None,
+        min_probability: float = 0.60,
+        max_probability: float = 0.90,
+        min_confidence: float = 0.75,
+    ) -> PredictionCard:
+        """
+        Generate multiple non-contradictory supported selections from
+        one future scheduled match.
+
+        At most one selection is kept per market family, so opposite
+        outcomes from the same market cannot appear together.
+        """
+        if match_id <= 0:
+            raise PredictionCardValidationError(
+                "match_id must be greater than zero."
+            )
+
+        if not 1 <= count <= 6:
+            raise PredictionCardValidationError(
+                "count must be between 1 and 6 for a single-match card."
+            )
+
+        match = (
+            self.db.query(Match)
+            .filter(Match.id == match_id)
+            .first()
+        )
+
+        if match is None:
+            raise PredictionCardValidationError(
+                "Match not found."
+            )
+
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        scheduled_statuses = {
+            "1",
+            "scheduled",
+            "ns",
+        }
+        match_status = str(match.status or "").strip().lower()
+
+        if match_status not in scheduled_statuses:
+            raise PredictionCardValidationError(
+                "Only scheduled matches can be used for a single-match card."
+            )
+
+        if match.date is None or match.date <= now:
+            raise PredictionCardValidationError(
+                "The match has already started or is no longer eligible."
+            )
+
+        recommendation = self.recommend_match_pick(
+            match_id=match_id
+        )
+        alternatives = recommendation.get(
+            "alternatives",
+            [],
+        )
+
+        confidence = recommendation.get("confidence")
+        confidence_value = (
+            float(confidence)
+            if confidence is not None
+            else None
+        )
+
+        if (
+            confidence_value is None
+            or confidence_value < min_confidence
+        ):
+            raise PredictionCardValidationError(
+                "This match does not meet the Målx high-confidence threshold."
+            )
+
+        auto_corner_lines = {
+            "corners_total": (8.5, 9.5, 10.5),
+            "corners_home": (3.5, 4.5, 5.5),
+            "corners_away": (3.5, 4.5, 5.5),
+        }
+
+        record = (
+            self.db.query(PredictionRecord)
+            .filter(
+                PredictionRecord.id
+                == recommendation["prediction_record_id"]
+            )
+            .first()
+        )
+
+        if record is None:
+            raise PredictionCardValidationError(
+                "Prediction record disappeared while creating the card."
+            )
+
+        expected_corner_values = {
+            "corners_total": record.expected_total_corners,
+            "corners_home": record.expected_home_corners,
+            "corners_away": record.expected_away_corners,
+        }
+
+        reference_lines: dict[str, float] = {}
+
+        for market, lines in auto_corner_lines.items():
+            expected_value = expected_corner_values[market]
+
+            if expected_value is None:
+                continue
+
+            reference_lines[market] = min(
+                lines,
+                key=lambda candidate_line: abs(
+                    float(candidate_line)
+                    - float(expected_value)
+                ),
+            )
+
+        best_by_market: dict[str, dict[str, Any]] = {}
+
+        for candidate in alternatives:
+            probability = float(candidate["probability"])
+
+            if not (
+                min_probability
+                <= probability
+                <= max_probability
+            ):
+                continue
+
+            market = str(candidate["market"])
+
+            if market in auto_corner_lines:
+                line = candidate.get("line")
+                reference_line = reference_lines.get(market)
+
+                if line is None or reference_line is None:
+                    continue
+
+                if float(line) != float(reference_line):
+                    continue
+
+            current = best_by_market.get(market)
+
+            if (
+                current is None
+                or probability
+                > float(current["probability"])
+            ):
+                best_by_market[market] = candidate
+
+        ranked = list(best_by_market.values())
+        ranked.sort(
+            key=lambda item: (
+                round(
+                    (float(item["probability"]) * 0.80)
+                    + (float(confidence_value) * 0.20),
+                    6,
+                ),
+                float(item["probability"]),
+            ),
+            reverse=True,
+        )
+
+        selected = [
+            {
+                "match_id": match_id,
+                "prediction_record_id": recommendation[
+                    "prediction_record_id"
+                ],
+                "market": candidate["market"],
+                "selection": candidate["selection"],
+                "line": candidate.get("line"),
+                "probability": float(
+                    candidate["probability"]
+                ),
+                "confidence": recommendation.get(
+                    "confidence"
+                ),
+                "model_version": recommendation.get(
+                    "model_version"
+                ),
+            }
+            for candidate in ranked[:count]
+        ]
+
+        if not selected:
+            raise PredictionCardValidationError(
+                "No high-confidence supported predictions "
+                "are available for this match."
+            )
+
+        return self._persist_generated_card(
+            user=user,
+            title=title,
+            recommendations=selected,
+        )
+
+    def generate_accumulator_card(
+        self,
+        *,
+        user: User,
+        count: int,
+        title: str | None = None,
+        pool_size: int = 500,
+        min_probability: float = 0.60,
+        max_probability: float = 1.00,
+        min_confidence: float = 0.70,
+        ranking_mode: str = "odds",
+    ) -> PredictionCard:
+        """
+        Generate an odds-aware smart accumulator from future matches.
+
+        Requirements:
+        - Future scheduled matches only.
+        - Model probability between 60% and 100%.
+        - Match confidence at least 70%.
+        - Real active bookmaker odds must exist.
+        - Supported markets: 1X2, BTTS, Goals O/U 2.5.
+        - Highest available real odds are preferred.
+        - At most one selection per match.
+        - Positive EV is calculated for ranking information but is not
+          required for eligibility.
+        """
+        from app.database.models import MatchOdd
+        from app.services.value_bet_service import ValueBetService
+
+        if not 2 <= count <= 15:
+            raise PredictionCardValidationError(
+                "Accumulator count must be between 2 and 15."
+            )
+
+        if pool_size < count:
+            raise PredictionCardValidationError(
+                "pool_size cannot be smaller than count."
+            )
+
+        if pool_size > 500:
+            raise PredictionCardValidationError(
+                "pool_size cannot exceed 500."
+            )
+
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        scheduled_statuses = {"1", "scheduled", "ns"}
+
+        matches = (
+            self.db.query(Match)
+            .filter(Match.date > now)
+            .order_by(Match.date.asc(), Match.id.asc())
+            .limit(pool_size)
+            .all()
+        )
+
+        eligible_matches = [
+            match
+            for match in matches
+            if str(match.status or "").strip().lower()
+            in scheduled_statuses
+        ]
+
+        if not eligible_matches:
+            raise PredictionCardValidationError(
+                "No future scheduled matches are available."
+            )
+
+        opportunities: list[dict[str, Any]] = []
+
+        market_mapping = {
+            ValueBetService.MARKET_FULLTIME: "1x2",
+            ValueBetService.MARKET_BTTS: "btts",
+            ValueBetService.MARKET_GOALS: "goals_2_5",
+        }
+
+        for match in eligible_matches:
+            record = (
+                self.db.query(PredictionRecord)
+                .filter(PredictionRecord.match_id == match.id)
+                .order_by(PredictionRecord.id.desc())
+                .first()
+            )
+
+            if record is None:
+                continue
+
+            confidence = self._normalize_confidence(
+                record.confidence_score
+            )
+
+            if confidence < min_confidence:
+                continue
+
+            over_2_5 = ValueBetService._probability(
+                record.over_2_5_probability
+            )
+            btts = ValueBetService._probability(
+                record.btts_probability
+            )
+
+            model_probabilities = {
+                (
+                    ValueBetService.MARKET_FULLTIME,
+                    "Home",
+                ): ValueBetService._probability(
+                    record.home_win_probability
+                ),
+                (
+                    ValueBetService.MARKET_FULLTIME,
+                    "Draw",
+                ): ValueBetService._probability(
+                    record.draw_probability
+                ),
+                (
+                    ValueBetService.MARKET_FULLTIME,
+                    "Away",
+                ): ValueBetService._probability(
+                    record.away_win_probability
+                ),
+                (
+                    ValueBetService.MARKET_BTTS,
+                    "Yes",
+                ): btts,
+                (
+                    ValueBetService.MARKET_BTTS,
+                    "No",
+                ): (
+                    None if btts is None else 1.0 - btts
+                ),
+                (
+                    ValueBetService.MARKET_GOALS,
+                    "Over",
+                ): over_2_5,
+                (
+                    ValueBetService.MARKET_GOALS,
+                    "Under",
+                ): (
+                    None
+                    if over_2_5 is None
+                    else 1.0 - over_2_5
+                ),
+            }
+
+            odds_rows = (
+                self.db.query(MatchOdd)
+                .filter(
+                    MatchOdd.match_id == int(match.id),
+                    MatchOdd.stopped.is_(False),
+                    MatchOdd.market_id.in_(
+                        (
+                            ValueBetService.MARKET_FULLTIME,
+                            ValueBetService.MARKET_BTTS,
+                            ValueBetService.MARKET_GOALS,
+                        )
+                    ),
+                )
+                .all()
+            )
+
+            best_odds: dict[tuple[int, str], MatchOdd] = {}
+
+            for odd in odds_rows:
+                market_id = int(odd.market_id)
+
+                if (
+                    market_id == ValueBetService.MARKET_GOALS
+                    and str(odd.total or "").strip() != "2.5"
+                ):
+                    continue
+
+                canonical = ValueBetService._canonical_label(
+                    market_id,
+                    str(
+                        odd.label
+                        or odd.selection_name
+                        or ""
+                    ),
+                )
+
+                if canonical is None:
+                    continue
+
+                try:
+                    price = float(odd.decimal_odds)
+                except (TypeError, ValueError):
+                    continue
+
+                if price <= 1.0:
+                    continue
+
+                key = (market_id, canonical)
+                previous = best_odds.get(key)
+
+                if (
+                    previous is None
+                    or price > float(previous.decimal_odds)
+                ):
+                    best_odds[key] = odd
+
+            match_candidates: list[dict[str, Any]] = []
+
+            for key, probability in model_probabilities.items():
+                if probability is None:
+                    continue
+
+                if not (
+                    min_probability
+                    <= probability
+                    <= max_probability
+                ):
+                    continue
+
+                odd = best_odds.get(key)
+
+                if odd is None:
+                    continue
+
+                price = float(odd.decimal_odds)
+                market_id, canonical = key
+                market = market_mapping.get(market_id)
+
+                if market is None:
+                    continue
+
+                selection = canonical.lower()
+
+                market_probability = 1.0 / price
+                edge = probability - market_probability
+                betting_ev = probability * price - 1.0
+
+                match_candidates.append(
+                    {
+                        "match_id": int(match.id),
+                        "prediction_record_id": int(record.id),
+                        "market": market,
+                        "selection": selection,
+                        "line": (
+                            2.5
+                            if market == "goals_2_5"
+                            else None
+                        ),
+                        "probability": probability,
+                        "confidence": confidence,
+                        "best_odds": price,
+                        "betting_ev": betting_ev * 100.0,
+                        "edge": edge * 100.0,
+                        "bookmaker": odd.bookmaker_name,
+                        "provider_odd_id": odd.provider_odd_id,
+                    }
+                )
+
+            if not match_candidates:
+                continue
+
+            if ranking_mode == "elite":
+                match_candidates.sort(
+                    key=lambda item: (
+                        item["probability"],
+                        item["confidence"],
+                        item["betting_ev"],
+                        item["best_odds"],
+                    ),
+                    reverse=True,
+                )
+            else:
+                match_candidates.sort(
+                    key=lambda item: (
+                        item["best_odds"],
+                        item["probability"],
+                        item["confidence"],
+                        item["betting_ev"],
+                    ),
+                    reverse=True,
+                )
+
+            opportunities.append(match_candidates[0])
+
+        if ranking_mode == "elite":
+            opportunities.sort(
+                key=lambda item: (
+                    item["probability"],
+                    item["confidence"],
+                    item["betting_ev"],
+                    item["best_odds"],
+                ),
+                reverse=True,
+            )
+        else:
+            opportunities.sort(
+                key=lambda item: (
+                    item["best_odds"],
+                    item["probability"],
+                    item["confidence"],
+                    item["betting_ev"],
+                ),
+                reverse=True,
+            )
+
+        selected = opportunities[:count]
+
+        if len(selected) < count:
+            raise PredictionCardValidationError(
+                "Not enough high-confidence selections with "
+                "real odds are available for the requested count."
+            )
+
+        return self._persist_generated_card(
+            user=user,
+            title=title,
+            recommendations=selected,
+        )
+
+    def generate_elite_coupon(
+        self,
+        *,
+        user: User,
+        count: int,
+        title: str | None = None,
+        pool_size: int = 500,
+    ) -> PredictionCard:
+        """
+        Generate a strict Premium Målx Elite Coupon.
+
+        Requirements:
+        - Future scheduled matches only.
+        - Model probability at least 75%.
+        - Match confidence at least 80%.
+        - Real active bookmaker odds are mandatory.
+        - At most one selection per match.
+        - Ranking prioritizes probability, confidence, EV, then odds.
+        - Thresholds are never relaxed.
+        """
+        if not 2 <= count <= 15:
+            raise PredictionCardValidationError(
+                "Elite coupon count must be between 2 and 15."
+            )
+
+        return self.generate_accumulator_card(
+            user=user,
+            count=count,
+            title=title,
+            pool_size=pool_size,
+            min_probability=0.75,
+            max_probability=1.00,
+            min_confidence=0.80,
+            ranking_mode="elite",
+        )
+
     def remove_item(
         self,
         *,
@@ -1127,6 +1972,20 @@ class PredictionCardService:
                 "away_score": None,
             }
 
+        match_status = str(
+            getattr(match, "status", "") or ""
+        ).strip().lower()
+
+        if match_status not in {"5", "finished", "ft"}:
+            return {
+                "evaluation_status": "pending",
+                "is_correct": None,
+                "actual_result": None,
+                "actual_value": None,
+                "home_score": None,
+                "away_score": None,
+            }
+
         home_score = getattr(
             match,
             "home_score",
@@ -1244,16 +2103,18 @@ class PredictionCardService:
             "corners_home",
             "corners_away",
         }:
-            home_corners = getattr(
-                match,
-                "home_corners",
-                None,
+            prediction_record = item.prediction_record
+
+            home_corners = (
+                prediction_record.actual_home_corners
+                if prediction_record is not None
+                else None
             )
 
-            away_corners = getattr(
-                match,
-                "away_corners",
-                None,
+            away_corners = (
+                prediction_record.actual_away_corners
+                if prediction_record is not None
+                else None
             )
 
             if market == "corners_home":
@@ -1436,6 +2297,11 @@ class PredictionCardService:
                 if match is not None
                 else None
             ),
+            "match_date": (
+                cls._iso(getattr(match, "date", None))
+                if match is not None
+                else None
+            ),
             "market": item.market,
             "selection": item.selection,
             "line": item.line,
@@ -1451,6 +2317,9 @@ class PredictionCardService:
             "model_version": (
                 item.model_version
             ),
+            "decimal_odds": item.decimal_odds,
+            "bookmaker_name": item.bookmaker_name,
+            "provider_odd_id": item.provider_odd_id,
             "home_score": evaluation[
                 "home_score"
             ],

@@ -25,6 +25,9 @@ export default function HomeDashboard({
   fixtures,
   explorerFixtures,
   modelVersion,
+  matchStats,
+  upcomingHasMore,
+  upcomingNextOffset,
 }: HomeDashboardProps) {
   const { user } = useAuth();
   const { locale } = useLocale();
@@ -43,7 +46,7 @@ export default function HomeDashboard({
           availableMatches: "المباريات المتاحة",
           availableMatchesSubtitle: "إجمالي المباريات القادمة",
           scheduledMatches: "المباريات المجدولة",
-          scheduledMatchesSubtitle: "{t.scheduledMatchesSubtitle}",
+          scheduledMatchesSubtitle: "المباريات القادمة",
           liveMatches: "المباريات المباشرة",
           liveMatchesSubtitle: "المباريات الجارية حاليًا",
           averageConfidence: "متوسط الثقة",
@@ -127,15 +130,9 @@ export default function HomeDashboard({
   }, [fixtures]);
 
 
-  const liveMatches = fixtures.filter(
-    (fixture) =>
-      normalizeStatus(fixture.status) === "live",
-  ).length;
+  const liveMatches = matchStats.live;
 
-  const scheduledMatches = fixtures.filter(
-    (fixture) =>
-      normalizeStatus(fixture.status) === "scheduled",
-  ).length;
+  const scheduledMatches = matchStats.scheduled;
 
   const averageConfidence =
     fixtures.length > 0
@@ -333,7 +330,11 @@ export default function HomeDashboard({
         </section>
 
         <section className="malx-home-surface mt-8 sm:mt-12">
-          <MatchExplorer fixtures={explorerFixtures} />
+          <MatchExplorer
+            fixtures={explorerFixtures}
+            initialHasMore={upcomingHasMore}
+            initialNextOffset={upcomingNextOffset}
+          />
         </section>
 
         <footer className="malx-home-surface mt-14 border-t border-slate-800 py-7 text-center text-sm text-slate-600">

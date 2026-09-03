@@ -369,6 +369,14 @@ class SportmonksService:
             },
         )
 
+    async def get_pre_match_odds(self, fixture_id: int) -> list[dict]:
+        payload = await self._request(
+            f"odds/pre-match/fixtures/{int(fixture_id)}",
+            {"include": "market;bookmaker"},
+        )
+        data = payload.get("data", []) if isinstance(payload, dict) else []
+        return data if isinstance(data, list) else []
+
     async def get_fixture(
         self,
         fixture_id: int,

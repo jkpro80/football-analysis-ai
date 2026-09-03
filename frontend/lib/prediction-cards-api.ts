@@ -49,7 +49,8 @@ export type PredictionCardGenerateMode =
   | "automatic"
   | "today"
   | "single"
-  | "accumulator";
+  | "accumulator"
+  | "elite";
 
 export type GeneratePredictionCardPayload = {
   mode?: PredictionCardGenerateMode;

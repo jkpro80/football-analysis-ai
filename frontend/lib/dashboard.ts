@@ -68,11 +68,25 @@ type ApiPrediction = {
   model_version?: string;
 };
 
-type PredictionsApiResponse = {
+export type PredictionsApiResponse = {
   status: string;
   model_version?: string;
   count: number;
+  failed_count?: number;
   predictions: ApiPrediction[];
+};
+
+export type UpcomingDashboardBatch = {
+  fixtures: DashboardFixture[];
+  count: number;
+  failedCount: number;
+  hasMore: boolean;
+  nextOffset: number;
+};
+
+type MatchStatsApiResponse = {
+  scheduled: number;
+  live: number;
 };
 
 function normalizeOptionalText(
@@ -243,7 +257,7 @@ function mapPrediction(
   };
 }
 
-function mapPredictions(
+export function mapPredictions(
   data: PredictionsApiResponse,
 ): DashboardFixture[] {
   const predictions = Array.isArray(
@@ -271,18 +285,83 @@ function mapPredictions(
     );
 }
 
+export async function getUpcomingDashboardBatch(
+  offset = 0,
+  limit = 50,
+): Promise<UpcomingDashboardBatch> {
+  const safeOffset = Math.max(
+    0,
+    Math.trunc(offset),
+  );
+
+  const safeLimit = Math.max(
+    1,
+    Math.min(
+      Math.trunc(limit),
+      100,
+    ),
+  );
+
+  const data =
+    await apiFetch<PredictionsApiResponse>(
+      `/predictions/latest/upcoming?limit=${safeLimit}&offset=${safeOffset}`,
+      {
+        method: "GET",
+        admin: true,
+      },
+    );
+
+  const count = Math.max(
+    0,
+    Number(data.count ?? 0),
+  );
+
+  const failedCount = Math.max(
+    0,
+    Number(data.failed_count ?? 0),
+  );
+
+  const processedCount =
+    count + failedCount;
+
+  return {
+    fixtures: mapPredictions(data),
+    count,
+    failedCount,
+    hasMore: processedCount >= safeLimit,
+    nextOffset: safeOffset + safeLimit,
+  };
+}
+
+export async function getUpcomingDashboardFixtures(
+  offset = 0,
+  limit = 50,
+): Promise<DashboardFixture[]> {
+  const batch =
+    await getUpcomingDashboardBatch(
+      offset,
+      limit,
+    );
+
+  return batch.fixtures;
+}
+
 export async function getDashboardData(): Promise<{
   fixtures: DashboardFixture[];
   explorerFixtures: DashboardFixture[];
   modelVersion: string;
+  matchStats: MatchStatsApiResponse;
+  upcomingHasMore: boolean;
+  upcomingNextOffset: number;
 }> {
   try {
     const [
       upcomingData,
       finishedData,
+      matchStats,
     ] = await Promise.all([
       apiFetch<PredictionsApiResponse>(
-        "/predictions/latest/upcoming",
+        "/predictions/latest/upcoming?limit=50&offset=0",
         {
           method: "GET",
           admin: true,
@@ -296,10 +375,35 @@ export async function getDashboardData(): Promise<{
           admin: true,
         },
       ),
+
+      apiFetch<MatchStatsApiResponse>(
+        "/matches/stats/summary",
+        {
+          method: "GET",
+          admin: true,
+        },
+      ),
     ]);
 
     const fixtures =
       mapPredictions(upcomingData);
+
+    const upcomingProcessedCount =
+      Math.max(
+        0,
+        Number(upcomingData.count ?? 0),
+      ) +
+      Math.max(
+        0,
+        Number(
+          upcomingData.failed_count ?? 0,
+        ),
+      );
+
+    const upcomingHasMore =
+      upcomingProcessedCount >= 50;
+
+    const upcomingNextOffset = 50;
 
     const finishedFixtures =
       mapPredictions(finishedData);
@@ -329,6 +433,9 @@ export async function getDashboardData(): Promise<{
         upcomingData.model_version ??
         finishedData.model_version ??
         "Prediction Engine V11",
+      matchStats,
+      upcomingHasMore,
+      upcomingNextOffset,
     };
   } catch (error) {
     console.error(
@@ -340,6 +447,12 @@ export async function getDashboardData(): Promise<{
       fixtures: [],
       explorerFixtures: [],
       modelVersion: "Prediction Engine V11",
+      matchStats: {
+        scheduled: 0,
+        live: 0,
+      },
+      upcomingHasMore: false,
+      upcomingNextOffset: 50,
     };
   }
 }

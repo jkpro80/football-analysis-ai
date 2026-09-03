@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
+import type { Metadata } from "next";
 
 import LatestMatchHero from "@/components/prediction/LatestMatchHero";
 import MatchIntelligence, { type MatchIntelligenceData } from "@/components/prediction/MatchIntelligence";
 import ConfidenceGauge from "@/components/prediction/ConfidenceGauge";
 import ProScoreMatrix from "@/components/prediction/ProScoreMatrix";
 import MatchDashboardOverview from "@/components/prediction/MatchDashboardOverview";
+import MatchOdds, { type MatchOddsData } from "@/components/prediction/MatchOdds";
 import { apiFetch } from "@/lib/api";
 import { cookies } from "next/headers";
 import { resolveRequestLocale } from "@/lib/i18n/server";
@@ -150,6 +152,7 @@ type MatchEventExplanation = {
 type LatestPredictionResponse = {
   api_version: string;
   engine_version: string;
+  odds_data: MatchOddsData | null;
   match: {
     id: number;
     home_team_id: number | null;
@@ -581,6 +584,118 @@ type MatchDetailsResponse = {
   referee_name?: string | null;
 };
 
+async function getPublicMatchForMetadata(
+  matchId: number,
+): Promise<MatchDetailsResponse | null> {
+  if (!Number.isInteger(matchId) || matchId <= 0) {
+    return null;
+  }
+
+  try {
+    return await apiFetch<MatchDetailsResponse>(
+      `/matches/${matchId}`,
+    );
+  } catch {
+    return null;
+  }
+}
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  const matchId = Number(id);
+
+  if (!Number.isInteger(matchId) || matchId <= 0) {
+    return {
+      title: "Match Analysis",
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
+  }
+
+  const canonicalPath = `/matches/${matchId}`;
+  const match = await getPublicMatchForMetadata(matchId);
+
+  if (!match) {
+    return {
+      title: `Match ${matchId} Analysis`,
+      alternates: {
+        canonical: canonicalPath,
+      },
+      robots: {
+        index: false,
+        follow: true,
+      },
+    };
+  }
+
+  const homeTeam =
+    match.home_team?.trim() || "Home Team";
+
+  const awayTeam =
+    match.away_team?.trim() || "Away Team";
+
+  const league =
+    match.league_name?.trim();
+
+  const title =
+    `${homeTeam} vs ${awayTeam} Prediction & Match Analysis`;
+
+  const description = league
+    ? `${homeTeam} vs ${awayTeam} ${league} match analysis, probabilities, statistics, fixture information and data-driven insights from MÅLX.`
+    : `${homeTeam} vs ${awayTeam} football match analysis, probabilities, statistics, fixture information and data-driven insights from MÅLX.`;
+
+  const socialImage =
+    match.home_logo ||
+    match.away_logo ||
+    "/icon.svg";
+
+  return {
+    title,
+    description,
+
+    alternates: {
+      canonical: canonicalPath,
+    },
+
+    openGraph: {
+      type: "website",
+      url: canonicalPath,
+      siteName: "MÅLX",
+      title: `${title} | MÅLX`,
+      description,
+      images: [
+        {
+          url: socialImage,
+          alt: `${homeTeam} vs ${awayTeam}`,
+        },
+      ],
+    },
+
+    twitter: {
+      card: "summary",
+      title: `${title} | MÅLX`,
+      description,
+      images: [socialImage],
+    },
+
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+        "max-video-preview": -1,
+      },
+    },
+  };
+}
+
 function translateModelWarning(
   warning: string,
   locale: Locale,
@@ -637,7 +752,7 @@ async function getPrediction(
   accessToken: string,
   locale: Locale,
 ): Promise<LatestPredictionResponse> {
-  const [match, prediction] = await Promise.all([
+  const [match, prediction, oddsData] = await Promise.all([
     apiFetch<MatchDetailsResponse>(
       `/matches/${matchId}`,
     ),
@@ -650,6 +765,10 @@ async function getPrediction(
         },
       },
     ),
+
+    apiFetch<MatchOddsData>(
+      `/matches/${matchId}/odds/summary`,
+    ).catch(() => null),
   ]);
 
   const predictionHome =
@@ -706,6 +825,7 @@ async function getPrediction(
 
   return {
     api_version: "API v1",
+    odds_data: oddsData,
 
     engine_version:
       `${prediction.engine.name} ${prediction.engine.version}`,
@@ -2609,6 +2729,9 @@ export default async function MatchPage({
             </div>
             <span className="rounded-full border border-emerald-400/15 bg-emerald-400/[0.05] px-2.5 py-1 text-sm font-black text-emerald-300">{locale === "ar" ? "تحليل النموذج" : locale === "sv" ? "MODELLANALYS" : "MODEL ANALYSIS"}</span>
           </div>
+
+            {/* Real bookmaker market odds */}
+            <MatchOdds data={data.odds_data} />
 
           <section className="rounded-2xl border border-cyan-400/15 bg-[#040a18] p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">

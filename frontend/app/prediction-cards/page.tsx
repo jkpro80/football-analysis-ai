@@ -152,10 +152,12 @@ export default function PredictionCardsPage() {
           modeToday: "مباريات اليوم",
           modeSingle: "مباراة منفردة",
           modeAccumulator: "تراكمي ذكي",
+          modeElite: "قسيمة Målx Elite",
           modeAutomaticHelp: "أفضل الترشيحات من المباريات القادمة.",
           modeTodayHelp: "أفضل الترشيحات من المباريات المجدولة اليوم فقط.",
           modeSingleHelp: "اختر مباراة واحدة ليحلل Målx أقوى الأسواق المتاحة لها.",
           modeAccumulatorHelp: "اختيارات عالية الثقة من مباريات ودوريات مختلفة.",
+          modeEliteHelp: "قسيمة Premium صارمة: احتمال 75% فأكثر، ثقة 80% فأكثر، وMarket Odds حقيقية. لا يتم تخفيض المعايير عند عدم توفر اختيارات كافية.",
           chooseMatch: "اختر المباراة",
           loadingMatches: "جارٍ تحميل المباريات...",
           noMatches: "لا توجد مباريات قادمة متاحة للاختيار.",
@@ -287,6 +289,8 @@ export default function PredictionCardsPage() {
 
           generateFailed:
             "تعذر إنشاء البطاقة.",
+          eliteInsufficient:
+            "لا تتوفر حاليًا اختيارات كافية تستوفي معايير قسيمة Målx Elite. نحافظ على معايير الاحتمال والثقة وMarket Odds الحقيقية ولن نخفضها لإكمال القسيمة. جرّب مرة أخرى لاحقًا.",
 
           generated:
             "تم إنشاء البطاقة وحفظها بنجاح.",
@@ -314,10 +318,12 @@ export default function PredictionCardsPage() {
             modeToday: "Dagens matcher",
             modeSingle: "En match",
             modeAccumulator: "Smart kombination",
+            modeElite: "Målx Elite-kupong",
             modeAutomaticHelp: "De bästa prognoserna från kommande matcher.",
             modeTodayHelp: "De bästa prognoserna från matcher som är schemalagda idag.",
             modeSingleHelp: "Välj en match så analyserar Målx de starkaste tillgängliga marknaderna.",
             modeAccumulatorHelp: "Högkonfidensval från olika matcher och ligor.",
+            modeEliteHelp: "En strikt Premium-kupong: minst 75 % sannolikhet, minst 80 % konfidens och riktiga marknadsodds. Kraven sänks inte när för få val finns.",
             chooseMatch: "Välj match",
             loadingMatches: "Laddar matcher...",
             noMatches: "Inga kommande matcher finns att välja.",
@@ -449,6 +455,8 @@ export default function PredictionCardsPage() {
 
             generateFailed:
               "Kunde inte skapa kupongen.",
+            eliteInsufficient:
+              "Det finns inte tillräckligt många val som uppfyller kraven för Målx Elite-kupongen just nu. Kraven på sannolikhet, konfidens och riktiga marknadsodds sänks inte för att fylla kupongen. Försök igen senare.",
 
             generated:
               "Kupongen skapades och sparades.",
@@ -475,10 +483,12 @@ export default function PredictionCardsPage() {
             modeToday: "Today's Matches",
             modeSingle: "Single Match",
             modeAccumulator: "Smart Accumulator",
+            modeElite: "Målx Elite Coupon",
             modeAutomaticHelp: "The strongest predictions from upcoming matches.",
             modeTodayHelp: "The strongest predictions from matches scheduled today only.",
             modeSingleHelp: "Choose one match and Målx will evaluate its strongest available markets.",
             modeAccumulatorHelp: "High-confidence selections from different matches and leagues.",
+            modeEliteHelp: "A strict Premium coupon: at least 75% model probability, at least 80% confidence and real market odds. Thresholds are never lowered to fill the coupon.",
             chooseMatch: "Choose match",
             loadingMatches: "Loading matches...",
             noMatches: "No upcoming matches are available.",
@@ -610,6 +620,8 @@ export default function PredictionCardsPage() {
 
             generateFailed:
               "Unable to generate card.",
+            eliteInsufficient:
+              "There are not enough selections that currently meet the Målx Elite Coupon criteria. Probability, confidence and real market-odds requirements will not be lowered to fill the coupon. Please try again later.",
 
             generated:
               "Card generated and saved successfully.",
@@ -986,10 +998,18 @@ export default function PredictionCardsPage() {
       setMessage(text.generated);
 
     } catch (generateError) {
+      const message = errorMessage(generateError);
+
+      const isEliteInsufficient =
+        generateMode === "elite" &&
+        message.includes(
+          "Not enough high-confidence selections with real odds",
+        );
+
       setError(
-        `${text.generateFailed} ${errorMessage(
-          generateError,
-        )}`,
+        isEliteInsufficient
+          ? text.eliteInsufficient
+          : `${text.generateFailed} ${message}`,
       );
 
     } finally {
@@ -1323,6 +1343,7 @@ export default function PredictionCardsPage() {
                 ["today", text.modeToday],
                 ["single", text.modeSingle],
                 ["accumulator", text.modeAccumulator],
+                ["elite", text.modeElite],
               ] as const).map(([mode, label]) => {
                 const active = generateMode === mode;
 
@@ -1334,6 +1355,8 @@ export default function PredictionCardsPage() {
                       setGenerateMode(mode);
                       if (mode === "single") {
                         setSelectedCount((current) => Math.min(current, 6));
+                      } else if (mode === "elite") {
+                        setSelectedCount((current) => Math.max(current, 2));
                       }
                       setMessage(null);
                       setError(null);
@@ -1360,7 +1383,9 @@ export default function PredictionCardsPage() {
                   ? text.modeSingleHelp
                   : generateMode === "accumulator"
                     ? text.modeAccumulatorHelp
-                    : text.modeAutomaticHelp}
+                    : generateMode === "elite"
+                      ? text.modeEliteHelp
+                      : text.modeAutomaticHelp}
             </p>
 
             {generateMode === "single" && (
@@ -1417,7 +1442,15 @@ export default function PredictionCardsPage() {
 
             <div className="mt-3 grid grid-cols-5 gap-2 sm:grid-cols-8 lg:grid-cols-[repeat(15,minmax(0,1fr))]">
 
-              {counts.filter((count) => (generateMode !== "single" || count <= 6) && (generateMode !== "accumulator" || count >= 2)).map((count) => {
+              {counts.filter(
+                (count) =>
+                  (generateMode !== "single" || count <= 6) &&
+                  (
+                    (generateMode !== "accumulator" &&
+                      generateMode !== "elite") ||
+                    count >= 2
+                  ),
+              ).map((count) => {
                 const active =
                   count === selectedCount;
 

@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
-from app.database.models import User
+from app.database.models import Match, PredictionRecord, User
 from app.dependencies.auth import get_current_user
 from app.dependencies.subscription import require_premium
 from app.services.prediction_card_service import (
@@ -38,15 +38,37 @@ class PredictionCardCreateRequest(BaseModel):
 
 
 class PredictionCardGenerateRequest(BaseModel):
+    mode: str = Field(
+        default="automatic",
+        pattern="^(automatic|today|single|accumulator|elite)$",
+    )
     count: int = Field(
         default=5,
         ge=1,
         le=15,
     )
+    match_id: int | None = Field(
+        default=None,
+        gt=0,
+    )
+    timezone_offset_minutes: int = Field(
+        default=0,
+        ge=-840, le=840,
+    )
     title: str | None = Field(
         default=None,
         max_length=200,
     )
+
+class PredictionCardEligibleMatchResponse(BaseModel):
+    id: int
+    home_team: str | None
+    away_team: str | None
+    date: datetime
+    status: str
+    league_name: str | None
+    confidence: float
+
 
 class PredictionCardItemCreateRequest(BaseModel):
     match_id: int = Field(gt=0)
@@ -63,6 +85,7 @@ class PredictionCardItemResponse(BaseModel):
     home_team: str | None
     away_team: str | None
     match_status: str | None
+    match_date: datetime | None
 
     market: str
     selection: str
@@ -72,6 +95,9 @@ class PredictionCardItemResponse(BaseModel):
     probability: float
     confidence: float | None
     model_version: str | None
+    decimal_odds: float | None = None
+    bookmaker_name: str | None = None
+    provider_odd_id: int | None = None
 
     home_score: int | None
     away_score: int | None
@@ -216,11 +242,48 @@ def generate_prediction_card(
     service = _service(db)
 
     try:
-        card = service.generate_card(
-            user=current_user,
-            count=payload.count,
-            title=payload.title,
-        )
+        mode = payload.mode.strip().lower()
+
+        if mode == "automatic":
+            card = service.generate_card(
+                user=current_user,
+                count=payload.count,
+                title=payload.title,
+            )
+        elif mode == "today":
+            card = service.generate_today_card(
+                user=current_user,
+                count=payload.count,
+                title=payload.title,
+                timezone_offset_minutes=payload.timezone_offset_minutes,
+            )
+        elif mode == "single":
+            if payload.match_id is None:
+                raise PredictionCardValidationError(
+                    "match_id is required for single mode."
+                )
+            card = service.generate_single_match_card(
+                user=current_user,
+                match_id=payload.match_id,
+                count=payload.count,
+                title=payload.title,
+            )
+        elif mode == "accumulator":
+            card = service.generate_accumulator_card(
+                user=current_user,
+                count=payload.count,
+                title=payload.title,
+            )
+        elif mode == "elite":
+            card = service.generate_elite_coupon(
+                user=current_user,
+                count=payload.count,
+                title=payload.title,
+            )
+        else:
+            raise PredictionCardValidationError(
+                "Unsupported prediction card generation mode."
+            )
     except (
         PredictionCardValidationError,
         PredictionCardNotFoundError,
@@ -231,6 +294,68 @@ def generate_prediction_card(
         service,
         card,
     )
+
+@router.get(
+    "/eligible-matches",
+    response_model=list[PredictionCardEligibleMatchResponse],
+)
+def list_prediction_card_eligible_matches(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_premium),
+) -> list[PredictionCardEligibleMatchResponse]:
+    now = datetime.utcnow()
+
+    matches = (
+        db.query(Match)
+        .filter(
+            Match.date > now,
+            Match.status.in_(("1", "scheduled", "ns")),
+        )
+        .order_by(Match.date.asc(), Match.id.asc())
+        .all()
+    )
+
+    eligible: list[PredictionCardEligibleMatchResponse] = []
+
+    for match in matches:
+        record = (
+            db.query(PredictionRecord)
+            .filter(PredictionRecord.match_id == match.id)
+            .order_by(
+                PredictionRecord.created_at.desc(),
+                PredictionRecord.id.desc(),
+            )
+            .first()
+        )
+
+        if record is None:
+            continue
+
+        confidence = PredictionCardService._normalize_confidence(
+            record.confidence_score
+        )
+
+        if confidence is None or confidence < 0.75:
+            continue
+
+        eligible.append(
+            PredictionCardEligibleMatchResponse(
+                id=match.id,
+                home_team=PredictionCardService._team_name(
+                    match.home_team
+                ),
+                away_team=PredictionCardService._team_name(
+                    match.away_team
+                ),
+                date=match.date,
+                status=str(match.status),
+                league_name=match.league_name,
+                confidence=confidence,
+            )
+        )
+
+    return eligible
+
 
 @router.get(
     "/{card_id}",

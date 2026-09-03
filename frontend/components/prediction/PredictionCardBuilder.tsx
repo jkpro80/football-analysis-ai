@@ -411,7 +411,7 @@ export default function PredictionCardBuilder({
       : `${(Number(value) * 100).toFixed(2)}%`;
 
   return (
-    <section className="rounded-[32px] border border-cyan-500/25 bg-gradient-to-br from-cyan-950/20 via-[#050b1e] to-violet-950/20 p-5 sm:p-7">
+    <section className="rounded-[32px] border border-cyan-500/25 bg-gradient-to-br from-cyan-950/20 via-[#11161C] to-[#11161C]/20 p-5 sm:p-7">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-400">
@@ -422,7 +422,7 @@ export default function PredictionCardBuilder({
             {text.title}
           </h2>
 
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
             {text.subtitle}
           </p>
         </div>
@@ -439,7 +439,7 @@ export default function PredictionCardBuilder({
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <label className="block">
-          <span className="mb-2 block text-xs font-bold text-slate-400">
+          <span className="mb-2 block text-xs font-bold text-white/65">
             {text.card}
           </span>
 
@@ -453,7 +453,7 @@ export default function PredictionCardBuilder({
                   : null,
               )
             }
-            className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm font-bold text-white outline-none focus:border-cyan-400/50"
+            className="w-full rounded-xl border border-white/10 bg-[#080A0D] px-3 py-3 text-sm font-bold text-white outline-none focus:border-cyan-400/50"
           >
             {cards.length === 0 ? (
               <option value="">
@@ -472,7 +472,7 @@ export default function PredictionCardBuilder({
         </label>
 
         <label className="block">
-          <span className="mb-2 block text-xs font-bold text-slate-400">
+          <span className="mb-2 block text-xs font-bold text-white/65">
             {text.market}
           </span>
 
@@ -481,7 +481,7 @@ export default function PredictionCardBuilder({
             onChange={(event) =>
               setMarket(event.target.value as Market)
             }
-            className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm font-bold text-white outline-none focus:border-cyan-400/50"
+            className="w-full rounded-xl border border-white/10 bg-[#080A0D] px-3 py-3 text-sm font-bold text-white outline-none focus:border-cyan-400/50"
           >
             <option value="1x2">
               {text.resultMarket}
@@ -510,7 +510,7 @@ export default function PredictionCardBuilder({
         </label>
 
         <label className="block">
-          <span className="mb-2 block text-xs font-bold text-slate-400">
+          <span className="mb-2 block text-xs font-bold text-white/65">
             {text.selection}
           </span>
 
@@ -521,7 +521,7 @@ export default function PredictionCardBuilder({
                 event.target.value as Selection,
               )
             }
-            className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm font-bold text-white outline-none focus:border-cyan-400/50"
+            className="w-full rounded-xl border border-white/10 bg-[#080A0D] px-3 py-3 text-sm font-bold text-white outline-none focus:border-cyan-400/50"
           >
             {selectionOptions.map((option) => (
               <option
@@ -536,7 +536,7 @@ export default function PredictionCardBuilder({
 
         {requiresLine && (
           <label className="block">
-            <span className="mb-2 block text-xs font-bold text-slate-400">
+            <span className="mb-2 block text-xs font-bold text-white/65">
               {text.line}
             </span>
 
@@ -545,7 +545,7 @@ export default function PredictionCardBuilder({
               onChange={(event) =>
                 setLine(Number(event.target.value))
               }
-              className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm font-bold text-white outline-none focus:border-cyan-400/50"
+              className="w-full rounded-xl border border-white/10 bg-[#080A0D] px-3 py-3 text-sm font-bold text-white outline-none focus:border-cyan-400/50"
             >
               {availableLines.map((value) => (
                 <option key={value} value={value}>
@@ -586,7 +586,7 @@ export default function PredictionCardBuilder({
 
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl border border-cyan-400/15 bg-cyan-400/[0.04] p-4">
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-white/50">
                 {text.probability}
               </span>
 
@@ -595,12 +595,12 @@ export default function PredictionCardBuilder({
               </strong>
             </div>
 
-            <div className="rounded-xl border border-violet-400/15 bg-violet-400/[0.04] p-4">
-              <span className="text-xs text-slate-500">
+            <div className="rounded-xl border border-cyan-400/15 bg-cyan-400/[0.04] p-4">
+              <span className="text-xs text-white/50">
                 {text.expected}
               </span>
 
-              <strong className="mt-1 block text-xl text-violet-300">
+              <strong className="mt-1 block text-xl text-cyan-300">
                 {lastItem.expected_value == null
                   ? "—"
                   : Number(
@@ -610,7 +610,7 @@ export default function PredictionCardBuilder({
             </div>
 
             <div className="rounded-xl border border-emerald-400/15 bg-emerald-400/[0.04] p-4">
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-white/50">
                 {text.confidence}
               </span>
 

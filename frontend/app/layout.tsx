@@ -30,9 +30,59 @@ const themeInitializationScript = `
 `;
 
 export const metadata: Metadata = {
-  title: "Målx | Football Analytics",
+  metadataBase: new URL("https://målx.com"),
+
+  title: {
+    default: "MÅLX | Football Predictions & Analytics",
+    template: "%s | MÅLX",
+  },
+
   description:
-    "Målx football analytics, match intelligence and AI-powered predictions",
+    "MÅLX provides football predictions, match analysis, probabilities, statistics, fixtures and data-driven insights.",
+
+  applicationName: "MÅLX",
+
+  openGraph: {
+    type: "website",
+    siteName: "MÅLX",
+    title: "MÅLX | Football Predictions & Analytics",
+    description:
+      "Football predictions, match analysis, probabilities, statistics and data-driven insights.",
+  },
+
+  twitter: {
+    card: "summary_large_image",
+    title: "MÅLX | Football Predictions & Analytics",
+    description:
+      "Football predictions, match analysis, probabilities, statistics and data-driven insights.",
+  },
+
+  icons: {
+    icon: [
+      {
+        url: "/favicon.ico",
+        sizes: "256x256",
+        type: "image/x-icon",
+      },
+      {
+        url: "/icon.svg",
+        type: "image/svg+xml",
+      },
+    ],
+    shortcut: "/favicon.ico",
+  },
+
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
 };
 
 type RootLayoutProps = {

@@ -1,16 +1,23 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Awaitable, Callable
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.database.models import Match
+from app.database.models import (
+    FixtureLineup,
+    FixtureWeather,
+    Match,
+)
 from app.services.auto_calibration_service import (
     AutoCalibrationService,
 )
 from app.services.elo_service import EloService
+from app.services.fixture_context_sync_service import (
+    FixtureContextSyncService,
+)
 from app.services.model_tuning_service import ModelTuningService
 from app.services.prediction_evaluation_service import (
     PredictionEvaluationService,
@@ -51,6 +58,7 @@ class SystemUpdateOrchestrator:
 
         self.sync_service = SportmonksSyncService(db=db)
         self.statistics_service = StatisticsSyncService(db=db)
+        self.fixture_context_service = FixtureContextSyncService(db=db)
         self.elo_service = EloService(db=db)
         self.calibration_service = AutoCalibrationService(db=db)
         self.v11_tuning_service = ModelTuningService(
@@ -906,6 +914,280 @@ class SystemUpdateOrchestrator:
             return result
 
 
+    async def sync_fixture_context(
+        self,
+        *,
+        prediction_limit: int,
+        operations: list[dict[str, Any]],
+    ) -> dict[str, int]:
+        """
+        Synchronize fixture context using an API-efficient refresh policy.
+
+        Refresh cadence:
+        - More than 24 hours before kickoff: every 12 hours.
+        - Between 6 and 24 hours before kickoff: every 3 hours.
+        - From 6 hours before until 6 hours after kickoff: every hour.
+        - More than 6 hours after kickoff: do not refresh.
+
+        The latest lineup/weather sync timestamp is used as the freshness
+        marker. Absence rows are intentionally not required because a
+        successful provider response may legitimately contain zero absences.
+        """
+
+        now_utc = datetime.now(timezone.utc)
+        context_cutoff = (
+            now_utc - timedelta(hours=6)
+        ).replace(tzinfo=None)
+
+        matches_statement = (
+            select(Match)
+            .where(
+                Match.status.in_(("1", "scheduled", "ns")),
+                Match.home_score.is_(None),
+                Match.away_score.is_(None),
+                Match.sportmonks_id.is_not(None),
+                Match.date >= context_cutoff,
+            )
+            .order_by(Match.date.asc())
+            .limit(prediction_limit)
+        )
+
+        matches = list(
+            self.db.scalars(matches_statement).all()
+        )
+
+        synced = 0
+        skipped = 0
+        fresh_skipped = 0
+        failed = 0
+        lineups_stored = 0
+        absences_stored = 0
+        weather_stored = 0
+        context_results: list[dict[str, Any]] = []
+
+        for match in matches:
+            match_date = match.date
+
+            if match_date.tzinfo is None:
+                kickoff_utc = match_date.replace(
+                    tzinfo=timezone.utc
+                )
+            else:
+                kickoff_utc = match_date.astimezone(
+                    timezone.utc
+                )
+
+            until_kickoff = kickoff_utc - now_utc
+
+            # Protect API quota when a stale local status still says
+            # "scheduled" long after the fixture should have finished.
+            if until_kickoff < timedelta(hours=-6):
+                skipped += 1
+                context_results.append(
+                    {
+                        "fixture_id": match.id,
+                        "sportmonks_id": match.sportmonks_id,
+                        "status": "skipped",
+                        "reason": (
+                            "Fixture kickoff was more than "
+                            "6 hours ago."
+                        ),
+                    }
+                )
+                continue
+
+            if until_kickoff > timedelta(hours=24):
+                refresh_after = timedelta(hours=12)
+            elif until_kickoff > timedelta(hours=6):
+                refresh_after = timedelta(hours=3)
+            elif until_kickoff > timedelta(minutes=90):
+                refresh_after = timedelta(hours=1)
+            elif until_kickoff >= timedelta(hours=-2):
+                refresh_after = timedelta(minutes=15)
+            else:
+                refresh_after = timedelta(hours=1)
+
+            lineup_synced_at = self.db.scalar(
+                select(
+                    func.max(FixtureLineup.synced_at)
+                ).where(
+                    FixtureLineup.fixture_id == match.id
+                )
+            )
+
+            weather_synced_at = self.db.scalar(
+                select(
+                    func.max(FixtureWeather.synced_at)
+                ).where(
+                    FixtureWeather.fixture_id == match.id
+                )
+            )
+
+            sync_candidates = [
+                value
+                for value in (
+                    lineup_synced_at,
+                    weather_synced_at,
+                )
+                if value is not None
+            ]
+
+            last_synced_at = (
+                max(sync_candidates)
+                if sync_candidates
+                else None
+            )
+
+            if last_synced_at is not None:
+                if last_synced_at.tzinfo is None:
+                    last_synced_at = last_synced_at.replace(
+                        tzinfo=timezone.utc
+                    )
+                else:
+                    last_synced_at = (
+                        last_synced_at.astimezone(
+                            timezone.utc
+                        )
+                    )
+
+                age = now_utc - last_synced_at
+
+                if age < refresh_after:
+                    skipped += 1
+                    fresh_skipped += 1
+
+                    context_results.append(
+                        {
+                            "fixture_id": match.id,
+                            "sportmonks_id": match.sportmonks_id,
+                            "status": "skipped",
+                            "reason": (
+                                "Fixture context is still fresh."
+                            ),
+                            "last_synced_at": (
+                                last_synced_at.isoformat()
+                            ),
+                            "refresh_after_seconds": int(
+                                refresh_after.total_seconds()
+                            ),
+                        }
+                    )
+                    continue
+
+            try:
+                result = (
+                    await self.fixture_context_service.sync_match(
+                        match_id=match.id
+                    )
+                )
+
+                synced += 1
+
+                lineups = result.get("lineups") or {}
+                absences = result.get("absences") or {}
+                weather = result.get("weather") or {}
+
+                lineups_stored += int(
+                    lineups.get("stored", 0)
+                )
+                absences_stored += int(
+                    absences.get("stored", 0)
+                )
+                weather_stored += int(
+                    weather.get("stored", 0)
+                )
+
+                context_results.append(
+                    {
+                        "fixture_id": match.id,
+                        "sportmonks_id": match.sportmonks_id,
+                        "status": "success",
+                        "lineups": lineups,
+                        "absences": absences,
+                        "weather": weather,
+                    }
+                )
+
+            except SportmonksAPIError as error:
+                self.db.rollback()
+
+                if self._is_expected_sportmonks_skip(
+                    error
+                ):
+                    skipped += 1
+
+                    context_results.append(
+                        {
+                            "fixture_id": match.id,
+                            "sportmonks_id": match.sportmonks_id,
+                            "status": "skipped",
+                            "reason": (
+                                "Fixture context is not "
+                                "available in the current "
+                                "SportMonks subscription."
+                            ),
+                            "error": self._format_error(
+                                error
+                            ),
+                        }
+                    )
+                    continue
+
+                failed += 1
+
+                context_results.append(
+                    {
+                        "fixture_id": match.id,
+                        "sportmonks_id": match.sportmonks_id,
+                        "status": "failed",
+                        "error": self._format_error(
+                            error
+                        ),
+                    }
+                )
+
+            except Exception as error:
+                self.db.rollback()
+                failed += 1
+
+                context_results.append(
+                    {
+                        "fixture_id": match.id,
+                        "sportmonks_id": match.sportmonks_id,
+                        "status": "failed",
+                        "error": self._format_error(
+                            error
+                        ),
+                    }
+                )
+
+        summary = {
+            "matches_found": len(matches),
+            "synced": synced,
+            "skipped": skipped,
+            "fresh_skipped": fresh_skipped,
+            "failed": failed,
+            "lineups_stored": lineups_stored,
+            "absences_stored": absences_stored,
+            "weather_stored": weather_stored,
+        }
+
+        operations.append(
+            {
+                "step": "sync_fixture_context",
+                "status": (
+                    "success"
+                    if failed == 0
+                    else "completed_with_errors"
+                ),
+                "summary": summary,
+                "results": context_results,
+            }
+        )
+
+        return summary
+
+
     def generate_predictions(
         self,
         *,
@@ -1045,18 +1327,3 @@ class SystemUpdateOrchestrator:
     @staticmethod
     def _format_error(error: Exception) -> str:
         return f"{type(error).__name__}: {error}"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

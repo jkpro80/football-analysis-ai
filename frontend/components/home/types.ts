@@ -52,10 +52,18 @@ export type DashboardFixture = {
   modelVersion?: string;
 };
 
+export type DashboardMatchStats = {
+  scheduled: number;
+  live: number;
+};
+
 export type HomeDashboardProps = {
   fixtures: DashboardFixture[];
   explorerFixtures: DashboardFixture[];
   modelVersion: string;
+  matchStats: DashboardMatchStats;
+  upcomingHasMore: boolean;
+  upcomingNextOffset: number;
 };
 
 export type StatusFilter =
