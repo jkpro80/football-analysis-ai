@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import DataManagementPanel from "@/components/admin/DataManagementPanel";
 import MatchStatusChart from "@/components/MatchStatusChart";
+import { apiFetch } from "@/lib/api";
 
 type Team = {
   id: number;
@@ -17,6 +18,24 @@ type Match = {
   status: string;
   home_team: string;
   away_team: string;
+};
+
+type AdminStatistics = {
+  total_users: number;
+  active_users: number;
+  free: number;
+  pro: number;
+  premium: number;
+  paid_active: number;
+};
+
+const EMPTY_ADMIN_STATISTICS: AdminStatistics = {
+  total_users: 0,
+  active_users: 0,
+  free: 0,
+  pro: 0,
+  premium: 0,
+  paid_active: 0,
 };
 
 const API_URL =
@@ -66,6 +85,25 @@ async function getMatches(): Promise<Match[]> {
   );
 
   return Array.isArray(data) ? (data as Match[]) : [];
+}
+
+async function getAdminStatistics(): Promise<AdminStatistics> {
+  try {
+    return await apiFetch<AdminStatistics>(
+      "/admin/statistics",
+      {
+        admin: true,
+        cache: "no-store",
+      },
+    );
+  } catch (error) {
+    console.error(
+      "Unable to load admin statistics:",
+      error,
+    );
+
+    return EMPTY_ADMIN_STATISTICS;
+  }
 }
 
 function normalizeStatus(status: string): string {
@@ -179,9 +217,10 @@ function StatCard({
 }
 
 export default async function AdminDashboardPage() {
-  const [teams, matches] = await Promise.all([
+  const [teams, matches, adminStatistics] = await Promise.all([
     getTeams(),
     getMatches(),
+    getAdminStatistics(),
   ]);
 
   const liveMatches = matches.filter(
@@ -316,6 +355,75 @@ export default async function AdminDashboardPage() {
         </header>
 
         <DataManagementPanel />
+
+        <section
+          style={{
+            marginBottom: "28px",
+          }}
+        >
+          <div
+            style={{
+              marginBottom: "16px",
+            }}
+          >
+            <h2
+              style={{
+                margin: 0,
+                fontSize: "26px",
+              }}
+            >
+              المستخدمون والاشتراكات
+            </h2>
+
+            <p
+              style={{
+                margin: "6px 0 0",
+                color: "#64748b",
+              }}
+            >
+              الاشتراكات النشطة الحالية في النظام
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(auto-fit, minmax(180px, 1fr))",
+              gap: "18px",
+            }}
+          >
+            <StatCard
+              title="إجمالي المستخدمين"
+              value={adminStatistics.total_users}
+              description="جميع الحسابات المسجلة"
+            />
+
+            <StatCard
+              title="المستخدمون النشطون"
+              value={adminStatistics.active_users}
+              description="الحسابات المفعلة حاليًا"
+            />
+
+            <StatCard
+              title="Free"
+              value={adminStatistics.free}
+              description="اشتراكات Free النشطة"
+            />
+
+            <StatCard
+              title="Pro"
+              value={adminStatistics.pro}
+              description="اشتراكات Pro النشطة"
+            />
+
+            <StatCard
+              title="Premium"
+              value={adminStatistics.premium}
+              description="اشتراكات Premium النشطة"
+            />
+          </div>
+        </section>
 
         <section
           style={{

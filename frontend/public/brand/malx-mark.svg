@@ -1,0 +1,19 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="m1" x1="25" y1="45" x2="225" y2="215" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22D3EE"/>
+      <stop offset=".45" stop-color="#0EA5E9"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+  </defs>
+
+  <path d="M28 55L128 128L228 55V120L128 193L28 120V55Z" fill="url(#m1)"/>
+  <path d="M28 120L77 156V220L28 184V120Z" fill="#0284C7"/>
+  <path d="M228 120L179 156V220L228 184V120Z" fill="#2563EB"/>
+
+  <circle cx="128" cy="42" r="29" fill="#F8FAFC"/>
+  <circle cx="128" cy="42" r="10" fill="#0F172A"/>
+  <path d="M128 14L140 23L136 34H120L116 23L128 14Z" fill="#0F172A"/>
+  <path d="M101 37L113 31L120 43L112 55L100 51L101 37Z" fill="#0F172A"/>
+  <path d="M155 37L143 31L136 43L144 55L156 51L155 37Z" fill="#0F172A"/>
+</svg>

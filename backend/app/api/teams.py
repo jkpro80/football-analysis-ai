@@ -85,6 +85,7 @@ def serialize_team(
         "sportmonks_id": team.sportmonks_id,
         "name": team.name,
         "country": team.country,
+        "logo_url": team.logo_url,
         "attack": team.attack,
         "defense": team.defense,
         "midfield": team.midfield,
@@ -135,6 +136,13 @@ def get_teams(
         ge=1,
         le=1000,
     ),
+    current_only: bool = Query(
+        default=False,
+        description=(
+            "Return only teams in the configured "
+            "current competition seasons."
+        ),
+    ),
     db: Session = Depends(get_db),
 ) -> list[dict[str, Any]]:
     """
@@ -142,8 +150,15 @@ def get_teams(
     """
 
     try:
+        query = db.query(Team)
+
+        if current_only:
+            query = query.filter(
+                Team.is_current_competition_team.is_(True)
+            )
+
         teams = (
-            db.query(Team)
+            query
             .order_by(
                 Team.name.asc(),
                 Team.id.asc(),

@@ -1,4 +1,7 @@
+from copy import deepcopy
 from datetime import datetime, timezone
+from threading import RLock
+from time import monotonic
 from typing import Any
 
 from sqlalchemy import select
@@ -19,6 +22,13 @@ class PredictionV11UpcomingService:
         f"{PredictionEngineV11.VERSION}"
     )
 
+    CACHE_TTL_SECONDS = 60.0
+    _prediction_cache: dict[
+        tuple[int, int, int, int],
+        tuple[float, dict[str, Any]],
+    ] = {}
+    _prediction_cache_lock = RLock()
+
     """
     إنشاء توقعات V11 للمباريات القادمة.
 
@@ -36,6 +46,51 @@ class PredictionV11UpcomingService:
         self.db = db
         self.max_goals = max_goals
         self.top_scores_count = top_scores_count
+
+    def _get_cached_prediction(
+        self,
+        prediction_service: PredictionV11Service,
+        match_id: int,
+        history_limit: int,
+    ) -> dict[str, Any]:
+        cache_key = (
+            match_id,
+            history_limit,
+            self.max_goals,
+            self.top_scores_count,
+        )
+        now = monotonic()
+
+        with self._prediction_cache_lock:
+            cached_entry = self._prediction_cache.get(
+                cache_key
+            )
+
+            if cached_entry is not None:
+                expires_at, cached_result = cached_entry
+
+                if expires_at > now:
+                    return deepcopy(cached_result)
+
+                self._prediction_cache.pop(
+                    cache_key,
+                    None,
+                )
+
+        result = prediction_service.predict_match(
+            match_id=match_id,
+            history_limit=history_limit,
+            max_goals=self.max_goals,
+            top_scores_count=self.top_scores_count,
+        )
+
+        with self._prediction_cache_lock:
+            self._prediction_cache[cache_key] = (
+                monotonic() + self.CACHE_TTL_SECONDS,
+                deepcopy(result),
+            )
+
+        return result
 
     @staticmethod
     def _as_dict(value: Any) -> dict[str, Any]:
@@ -392,7 +447,7 @@ class PredictionV11UpcomingService:
         )
 
         return {
-            "prediction_record_id": match.id,
+            "prediction_record_id": raw_record.get("id"),
             "fixture": {
                 "id": match.id,
                 "sportmonks_id": (
@@ -613,11 +668,10 @@ class PredictionV11UpcomingService:
 
         for match in matches:
             try:
-                result = prediction_service.predict_match(
+                result = self._get_cached_prediction(
+                    prediction_service=prediction_service,
                     match_id=match.id,
                     history_limit=safe_history_limit,
-                    max_goals=self.max_goals,
-                    top_scores_count=self.top_scores_count,
                 )
 
                 mapped = PredictionMapperV11.to_latest(

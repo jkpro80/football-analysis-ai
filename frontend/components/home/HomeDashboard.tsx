@@ -12,7 +12,6 @@ import AIInsights from "./AIInsights";
 import { confidenceClasses, normalizeStatus } from "./helpers";
 import MatchExplorer from "./MatchExplorer";
 import PredictionResultsTicker from "./PredictionResultsTicker";
-import PremiumStrongPicks from "./PremiumStrongPicks";
 import StatCard from "./StatCard";
 import TopPickCard from "./TopPickCard";
 import type { HomeDashboardProps } from "./types";
@@ -35,7 +34,7 @@ export default function HomeDashboard({
   const t =
     locale === "ar"
       ? {
-          heroTitle: "لوحة تحليل مباريات كرة القدم",
+          heroTitle: "ذكاء كرة القدم يبدأ من Målx",
           heroDescription:
             "البحث عن المباريات، ترتيب التوقعات، ومراجعة أفضل اختيارات محرك الذكاء الاصطناعي.",
           allMatches: "جميع المباريات",
@@ -153,14 +152,17 @@ export default function HomeDashboard({
   return (
     <main
       dir={locale === "ar" ? "rtl" : "ltr"}
-      className="min-h-screen bg-[#020617] text-white"
+      className="malx-home min-h-screen"
     >
       <div className="mx-auto max-w-7xl px-3 py-4 sm:px-5 sm:py-6 lg:px-8 lg:py-8">
-        <header className="rounded-xl border border-cyan-500/20 bg-gradient-to-l from-cyan-950/30 via-slate-950 to-violet-950/30 p-3 sm:rounded-[28px] sm:p-7 lg:rounded-[32px] lg:p-10">
-          <nav className="flex flex-col items-stretch justify-between gap-3 sm:gap-6 lg:flex-row lg:items-center">
+        <header className="malx-home-surface relative overflow-hidden rounded-[22px] border border-cyan-400/20 bg-[#050d1d] p-4 shadow-[0_24px_80px_rgba(0,0,0,0.28)] sm:rounded-[30px] sm:p-7 lg:rounded-[34px] lg:p-10">
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(14,165,233,0.16),transparent_30%),radial-gradient(circle_at_88%_82%,rgba(37,99,235,0.14),transparent_34%)]" />
+          <div className="pointer-events-none absolute inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,.7)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.7)_1px,transparent_1px)] [background-size:34px_34px]" />
+
+          <nav className="relative z-10 flex flex-col items-stretch justify-between gap-3 sm:gap-6 lg:flex-row lg:items-center">
             <div>
               <p className="text-[9px] font-bold tracking-[0.14em] text-cyan-400 sm:text-sm sm:tracking-[0.2em]">
-                FOOTBALL ANALYSIS AI
+                MÅLX FOOTBALL ANALYTICS
               </p>
 
               <h1 className="mt-1.5 text-xl font-black leading-tight sm:mt-3 sm:text-4xl lg:text-5xl">
@@ -191,7 +193,7 @@ export default function HomeDashboard({
             </div>
           </nav>
 
-          <PredictionResultsTicker />
+          <div className="relative z-10"><PredictionResultsTicker /></div>
         </header>
 
         <AdSlider />
@@ -202,7 +204,7 @@ export default function HomeDashboard({
           alt={t.ad}
         />
 
-        <section className="mt-4 grid grid-cols-2 gap-2 sm:mt-7 sm:gap-5 lg:grid-cols-4">
+        <section className="malx-home-surface mt-4 grid grid-cols-2 gap-2 sm:mt-7 sm:gap-5 lg:grid-cols-4">
           <StatCard
             title={t.availableMatches}
             value={fixtures.length}
@@ -234,7 +236,7 @@ export default function HomeDashboard({
           />
         </section>
 
-        <section className="mt-8 sm:mt-10">
+        <section className="malx-home-surface mt-8 sm:mt-10">
           <div className="mb-6">
             <p className="text-sm font-bold tracking-[0.2em] text-emerald-400">
               TOP AI PICKS
@@ -265,19 +267,77 @@ export default function HomeDashboard({
             </div>
           )}
         </section>
+        {/* HOME-LEAGUE-SELECTOR */}
+        <section className="malx-home-surface mt-8 sm:mt-10">
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold tracking-[0.2em] text-cyan-400">
+                MÅLX LEAGUES
+              </p>
+              <h2 className="mt-2 text-2xl font-black sm:text-3xl">
+                {locale === "ar"
+                  ? "اختر الدوري"
+                  : locale === "sv"
+                    ? "Välj liga"
+                    : "Choose a League"}
+              </h2>
+            </div>
 
-        <PremiumStrongPicks />
+            <Link
+              href="/leagues"
+              className="text-sm font-bold text-cyan-400 transition hover:text-cyan-300"
+            >
+              {locale === "ar"
+                ? "كل الدوريات"
+                : locale === "sv"
+                  ? "Alla ligor"
+                  : "All Leagues"}
+            </Link>
+          </div>
 
-        <section className="mt-8 sm:mt-12">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {[
+              ["Premier League", "ENG"],
+              ["La Liga", "ESP"],
+              ["Serie A", "ITA"],
+              ["Bundesliga", "GER"],
+              ["Ligue 1", "FRA"],
+            ].map(([name, code]) => (
+              <Link
+                key={name}
+                href={`/leagues?league=${encodeURIComponent(name)}#league-matches`}
+                className="group rounded-2xl border border-slate-800 bg-slate-950/60 p-4 transition hover:-translate-y-0.5 hover:border-cyan-400/60 hover:bg-slate-900"
+              >
+                <span className="text-[10px] font-black tracking-[0.18em] text-slate-500 group-hover:text-cyan-400">
+                  {code}
+                </span>
+
+                <p className="mt-3 text-sm font-black text-white sm:text-base">
+                  {name}
+                </p>
+
+                <p className="mt-2 text-xs font-bold text-slate-500 group-hover:text-cyan-300">
+                  {locale === "ar"
+                    ? "عرض المباريات"
+                    : locale === "sv"
+                      ? "Visa matcher"
+                      : "View Matches"}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section className="malx-home-surface mt-8 sm:mt-12">
           <AIInsights fixtures={fixtures} />
         </section>
 
-        <section className="mt-8 sm:mt-12">
+        <section className="malx-home-surface mt-8 sm:mt-12">
           <MatchExplorer fixtures={explorerFixtures} />
         </section>
 
-        <footer className="mt-14 border-t border-slate-800 py-7 text-center text-sm text-slate-600">
-          Football Analysis AI
+        <footer className="malx-home-surface mt-14 border-t border-slate-800 py-7 text-center text-sm text-slate-600">
+          Målx • Football Analytics
         </footer>
       </div>
     </main>

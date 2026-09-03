@@ -12,6 +12,9 @@ from app.engine.prediction_engine_v11 import (
 from app.schemas.prediction_response import PredictionResponse
 from app.services.analysis_usage_service import AnalysisUsageService
 from app.services.auth_service import AuthService
+from app.services.fixture_context_analyzer import (
+    FixtureContextAnalyzer,
+)
 logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/predictions",
@@ -111,6 +114,8 @@ def get_prediction(
     is_premium = plan_code == "premium"
 
     allow_advanced_markets = is_pro_or_higher
+    allow_match_intelligence = is_pro_or_higher
+
     allow_score_matrix = (
         is_pro_or_higher
         and include_score_matrix
@@ -135,6 +140,25 @@ def get_prediction(
         response = PredictionResponse.model_validate(
             result,
         )
+
+        if allow_match_intelligence:
+            try:
+                response.match_intelligence = (
+                    FixtureContextAnalyzer(
+                        db=db,
+                    ).analyze(
+                        fixture_id=match_id,
+                    )
+                )
+            except Exception:
+                logger.exception(
+                    "Match intelligence analysis failed "
+                    "for match_id=%s",
+                    match_id,
+                )
+                response.match_intelligence = None
+        else:
+            response.match_intelligence = None
 
         if plan_code == "free":
             response = PredictionResponse.model_validate(
@@ -181,6 +205,9 @@ def get_prediction(
 
         response.access.plan_code = plan_code
         response.access.advanced_markets = allow_advanced_markets
+        response.access.match_intelligence = (
+            allow_match_intelligence
+        )
         response.access.score_matrix = allow_score_matrix
         response.access.features = allow_features
         response.access.raw_data = allow_raw_data

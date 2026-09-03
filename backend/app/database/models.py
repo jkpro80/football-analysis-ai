@@ -45,6 +45,14 @@ class Team(Base):
         String(500),
         nullable=True,
     )
+    is_current_competition_team = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+        index=True,
+    )
+
     attack = Column(
         Integer,
         default=80,
@@ -1246,6 +1254,12 @@ class User(Base):
     )
 
 
+    prediction_cards = relationship(
+        "PredictionCard",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
 class PasswordResetToken(Base):
     __tablename__ = "password_reset_tokens"
 
@@ -1755,4 +1769,175 @@ class FavoriteMatch(Base):
 
     match = relationship(
         "Match",
+    )
+
+
+
+class PredictionCard(Base):
+    __tablename__ = "prediction_cards"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    user_id = Column(
+        Integer,
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    card_number = Column(
+        String(50),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+
+    title = Column(
+        String(200),
+        nullable=True,
+    )
+
+    status = Column(
+        String(30),
+        nullable=False,
+        default="draft",
+        index=True,
+    )
+
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    user = relationship(
+        "User",
+        back_populates="prediction_cards",
+    )
+
+    items = relationship(
+        "PredictionCardItem",
+        back_populates="card",
+        cascade="all, delete-orphan",
+        order_by="PredictionCardItem.id",
+    )
+
+
+class PredictionCardItem(Base):
+    __tablename__ = "prediction_card_items"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "card_id",
+            "match_id",
+            "market",
+            "selection",
+            "line",
+            name="uq_prediction_card_item_selection",
+        ),
+    )
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    card_id = Column(
+        Integer,
+        ForeignKey(
+            "prediction_cards.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    match_id = Column(
+        Integer,
+        ForeignKey(
+            "matches.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    prediction_record_id = Column(
+        Integer,
+        ForeignKey(
+            "prediction_records.id",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+        index=True,
+    )
+
+    market = Column(
+        String(50),
+        nullable=False,
+        index=True,
+    )
+
+    selection = Column(
+        String(100),
+        nullable=False,
+    )
+
+    line = Column(
+        Float,
+        nullable=True,
+    )
+
+    expected_value = Column(
+        Float,
+        nullable=True,
+    )
+
+    probability = Column(
+        Float,
+        nullable=False,
+    )
+
+    confidence = Column(
+        Float,
+        nullable=True,
+    )
+
+    model_version = Column(
+        String(50),
+        nullable=True,
+    )
+
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    card = relationship(
+        "PredictionCard",
+        back_populates="items",
+    )
+
+    match = relationship(
+        "Match",
+    )
+
+    prediction_record = relationship(
+        "PredictionRecord",
     )

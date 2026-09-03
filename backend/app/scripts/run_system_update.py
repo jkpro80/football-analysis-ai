@@ -6,8 +6,10 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
 
+from app.core.config import settings
 from app.database.database import SessionLocal
-from app.database.models import SystemJob, Team
+from app.database.models import SystemJob
+from app.providers.teams_provider import TeamsProvider
 from app.services.job_manager import (
     complete_job,
     create_job,
@@ -20,18 +22,63 @@ from app.services.system_update_orchestrator import SystemUpdateOrchestrator
 JOB_TYPE = "system_update_auto"
 
 
-def get_team_ids(db) -> list[int]:
-    statement = (
-        select(Team.sportmonks_id)
-        .where(Team.sportmonks_id.is_not(None))
-        .order_by(Team.id.asc())
-    )
+def get_team_ids() -> list[int]:
+    """
+    Return SportMonks team IDs for the configured
+    current competition seasons.
+    """
 
-    return [
-        int(team_id)
-        for team_id in db.scalars(statement).all()
-        if team_id is not None
-    ]
+    provider = TeamsProvider()
+    team_ids: set[int] = set()
+
+    for competition in (
+        settings.sportmonks_competition_scope.values()
+    ):
+        season_id = competition.get("season_id")
+
+        if (
+            not isinstance(season_id, int)
+            or season_id <= 0
+        ):
+            raise RuntimeError(
+                "Invalid SportMonks season_id "
+                "in competition scope."
+            )
+
+        response = provider.get_teams_by_season(
+            season_id
+        )
+
+        data = (
+            response.get("data", [])
+            if isinstance(response, dict)
+            else []
+        )
+
+        if not isinstance(data, list):
+            raise RuntimeError(
+                f"Invalid teams response for "
+                f"season_id={season_id}."
+            )
+
+        for team_data in data:
+            if not isinstance(team_data, dict):
+                continue
+
+            sportmonks_id = team_data.get("id")
+
+            if sportmonks_id is None:
+                continue
+
+            try:
+                team_id = int(sportmonks_id)
+            except (TypeError, ValueError):
+                continue
+
+            if team_id > 0:
+                team_ids.add(team_id)
+
+    return sorted(team_ids)
 
 
 def has_active_job(db) -> bool:
@@ -68,7 +115,7 @@ async def run() -> int:
             )
             return 0
 
-        team_ids = get_team_ids(db)
+        team_ids = get_team_ids()
 
         if not team_ids:
             print(

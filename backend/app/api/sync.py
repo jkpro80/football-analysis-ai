@@ -109,7 +109,7 @@ async def sync_all_teams(
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """
-    مزامنة جميع الفرق من Sportmonks.
+    مزامنة فرق الدوريات والمواسم المحددة فقط.
     """
 
     try:
@@ -117,7 +117,7 @@ async def sync_all_teams(
             db=db,
         )
 
-        return await service.sync_all_teams()
+        return await service.sync_competition_teams()
 
     except SportmonksAPIError as error:
         traceback.print_exc()

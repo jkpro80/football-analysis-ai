@@ -57,10 +57,10 @@ export default function ConfidenceGauge({
     safeValue >= 80
       ? {
           label: text.veryStrong,
-          ringColor: "#38bdf8",
-          borderClass: "border-sky-500/30",
-          backgroundClass: "bg-sky-950/15",
-          textClass: "text-sky-300",
+          ringColor: "#34d399",
+          borderClass: "border-emerald-500/30",
+          backgroundClass: "bg-emerald-950/15",
+          textClass: "text-emerald-300",
         }
       : safeValue >= 60
         ? {
@@ -90,7 +90,7 @@ export default function ConfidenceGauge({
     <div
       dir={direction}
       className={[
-        "rounded-3xl border p-7 text-center",
+        "rounded-2xl border p-5 text-center shadow-[0_12px_35px_rgba(0,0,0,0.12)]",
         confidenceStyle.borderClass,
         confidenceStyle.backgroundClass,
       ].join(" ")}
@@ -100,7 +100,7 @@ export default function ConfidenceGauge({
       </p>
 
       <div
-        className="mx-auto mt-5 flex h-40 w-40 items-center justify-center rounded-full p-4"
+        className="mx-auto mt-4 flex h-32 w-32 items-center justify-center rounded-full p-3"
         style={{
           background: `conic-gradient(${confidenceStyle.ringColor} ${safeValue}%, #1e293b 0)`,
         }}
@@ -108,7 +108,7 @@ export default function ConfidenceGauge({
         <div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-[#050b1e]">
           <span
             className={[
-              "text-4xl font-black",
+              "text-3xl font-black",
               confidenceStyle.textClass,
             ].join(" ")}
           >

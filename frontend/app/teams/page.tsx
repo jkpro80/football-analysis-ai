@@ -60,7 +60,7 @@ async function getTeams(): Promise<TeamItem[]> {
     "http://backend:8000";
 
   const response = await fetch(
-    `${apiUrl}/teams`,
+    `${apiUrl}/teams?current_only=true`,
     {
       cache: "no-store",
     },

@@ -45,7 +45,7 @@ export default function AppLayout({
   return (
     <div
       dir={direction}
-      className="min-h-screen overflow-x-hidden bg-slate-950 text-slate-100"
+      className="malx-app min-h-screen overflow-x-clip"
     >
       <div className="flex min-h-screen">
         <Sidebar />

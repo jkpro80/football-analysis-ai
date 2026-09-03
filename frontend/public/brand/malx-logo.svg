@@ -1,0 +1,49 @@
+<svg width="580" height="220" viewBox="0 0 580 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="blueA" x1="20" y1="30" x2="205" y2="190" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22D3EE"/>
+      <stop offset=".45" stop-color="#0EA5E9"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+    <linearGradient id="blueB" x1="200" y1="30" x2="75" y2="185" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38BDF8"/>
+      <stop offset=".5" stop-color="#0284C7"/>
+      <stop offset="1" stop-color="#1D4ED8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- M brand mark -->
+  <g transform="translate(10 12)">
+    <path d="M20 32L105 94L190 32V88L105 150L20 88V32Z" fill="url(#blueA)"/>
+    <path d="M20 88L62 119V176L20 146V88Z" fill="#0284C7"/>
+    <path d="M190 88L148 119V176L190 146V88Z" fill="url(#blueB)"/>
+    <path d="M20 32L105 94L105 150L62 119L20 88V32Z" fill="#0EA5E9" fill-opacity=".72"/>
+    <path d="M190 32L105 94V150L148 119L190 88V32Z" fill="#2563EB" fill-opacity=".78"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="225" y="128"
+        fill="#FFFFFF"
+        font-size="96"
+        font-family="Arial, Helvetica, sans-serif"
+        font-weight="800"
+        letter-spacing="-4">Malx</text>
+
+  <!-- Football replacing the ring above å -->
+  <g transform="translate(310 20) scale(1.25)">
+    <circle cx="18" cy="18" r="17" fill="#F8FAFC"/>
+    <circle cx="18" cy="18" r="6" fill="#0F172A"/>
+    <path d="M18 1L25 6L23 12L13 12L11 6L18 1Z" fill="#0F172A"/>
+    <path d="M2 14L9 10L13 16L9 24L3 22L2 14Z" fill="#0F172A"/>
+    <path d="M34 14L27 10L23 16L27 24L33 22L34 14Z" fill="#0F172A"/>
+    <path d="M10 33L10 25L17 22L23 27L20 35L10 33Z" fill="#0F172A"/>
+    <path d="M26 33L26 25L20 22L15 27L18 35L26 33Z" fill="#0F172A" fill-opacity=".55"/>
+  </g>
+
+  <text x="230" y="174"
+        fill="#00D4FF"
+        font-size="18"
+        font-family="Arial, Helvetica, sans-serif"
+        font-weight="700"
+        letter-spacing="7">FOOTBALL ANALYTICS</text>
+</svg>

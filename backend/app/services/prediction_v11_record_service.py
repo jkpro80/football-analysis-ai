@@ -503,14 +503,50 @@ class PredictionV11RecordService:
         over_2_5: float,
         btts_yes: float,
     ) -> tuple[str, str, float]:
+        under_2_5 = max(
+            0.0,
+            min(
+                100.0,
+                100.0 - float(over_2_5),
+            ),
+        )
+
+        btts_no = max(
+            0.0,
+            min(
+                100.0,
+                100.0 - float(btts_yes),
+            ),
+        )
+
         candidates = {
-            "home_win": ("Home Win", home_win),
-            "draw": ("Draw", draw),
-            "away_win": ("Away Win", away_win),
-            "over_2_5": ("Over 2.5 Goals", over_2_5),
+            "home_win": (
+                "Home Win",
+                home_win,
+            ),
+            "draw": (
+                "Draw",
+                draw,
+            ),
+            "away_win": (
+                "Away Win",
+                away_win,
+            ),
+            "over_2_5": (
+                "Over 2.5 Goals",
+                over_2_5,
+            ),
+            "under_2_5": (
+                "Under 2.5 Goals",
+                under_2_5,
+            ),
             "btts_yes": (
                 "Both Teams to Score",
                 btts_yes,
+            ),
+            "btts_no": (
+                "Both Teams Not to Score",
+                btts_no,
             ),
         }
 
@@ -518,10 +554,10 @@ class PredictionV11RecordService:
             candidates,
             key=lambda item: candidates[item][1],
         )
+
         label, probability = candidates[key]
 
         return key, label, float(probability)
-
     @classmethod
     def _confidence_label(
         cls,
@@ -562,6 +598,7 @@ class PredictionV11RecordService:
         away_win: float,
     ) -> int:
         raw_score = cls._first_value(
+            confidence.get("confidence"),
             confidence.get("score"),
             confidence.get("confidence_score"),
             confidence.get("percentage"),

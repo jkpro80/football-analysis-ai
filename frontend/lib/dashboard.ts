@@ -12,6 +12,18 @@ type ApiTeam = {
 type ApiPrediction = {
   prediction_record_id: number;
 
+  league?: {
+    name?: string | null;
+    logo?: string | null;
+  } | null;
+
+  season?: {
+    name?: string | null;
+  } | null;
+
+  round?: string | null;
+  stage?: string | null;
+
   fixture: {
     id: number;
     sportmonks_id?: number;
@@ -103,6 +115,31 @@ function mapPrediction(
     status:
       normalizeStatus(
         item.fixture.status ?? "scheduled",
+      ),
+
+    leagueName:
+      normalizeOptionalText(
+        item.league?.name,
+      ),
+
+    leagueLogo:
+      normalizeOptionalText(
+        item.league?.logo,
+      ) ?? null,
+
+    seasonName:
+      normalizeOptionalText(
+        item.season?.name,
+      ),
+
+    roundName:
+      normalizeOptionalText(
+        item.round,
+      ),
+
+    stageName:
+      normalizeOptionalText(
+        item.stage,
       ),
 
     homeTeam: {

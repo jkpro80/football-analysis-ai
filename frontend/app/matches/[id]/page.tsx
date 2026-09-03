@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
 
 import LatestMatchHero from "@/components/prediction/LatestMatchHero";
+import MatchIntelligence, { type MatchIntelligenceData } from "@/components/prediction/MatchIntelligence";
 import ConfidenceGauge from "@/components/prediction/ConfidenceGauge";
 import ProScoreMatrix from "@/components/prediction/ProScoreMatrix";
+import MatchDashboardOverview from "@/components/prediction/MatchDashboardOverview";
 import { apiFetch } from "@/lib/api";
 import { cookies } from "next/headers";
 import { resolveRequestLocale } from "@/lib/i18n/server";
@@ -193,6 +195,9 @@ type LatestPredictionResponse = {
   };
 
   evaluation?: PredictionEvaluation;
+
+  match_intelligence_available: boolean;
+  match_intelligence: MatchIntelligenceData | null;
 
   match_events: {
     corners: {
@@ -432,10 +437,13 @@ type OfficialPredictionResponse = {
   access: {
     plan_code: string;
     advanced_markets: boolean;
+    match_intelligence: boolean;
     score_matrix: boolean;
     features: boolean;
     raw_data: boolean;
   };
+
+  match_intelligence?: MatchIntelligenceData | null;
 
   btts: {
     yes?: number;
@@ -869,6 +877,12 @@ async function getPrediction(
     evaluation:
       prediction.evaluation ?? undefined,
 
+    match_intelligence_available:
+      prediction.access.match_intelligence,
+
+    match_intelligence:
+      prediction.match_intelligence ?? null,
+
     markets: {
       advanced_available:
         prediction.access.advanced_markets,
@@ -1189,6 +1203,57 @@ function formatCapacity(
   return new Intl.NumberFormat(intlLocale(locale)).format(capacity);
 }
 
+type ConfidenceTone = {
+  border: string;
+  background: string;
+  text: string;
+  fill: string;
+  badge: string;
+  label: "high" | "medium" | "low";
+};
+
+function confidenceTone(value: number): ConfidenceTone {
+  const safeValue = Math.min(Math.max(Number(value) || 0, 0), 100);
+
+  if (safeValue >= 60) {
+    return {
+      border: "border-emerald-400/35",
+      background: "bg-emerald-400/[0.07]",
+      text: "text-emerald-300",
+      fill: "bg-emerald-400",
+      badge: "border-emerald-400/25 bg-emerald-400/10 text-emerald-300",
+      label: "high",
+    };
+  }
+
+  if (safeValue >= 40) {
+    return {
+      border: "border-amber-400/35",
+      background: "bg-amber-400/[0.07]",
+      text: "text-amber-300",
+      fill: "bg-amber-400",
+      badge: "border-amber-400/25 bg-amber-400/10 text-amber-300",
+      label: "medium",
+    };
+  }
+
+  return {
+    border: "border-rose-400/35",
+    background: "bg-rose-400/[0.07]",
+    text: "text-rose-300",
+    fill: "bg-rose-400",
+    badge: "border-rose-400/25 bg-rose-400/10 text-rose-300",
+    label: "low",
+  };
+}
+
+function fairOdds(probability: number) {
+  const safeProbability = Number(probability) || 0;
+  return safeProbability > 0
+    ? (100 / safeProbability).toFixed(2)
+    : "—";
+}
+
 function ProgressCard({
   title,
   value,
@@ -1200,42 +1265,20 @@ function ProgressCard({
   active?: boolean;
   activeLabel?: string;
 }) {
+  const safeValue = Math.min(Math.max(Number(value) || 0, 0), 100);
+  const tone = confidenceTone(safeValue);
+
   return (
-    <div
-      className={`rounded-3xl border p-6 ${
-        active
-          ? "border-violet-500/40 bg-violet-950/20"
-          : "border-cyan-500/20 bg-slate-950/40"
-      }`}
-    >
+    <div className="rounded-xl border border-slate-800/80 bg-[#061020]/72 px-3 py-2.5">
       <div className="flex items-center justify-between gap-3">
-        <p className="font-bold text-slate-200">{title}</p>
-        {active && (
-          <span className="rounded-full bg-violet-500/15 px-3 py-1 text-xs text-violet-300">
-            {activeLabel}
-          </span>
-        )}
+        <div className="min-w-0">
+          <p className="min-h-[2.25rem] whitespace-normal text-[13px] font-bold leading-[1.15rem] text-slate-200">{title}</p>
+          {active && <span className="mt-1 block text-[12px] font-black text-cyan-400">{activeLabel}</span>}
+        </div>
+        <strong dir="ltr" className={["shrink-0 text-base font-black tabular-nums", tone.text].join(" ")}>{pct(safeValue)}</strong>
       </div>
-
-      <p
-        className={`mt-4 text-4xl font-black ${
-          active ? "text-violet-300" : "text-cyan-300"
-        }`}
-      >
-        {pct(value)}
-      </p>
-
-      <div className="mt-5 h-2.5 overflow-hidden rounded-full bg-slate-800">
-        <div
-          className={
-            active
-              ? "h-full rounded-full bg-violet-400"
-              : "h-full rounded-full bg-cyan-400"
-          }
-          style={{
-            width: `${Math.min(Math.max(value, 0), 100)}%`,
-          }}
-        />
+      <div className="mt-2 h-1 overflow-hidden rounded-full bg-slate-900">
+        <div className={["h-full rounded-full", tone.fill].join(" ")} style={{ width: `${safeValue}%` }} />
       </div>
     </div>
   );
@@ -1251,14 +1294,10 @@ function StatCard({
   note?: string;
 }) {
   return (
-    <div className="rounded-3xl border border-slate-800 bg-[#071023] p-6">
-      <p className="text-sm text-slate-400">{title}</p>
-      <p className="mt-3 text-4xl font-black text-cyan-300">
-        {value}
-      </p>
-      {note && (
-        <p className="mt-2 text-sm text-slate-500">{note}</p>
-      )}
+    <div className="rounded-xl border border-slate-800/80 bg-[#061020]/72 px-3 py-3">
+      <p className="min-h-[2rem] whitespace-normal text-[13px] font-bold leading-4 text-slate-400">{title}</p>
+      <p dir="ltr" className="mt-1 text-[1.65rem] font-black tabular-nums text-cyan-300">{value}</p>
+      {note && <p className="mt-1 text-[12px] leading-4 text-slate-500">{note}</p>}
     </div>
   );
 }
@@ -1280,149 +1319,34 @@ function MatchInfoCard({
   referee?: RefereeInfo | null;
   locale: Locale;
 }) {
-  const text =
-    locale === "sv"
-      ? {
-          league: "Liga",
-          season: "Säsong",
-          round: "Omgång",
-          stage: "Fas",
-          venue: "Arena",
-          city: "Stad",
-          capacity: "Kapacitet",
-          referee: "Domare",
-          unavailable: "Inte tillgänglig",
-          refereePending: "Domaren har inte utsetts ännu",
-          matchCenter: "Matchcenter",
-          matchInfo: "Matchinformation",
-          stadium: "Arena",
-          match: "matchen",
-          leagueLogo: "Logotyp för",
-        }
-      : locale === "en"
-        ? {
-            league: "League",
-            season: "Season",
-            round: "Round",
-            stage: "Stage",
-            venue: "Venue",
-            city: "City",
-            capacity: "Capacity",
-            referee: "Referee",
-            unavailable: "Not available",
-            refereePending: "Referee has not been assigned yet",
-            matchCenter: "Match Center",
-            matchInfo: "Match Information",
-            stadium: "Stadium",
-            match: "the match",
-            leagueLogo: "Logo of",
-          }
-        : {
-            league: "الدوري",
-            season: "الموسم",
-            round: "الجولة",
-            stage: "المرحلة",
-            venue: "الملعب",
-            city: "المدينة",
-            capacity: "سعة الملعب",
-            referee: "الحكم",
-            unavailable: "غير متوفر",
-            refereePending: "لم يتم تعيين الحكم بعد",
-            matchCenter: "مركز المباراة",
-            matchInfo: "معلومات المباراة",
-            stadium: "ملعب",
-            match: "المباراة",
-            leagueLogo: "شعار",
-          };
+  const text = locale === "sv"
+    ? { title: "Matchinformation", league: "Liga", season: "Säsong", round: "Omgång", stage: "Fas", venue: "Arena", city: "Stad", capacity: "Kapacitet", referee: "Domare", unavailable: "Inte tillgänglig", refereePending: "Ej utsedd" }
+    : locale === "en"
+      ? { title: "Match Information", league: "League", season: "Season", round: "Round", stage: "Stage", venue: "Venue", city: "City", capacity: "Capacity", referee: "Referee", unavailable: "Not available", refereePending: "Not assigned" }
+      : { title: "معلومات المباراة", league: "الدوري", season: "الموسم", round: "الجولة", stage: "المرحلة", venue: "الملعب", city: "المدينة", capacity: "السعة", referee: "الحكم", unavailable: "غير متوفر", refereePending: "لم يحدد" };
   const details = [
-    {
-      label: text.league,
-      value: league?.name ?? text.unavailable,
-    },
-    {
-      label: text.season,
-      value: season?.name ?? text.unavailable,
-    },
-    {
-      label: text.round,
-      value: round ?? text.unavailable,
-    },
-    {
-      label: text.stage,
-      value: stage ?? text.unavailable,
-    },
-    {
-      label: text.venue,
-      value: venue?.name ?? text.unavailable,
-    },
-    {
-      label: text.city,
-      value: venue?.city ?? text.unavailable,
-    },
-    {
-      label: text.capacity,
-      value: formatCapacity(venue?.capacity, locale),
-    },
-    {
-      label: text.referee,
-      value: referee?.name ?? text.refereePending,
-    },
+    [text.league, league?.name ?? text.unavailable],
+    [text.season, season?.name ?? text.unavailable],
+    [text.round, round ?? text.unavailable],
+    [text.stage, stage ?? text.unavailable],
+    [text.venue, venue?.name ?? text.unavailable],
+    [text.city, venue?.city ?? text.unavailable],
+    [text.capacity, formatCapacity(venue?.capacity, locale)],
+    [text.referee, referee?.name ?? text.refereePending],
   ];
-
   return (
-    <section className="overflow-hidden rounded-[32px] border border-slate-800 bg-[#050b1e]">
-      {venue?.image && (
-        <div
-          role="img"
-          aria-label={`${text.stadium} ${venue.name ?? text.match}`}
-          className="h-52 bg-cover bg-center sm:h-64"
-          style={{
-            backgroundImage:
-              `linear-gradient(to top, rgba(2, 6, 23, 0.95), rgba(2, 6, 23, 0.15)), url("${venue.image}")`,
-          }}
-        />
-      )}
-
-      <div className="p-6 sm:p-8">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-bold text-cyan-400">
-              {text.matchCenter}
-            </p>
-
-            <h2 className="mt-1 text-2xl font-black">
-              {text.matchInfo}
-            </h2>
+    <section className="rounded-2xl border border-cyan-400/10 bg-[#040a18] p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="text-base font-black text-white">{text.title}</h2>
+        {league?.logo && <div className="h-8 w-8 bg-contain bg-center bg-no-repeat" style={{ backgroundImage: `url("${league.logo}")` }} />}
+      </div>
+      <div className="grid gap-px overflow-hidden rounded-xl border border-slate-800/80 bg-slate-800/80 grid-cols-2 md:grid-cols-4 xl:grid-cols-8">
+        {details.map(([label, value]) => (
+          <div key={label} className="bg-[#061020] px-3 py-2.5">
+            <p className="text-[12px] font-bold text-slate-500">{label}</p>
+            <p className="mt-1 break-words text-[13px] font-black leading-5 text-slate-100">{value}</p>
           </div>
-
-          {league?.logo && (
-            <div
-              role="img"
-              aria-label={`${text.leagueLogo} ${league.name ?? text.league}`}
-              className="h-14 w-14 rounded-2xl bg-contain bg-center bg-no-repeat"
-              style={{
-                backgroundImage: `url("${league.logo}")`,
-              }}
-            />
-          )}
-        </div>
-
-        <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {details.map((item) => (
-            <div
-              key={item.label}
-              className="rounded-2xl border border-slate-800 bg-slate-950/40 p-5"
-            >
-              <p className="text-sm text-slate-500">
-                {item.label}
-              </p>
-
-              <p className="mt-2 font-bold text-slate-100">
-                {item.value}
-              </p>
-            </div>
-          ))}
-        </div>
+        ))}
       </div>
     </section>
   );
@@ -1490,27 +1414,20 @@ function ProLockedSection({
   }
 
   return (
-    <section className="rounded-[32px] border border-violet-500/30 bg-gradient-to-l from-violet-950/30 to-slate-950 p-7 text-center sm:p-8">
-      <div className="text-4xl">🔒</div>
-
-      <h2 className="mt-4 text-2xl font-black text-white">
-        {title}
-      </h2>
-
-      <p className="mx-auto mt-3 max-w-2xl leading-7 text-slate-400">
-        {description}
-      </p>
-
+    <section className="relative overflow-hidden rounded-[30px] border border-violet-500/25 bg-[#05091a] p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.2)] sm:p-8">
+      <div className="pointer-events-none absolute left-1/2 top-0 h-40 w-80 -translate-x-1/2 rounded-full bg-violet-500/10 blur-[80px]" />
+      <div className="relative mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-violet-400/25 bg-violet-500/10 text-xl shadow-[0_0_30px_rgba(139,92,246,0.12)]">🔒</div>
+      <h2 className="relative mt-4 text-xl font-black text-white sm:text-2xl">{title}</h2>
+      <p className="relative mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-400">{description}</p>
       <a
         href="/subscription"
-        className="mt-6 inline-flex rounded-xl bg-violet-500 px-6 py-3 font-black text-white transition hover:bg-violet-400"
+        className="relative mt-5 inline-flex min-h-11 items-center justify-center rounded-xl border border-violet-300/20 bg-violet-500 px-5 text-sm font-black text-white shadow-[0_12px_35px_rgba(124,58,237,0.24)] transition hover:bg-violet-400"
       >
         {upgradeLabel}
       </a>
     </section>
   );
 }
-
 
 export default async function MatchPage({
   params,
@@ -1573,8 +1490,278 @@ export default async function MatchPage({
       )?.value;
 
     if (!accessToken) {
-      throw new Error(
-        earlyPageText.loginRequired,
+      const loginGate =
+        locale === "sv"
+          ? {
+              badge: "MATCHANALYS",
+              title: "Lås upp hela matchanalysen",
+              description:
+                "Få tillgång till Målx analys, sannolikheter, förväntade mål och matchprognoser.",
+              featureOne: "Matchprognoser",
+              featureOneSub: "Databaserade prognoser",
+              featureTwo: "Vinstsannolikheter",
+              featureTwoSub: "Analyser för varje utfall",
+              featureThree: "Datadriven analys",
+              featureThreeSub: "Djup statistik och insikter",
+              register: "Skapa gratis konto",
+              login: "Logga in",
+              note: "Snabbt och säkert – gå med gratis på mindre än en minut",
+              benefitOne: "Liveuppdateringar",
+              benefitTwo: "Tillförlitliga data",
+              benefitThree: "Ren upplevelse",
+            }
+          : locale === "en"
+            ? {
+                badge: "MATCH ANALYSIS",
+                title: "Unlock the full match analysis",
+                description:
+                  "Access Målx analysis, probabilities, expected goals and match predictions.",
+                featureOne: "Match predictions",
+                featureOneSub: "Data-driven forecasts",
+                featureTwo: "Win probabilities",
+                featureTwoSub: "Outcome probability analysis",
+                featureThree: "Data-driven analysis",
+                featureThreeSub: "Advanced statistics and insights",
+                register: "Create free account",
+                login: "Sign in",
+                note: "Fast and secure – join free in under a minute",
+                benefitOne: "Live match updates",
+                benefitTwo: "Reliable data",
+                benefitThree: "Clean experience",
+              }
+            : {
+                badge: "تحليل المباراة",
+                title: "اكتشف التحليل الكامل للمباراة",
+                description:
+                  "سجّل دخولك للوصول إلى تحليل Målx، الاحتمالات، الأهداف المتوقعة وتوقعات المباراة.",
+                featureOne: "توقعات المباراة",
+                featureOneSub: "توقعات دقيقة مبنية على البيانات",
+                featureTwo: "احتمالات الفوز",
+                featureTwoSub: "تحليل احتمالات كل نتيجة",
+                featureThree: "تحليل مبني على البيانات",
+                featureThreeSub: "رؤى متقدمة وإحصائيات ذكية",
+                register: "إنشاء حساب مجاني",
+                login: "تسجيل الدخول",
+                note: "سريع وآمن – انضم مجانًا في أقل من دقيقة",
+                benefitOne: "تحديث لحظي للمباريات",
+                benefitTwo: "بيانات موثوقة",
+                benefitThree: "تجربة احترافية",
+              };
+
+      const gateFeatures = [
+        {
+          title: loginGate.featureOne,
+          subtitle: loginGate.featureOneSub,
+          icon: (
+            <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7" aria-hidden="true">
+              <path
+                d="M5 20V10M12 20V4M19 20v-7"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
+          ),
+        },
+        {
+          title: loginGate.featureTwo,
+          subtitle: loginGate.featureTwoSub,
+          icon: (
+            <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7" aria-hidden="true">
+              <path
+                d="M12 3a9 9 0 1 0 9 9h-9V3Z"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M15 3.8A9 9 0 0 1 20.2 9H15V3.8Z"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinejoin="round"
+              />
+            </svg>
+          ),
+        },
+        {
+          title: loginGate.featureThree,
+          subtitle: loginGate.featureThreeSub,
+          icon: (
+            <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7" aria-hidden="true">
+              <circle
+                cx="12"
+                cy="12"
+                r="6"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              />
+              <path
+                d="M12 2v4M12 18v4M2 12h4M18 12h4"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
+          ),
+        },
+      ];
+
+      return (
+        <main
+          dir={direction}
+          className="relative min-h-screen overflow-hidden bg-[#020617] text-white"
+        >
+          <div
+            className="absolute inset-0 scale-[1.02] bg-cover bg-center bg-no-repeat"
+            style={{
+              backgroundImage: "url('/brand/malx-match-gate-bg.png')",
+            }}
+          />
+
+          <div className="absolute inset-0 bg-slate-950/48" />
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-950/10 via-slate-950/30 to-slate-950/80" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(2,6,23,0.12)_48%,rgba(2,6,23,0.78)_100%)]" />
+
+          <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-12 sm:px-8 lg:px-12">
+            <section className="relative w-full max-w-5xl overflow-hidden rounded-[34px] border border-cyan-300/30 bg-slate-950/52 shadow-[0_30px_110px_rgba(0,0,0,0.58)] backdrop-blur-xl">
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300 to-transparent" />
+              <div className="pointer-events-none absolute -top-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-cyan-400/10 blur-[100px]" />
+
+              <div className="relative px-5 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-12">
+                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[26px] border border-cyan-300/35 bg-slate-950/60 text-cyan-300 shadow-[0_0_40px_rgba(34,211,238,0.16)] backdrop-blur-xl">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    className="h-10 w-10"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M7 10V8a5 5 0 0 1 10 0v2M6 10h12a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M12 14v3"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </div>
+
+                <div className="mt-5 text-center">
+                  <span className="inline-flex rounded-full border border-cyan-300/30 bg-slate-950/60 px-5 py-2 text-[13px] font-black tracking-wide text-cyan-300 backdrop-blur-xl">
+                    {loginGate.badge}
+                  </span>
+                </div>
+
+                <h1 className="mx-auto mt-7 max-w-3xl text-center text-3xl font-black leading-tight tracking-tight text-white drop-shadow-lg sm:text-4xl lg:text-5xl">
+                  {loginGate.title}
+                </h1>
+
+                <p className="mx-auto mt-4 max-w-3xl text-center text-sm leading-7 text-slate-200/85 sm:text-base lg:text-lg">
+                  {loginGate.description}
+                </p>
+
+                <div className="mx-auto mt-9 grid max-w-4xl gap-3 md:grid-cols-3">
+                  {gateFeatures.map((feature) => (
+                    <div
+                      key={feature.title}
+                      className="rounded-2xl border border-white/10 bg-slate-950/58 px-5 py-5 backdrop-blur-xl transition duration-300 hover:border-cyan-300/35 hover:bg-slate-900/70"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="shrink-0 text-cyan-300">
+                          {feature.icon}
+                        </div>
+
+                        <div>
+                          <div className="text-sm font-black text-white">
+                            {feature.title}
+                          </div>
+                          <div className="mt-1 text-[13px] leading-5 text-slate-400">
+                            {feature.subtitle}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mx-auto mt-8 flex max-w-2xl flex-col gap-3 sm:flex-row">
+                  <a
+                    href="/register"
+                    className="inline-flex min-h-14 flex-1 items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 via-sky-500 to-blue-600 px-6 text-base font-black text-white shadow-[0_18px_45px_rgba(14,165,233,0.3)] transition duration-300 hover:-translate-y-0.5 hover:brightness-110"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      className="h-6 w-6"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M12 5v14M5 12h14"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    {loginGate.register}
+                  </a>
+
+                  <a
+                    href="/login"
+                    className="inline-flex min-h-14 flex-1 items-center justify-center rounded-2xl border border-cyan-300/35 bg-slate-950/60 px-6 text-base font-black text-white backdrop-blur-xl transition duration-300 hover:border-cyan-300/60 hover:bg-slate-900/80"
+                  >
+                    {loginGate.login}
+                  </a>
+                </div>
+
+                <div className="mt-6 flex items-center justify-center gap-2 text-center text-sm font-bold text-cyan-300">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    className="h-5 w-5"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M12 3 5 6v5c0 4.6 2.9 8.3 7 10 4.1-1.7 7-5.4 7-10V6l-7-3Z"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="m9 12 2 2 4-4"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+
+                  <span>{loginGate.note}</span>
+                </div>
+
+                <div className="mx-auto mt-9 grid max-w-4xl gap-3 rounded-2xl border border-white/10 bg-slate-950/48 p-3 backdrop-blur-xl sm:grid-cols-3">
+                  {[
+                    loginGate.benefitOne,
+                    loginGate.benefitTwo,
+                    loginGate.benefitThree,
+                  ].map((benefit) => (
+                    <div
+                      key={benefit}
+                      className="flex items-center justify-center gap-2 rounded-xl bg-white/[0.035] px-4 py-3 text-center text-[13px] font-bold text-slate-200 sm:text-sm"
+                    >
+                      <span className="text-cyan-300">✓</span>
+                      <span>{benefit}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          </div>
+        </main>
       );
     }
 
@@ -1946,7 +2133,7 @@ export default async function MatchPage({
           loadAnalysisFailed: "Det gick inte att ladda matchanalysen",
           missingTeamIds: (matchId: number) =>
             `Det gick inte att fastställa lagens ID för match ${matchId}`,
-          
+
 
           matchEventsPro: "Prognos för matchhändelser är tillgänglig i Pro",
           matchEventsProDescription:
@@ -2036,7 +2223,7 @@ export default async function MatchPage({
             loadAnalysisFailed: "Unable to load match analysis",
             missingTeamIds: (matchId: number) =>
               `Unable to determine team IDs for match ${matchId}`,
-            
+
 
             matchEventsPro: "Match Event Predictions Available on Pro",
             matchEventsProDescription:
@@ -2125,7 +2312,7 @@ export default async function MatchPage({
             loadAnalysisFailed: "تعذر تحميل تحليل المباراة",
             missingTeamIds: (matchId: number) =>
               `تعذر تحديد معرفي الفريقين للمباراة رقم ${matchId}`,
-            
+
 
             matchEventsPro: "توقع أحداث المباراة متاح في خطة Pro",
             matchEventsProDescription:
@@ -2235,6 +2422,48 @@ export default async function MatchPage({
     ],
   ] as const;
 
+  const marketGroups = [
+    {
+      key: "result",
+      title:
+        locale === "sv"
+          ? "Resultat & chanser"
+          : locale === "en"
+            ? "Result & Chances"
+            : "النتيجة والفرص",
+      markets: marketCards.slice(1, 6),
+    },
+    {
+      key: "goals",
+      title:
+        locale === "sv"
+          ? "Mål"
+          : locale === "en"
+            ? "Goals"
+            : "الأهداف",
+      markets: marketCards.slice(6, 10),
+    },
+    {
+      key: "btts",
+      title:
+        locale === "sv"
+          ? "Båda lagen gör mål"
+          : locale === "en"
+            ? "Both Teams to Score"
+            : "تسجيل الفريقين",
+      markets: marketCards.slice(0, 1),
+    },
+    {
+      key: "team",
+      title:
+        locale === "sv"
+          ? "Lagmarknader"
+          : locale === "en"
+            ? "Team Markets"
+            : "أسواق الفريق",
+      markets: marketCards.slice(10, 12),
+    },
+  ] as const;
   const comparisons = [
     ["Elo", home.elo, away.elo],
     [marketText.attack, home.attack, away.attack],
@@ -2294,12 +2523,37 @@ export default async function MatchPage({
 
 
 
+  const fairOddsText =
+    locale === "sv"
+      ? {
+          eyebrow: "MODELLPRISER",
+          title: "Rättvisa 1X2-odds",
+          description: "Beräknade direkt från modellens sannolikheter. De är en analytisk referens och inte liveodds från ett spelbolag.",
+          fairPrice: "Rättvist odds",
+          notBookmaker: "Inte spelbolagsodds",
+        }
+      : locale === "en"
+        ? {
+            eyebrow: "MODEL PRICES",
+            title: "Fair 1X2 Odds",
+            description: "Calculated directly from the model probabilities. These are an analytical reference, not live bookmaker prices.",
+            fairPrice: "Fair price",
+            notBookmaker: "Not bookmaker odds",
+          }
+        : {
+            eyebrow: "أسعار الموديل",
+            title: "الأسعار العادلة لنتيجة 1X2",
+            description: "محسوبة مباشرة من احتمالات الموديل، وهي مرجع تحليلي وليست أسعارًا مباشرة من شركة مراهنات.",
+            fairPrice: "السعر العادل",
+            notBookmaker: "ليست أسعار شركة مراهنات",
+          };
+
   return (
     <main
       dir={direction}
-      className="min-h-screen bg-[#020617] px-4 py-8 text-white sm:px-6 lg:px-8"
+      className="malx-match-page min-h-screen bg-[#020611] px-3 py-4 text-white sm:px-5 lg:px-6"
     >
-      <div className="mx-auto max-w-7xl space-y-7">
+      <div className="mx-auto max-w-[1560px] space-y-3">
         <LatestMatchHero
           matchId={data.match.id}
           status={data.match.status}
@@ -2326,671 +2580,246 @@ export default async function MatchPage({
             data.prediction.most_likely_score.probability
           }
         />
-          <section className="rounded-[28px] border border-slate-800 bg-[#050b1e] p-5 sm:p-6">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-bold text-cyan-400">
-                        {pageText.quickOverview}
-                      </p>
-        
-                      <h2 className="mt-1 text-lg font-black text-white">
-                        {pageText.predictionSummary}
-                      </h2>
-                    </div>
-        
-                    <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-bold text-slate-400">
-                      {pageText.preMatch}
-                    </span>
-                  </div>
-        
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.045] p-4">
-                      <p className="text-xs text-slate-500">
-                        {pageText.totalExpectedGoals}
-                      </p>
-        
-                      <strong className="mt-2 block text-2xl font-black text-cyan-300">
-                        {Number(
-                          xg.total_expected_goals ?? 0,
-                        ).toFixed(2)}
-                      </strong>
-        
-                      <span className="mt-1 block text-xs text-slate-600">
-                        {pageText.goalUnit}
-                      </span>
-                    </div>
-        
-                    <div className="rounded-2xl border border-violet-400/15 bg-violet-400/[0.045] p-4">
-                      <p className="text-xs text-slate-500">
-                        {pageText.expectedCorners}
-                      </p>
-        
-                      <strong className="mt-2 block text-2xl font-black text-violet-300">
-                        {cornersForecast?.total_expected != null
-                          ? Number(
-                              cornersForecast.total_expected,
-                            ).toFixed(2)
-                          : pageText.unavailable}
-                      </strong>
-        
-                      <span className="mt-1 block text-xs text-slate-600">
-                        {pageText.cornerUnit}
-                      </span>
-                    </div>
-        
-                    <div className="rounded-2xl border border-amber-400/15 bg-amber-400/[0.045] p-4">
-                      <p className="text-xs text-slate-500">
-                        {pageText.expectedYellowCards}
-                      </p>
-        
-                      <strong className="mt-2 block text-2xl font-black text-amber-300">
-                        {yellowCardsForecast?.total_expected != null
-                          ? Number(
-                              yellowCardsForecast.total_expected,
-                            ).toFixed(2)
-                          : pageText.unavailable}
-                      </strong>
-        
-                      <span className="mt-1 block text-xs text-slate-600">
-                        {pageText.cardUnit}
-                      </span>
-                    </div>
-        
-                    <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/[0.045] p-4">
-                      <p className="text-xs text-slate-500">
-                        {pageText.predictionConfidence}
-                      </p>
-        
-                      <strong className="mt-2 block text-2xl font-black text-emerald-300">
-                        {Number(
-                          confidence.value ?? 0,
-                        ).toFixed(0)}%
-                      </strong>
-        
-                      <span className="mt-1 block text-xs text-slate-600">
-                        {pageText.engineConfidenceLevel}
-                      </span>
-                    </div>
-                  </div>
-                </section>
-        
-                <section>
-                  <h2 className="mb-5 text-2xl font-black">
-                    {pageText.matchResultProbabilities}
-                  </h2>
-        
-                  <div className="grid gap-5 md:grid-cols-3">
-                    <ProgressCard
-                      title={pageText.homeWin(home.name)}
-                      value={result.home_win}
-                      active={result.home_win === highest}
-                      activeLabel={pageText.highest}
-                    />
-                    <ProgressCard
-                      title={pageText.draw}
-                      value={result.draw}
-                      active={result.draw === highest}
-                      activeLabel={pageText.highest}
-                    />
-                    <ProgressCard
-                      title={pageText.awayWin(away.name)}
-                      value={result.away_win}
-                      active={result.away_win === highest}
-                      activeLabel={pageText.highest}
-                    />
-                  </div>
-                </section>
-        
-                <section className="grid gap-5 lg:grid-cols-3">
-                  <StatCard
-                    title={pageText.bestPrediction}
-                    value={formatOutcome(
-                      data.prediction.predicted_outcome,
-                      home.name,
-                      away.name,
-                      locale,
-                    )}
-                    note={`${pageText.highestProbability}: ${pct(confidence.highest_probability)}`}
-                  />
-        
-                  <ConfidenceGauge
-                    value={confidence.value}
-                    level={confidence.level}
-                    model={data.analysis.confidence_model}
-                  />
-        
-                  <StatCard
-                    title={pageText.totalExpectedGoals}
-                    value={Number(xg.total_expected_goals ?? 0).toFixed(2)}
-                    note={`${pageText.probabilityMargin}: ${Number(confidence.probability_margin ?? 0).toFixed(2)}`}
-                  />
-                </section>
-        
-                <section className="rounded-[32px] border border-cyan-500/25 bg-gradient-to-l from-cyan-950/20 to-violet-950/20 p-6 sm:p-8">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <h2 className="text-2xl font-black">
-                        {pageText.exactScoreReading}
-                      </h2>
-                      <p className="mt-2 text-sm leading-6 text-slate-400">
-                        {pageText.exactScoreDescription}
-                      </p>
-                    </div>
-        
-                    <span className="rounded-full border border-slate-700 bg-slate-950/50 px-3 py-1 text-xs text-slate-400">
-                      {pageText.scoreDistribution}
-                    </span>
-                  </div>
-        
-                  <div className="mt-7 grid gap-5 md:grid-cols-2">
-                    <div className="rounded-3xl border border-violet-500/25 bg-violet-950/15 p-6">
-                      <p className="text-sm font-bold text-slate-400">
-                        {pageText.highestSingleScore}
-                      </p>
-        
-                      <p dir="ltr" className="mt-3 text-5xl font-black text-violet-300">
-                        {data.prediction.most_likely_score.score}
-                      </p>
-        
-                      <p className="mt-3 text-sm text-slate-400">
-                        {pageText.probability}{" "}
-                        <strong className="text-violet-300">
-                          {pct(
-                            data.prediction.most_likely_score.probability,
-                          )}
-                        </strong>
-                      </p>
-                    </div>
-        
-                    <div className="rounded-3xl border border-emerald-500/25 bg-emerald-950/15 p-6">
-                      <p className="text-sm font-bold text-slate-400">
-                        {pageText.winnerConsistentScore}
-                      </p>
-        
-                      <p dir="ltr" className="mt-3 text-5xl font-black text-emerald-300">
-                        {data.prediction.recommended_score.score}
-                      </p>
-        
-                      <p className="mt-3 text-sm text-slate-400">
-                        {pageText.probability}{" "}
-                        <strong className="text-emerald-300">
-                          {pct(
-                            data.prediction.recommended_score.probability,
-                          )}
-                        </strong>
-                      </p>
-                    </div>
-                  </div>
-        
-                  {data.prediction.score_distribution &&
-                  !data.prediction.score_distribution.outcome_consistency
-                    .top_score_matches_prediction ? (
-                    <p className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-950/15 p-4 text-sm leading-6 text-amber-100/80">
-                      {pageText.scoreMismatch}
 
+        <MatchDashboardOverview
+          home={home}
+          away={away}
+          comparisons={comparisons}
+          topScores={data.markets.top_scores}
+          homeXg={xg.home_expected_goals}
+          awayXg={xg.away_expected_goals}
+          totalXg={xg.total_expected_goals}
+          confidence={confidence.value}
+          homeWin={result.home_win}
+          draw={result.draw}
+          awayWin={result.away_win}
+          advancedAvailable={data.markets.advanced_available}
+        />
 
-                    </p>
-                  ) : (
-                    <p className="mt-5 rounded-2xl border border-emerald-500/20 bg-emerald-950/15 p-4 text-sm leading-6 text-emerald-100/80">
-                      {pageText.scoreConsistent}
-                    </p>
-                  )}
-                </section>
-        
-                <section>
-                  <h2 className="mb-5 text-2xl font-black">
-                    {pageText.topPredictionMarkets}
-                  </h2>
-        
-                  <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                    {data.markets.advanced_available ? (
-                      marketCards.map(([title, value]) => (
-                        <ProgressCard
-                          key={title}
-                          title={title}
-                          value={value}
-                        />
-                      ))
-                    ) : (
-                      <div className="sm:col-span-2 lg:col-span-3 rounded-[28px] border border-violet-500/30 bg-gradient-to-l from-violet-950/30 to-slate-950 p-7 text-center">
-                        <div className="text-4xl">
-                          🔒
-                        </div>
-        
-                        <h3 className="mt-4 text-2xl font-black text-white">
-                          {pageText.advancedMarketsPro}
-                        </h3>
-        
-                        <p className="mx-auto mt-3 max-w-2xl leading-7 text-slate-400">
-                          {pageText.advancedMarketsDescription}
+        {/* Protected overview ends here. V7 readability layout starts below. */}
 
-                        </p>
-        
-                        <a
-                          href="/subscription"
-                          className="mt-6 inline-flex rounded-xl bg-violet-500 px-6 py-3 font-black text-white transition hover:bg-violet-400"
-                        >
-                          {pageText.upgradeSubscription}
-                        </a>
+        <div className="space-y-3 pt-1">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-cyan-400/15 bg-[#04101d] px-4 py-2.5">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-cyan-400/25 bg-cyan-400/[0.08] text-sm font-black text-cyan-300">AI</span>
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.2em] text-cyan-400">MÅLX INTELLIGENCE FLOW</p>
+                <p className="mt-0.5 text-[13px] text-slate-500">{locale === "ar" ? "قراءة مركزة للتوقعات والأحداث والأسواق" : locale === "sv" ? "Kompakt läsning av prognoser, händelser och marknader" : "Compact reading of predictions, events and markets"}</p>
+              </div>
+            </div>
+            <span className="rounded-full border border-emerald-400/15 bg-emerald-400/[0.05] px-2.5 py-1 text-sm font-black text-emerald-300">{locale === "ar" ? "تحليل النموذج" : locale === "sv" ? "MODELLANALYS" : "MODEL ANALYSIS"}</span>
+          </div>
+
+          <section className="rounded-2xl border border-cyan-400/15 bg-[#040a18] p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.18em] text-cyan-400">{fairOddsText.eyebrow}</p>
+                <h2 className="mt-1 text-xl font-black text-white">{fairOddsText.title}</h2>
+                <p className="mt-1 max-w-4xl text-sm leading-5 text-slate-400">{fairOddsText.description}</p>
+              </div>
+              <span className="rounded-full border border-amber-400/20 bg-amber-400/[0.05] px-2.5 py-1 text-sm font-black text-amber-300">{fairOddsText.notBookmaker}</span>
+            </div>
+            <div className="mt-3 grid gap-2 md:grid-cols-3">
+              {[
+                [pageText.homeWin(home.name), result.home_win, "1"],
+                [pageText.draw, result.draw, "X"],
+                [pageText.awayWin(away.name), result.away_win, "2"],
+              ].map(([label, probability, code]) => {
+                const numericProbability = Number(probability);
+                const isLeader = numericProbability === Math.max(result.home_win, result.draw, result.away_win);
+                return (
+                  <article key={String(label)} className={["rounded-xl border px-3 py-3", isLeader ? "border-cyan-400/35 bg-cyan-400/[0.05]" : "border-slate-800 bg-slate-950/35"].join(" ")}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-700 bg-slate-950 text-sm font-black text-slate-300">{code}</span>
+                        <span className="truncate text-sm font-black text-slate-300">{label}</span>
                       </div>
-                    )}
-                  </div>
-                </section>
-        
-                <ProLockedSection
-                  available={data.markets.advanced_available}
-                  upgradeLabel={pageText.upgradeSubscription}
-                  title={pageText.matchEventsPro}
-                  description={pageText.matchEventsProDescription}
-                >
-                <section className="rounded-[32px] border border-slate-800 bg-[#050b1e] p-6 sm:p-8">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <h2 className="text-2xl font-black">
-                        {pageText.matchEventsForecast}
-                      </h2>
-        
-                      <p className="mt-2 text-sm leading-6 text-slate-400">
-                        {pageText.matchEventsDescription}
-
-                      </p>
+                      <strong dir="ltr" className={["text-sm font-black tabular-nums", confidenceTone(numericProbability).text].join(" ")}>{pct(numericProbability)}</strong>
                     </div>
-        
-                    <span className="rounded-full border border-cyan-500/25 bg-cyan-950/20 px-3 py-1 text-xs font-bold text-cyan-300">
-                      {pageText.matchEventsForecast}
-                    </span>
-                  </div>
-        
-                  <div className="mt-7 grid gap-6 xl:grid-cols-2">
-                    <article className="rounded-3xl border border-cyan-500/25 bg-cyan-950/10 p-5">
-                      <h3 className="text-xl font-black text-cyan-300">
-                        {pageText.expectedCorners}
-                      </h3>
-        
-                      {cornersExplanation && (
-                        <details className="mt-4 rounded-2xl border border-cyan-500/20 bg-slate-900/40 p-4">
-                          <summary className="cursor-pointer font-bold text-cyan-300">
-                            {pageText.howCornersCalculated}
-                          </summary>
-        
-                          <div className="mt-4 space-y-2 text-sm text-slate-300">
-                            <p>
-                              <strong>{pageText.calculationMethod}</strong>{" "}
-                              {cornersExplanation.method}
-                            </p>
-        
-                            <p>
-                              <strong>{pageText.statisticalDistribution}</strong>{" "}
-                              {cornersExplanation.distribution}
-                            </p>
-        
-                            <p className="break-words">
-                              <strong>{pageText.formula}</strong>{" "}
-                              {cornersExplanation.formula}
-                            </p>
-                          </div>
-                        </details>
-                      )}
-        
-                      {cornersForecast ? (
-                        <>
-                          <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                            <StatCard
-                              title={home.name}
-                              value={
-                                cornersForecast.home_expected.toFixed(2)
-                              }
-                              note={pageText.expectedCornersNote}
-                            />
-        
-                            <StatCard
-                              title={away.name}
-                              value={
-                                cornersForecast.away_expected.toFixed(2)
-                              }
-                              note={pageText.expectedCornersNote}
-                            />
-        
-                            <StatCard
-                              title={pageText.matchTotal}
-                              value={
-                                cornersForecast.total_expected.toFixed(2)
-                              }
-                              note={
-                                cornersForecast.most_likely_range
-                                  ? `${pageText.likelyRange}: ${cornersForecast.most_likely_range.minimum} - ${cornersForecast.most_likely_range.maximum}`
-                                  : pageText.expectedTotal
-                              }
-                            />
-                          </div>
+                    <div className="mt-2 flex items-end justify-between border-t border-slate-800/70 pt-2">
+                      <span className="text-[13px] font-bold text-slate-500">{fairOddsText.fairPrice}</span>
+                      <strong dir="ltr" className="text-2xl font-black tabular-nums text-white">{fairOdds(numericProbability)}</strong>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
 
-                          {actualCorners && (
-                            <div className="mt-5 rounded-2xl border border-emerald-500/25 bg-emerald-950/10 p-4">
-                              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                                <p className="text-sm font-black text-emerald-300">
-                                  {pageText.actualResult}
-                                </p>
-
-                                <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-300">
-                                  {pageText.actualCornersNote}
-                                </span>
-                              </div>
-
-                              <div className="grid gap-3 sm:grid-cols-3">
-                                <StatCard
-                                  title={home.name}
-                                  value={Number(actualCorners.home ?? 0).toFixed(0)}
-                                  note={pageText.actualCornersNote}
-                                />
-
-                                <StatCard
-                                  title={away.name}
-                                  value={Number(actualCorners.away ?? 0).toFixed(0)}
-                                  note={pageText.actualCornersNote}
-                                />
-
-                                <StatCard
-                                  title={pageText.matchTotal}
-                                  value={Number(actualCorners.total ?? 0).toFixed(0)}
-                                  note={pageText.actualResult}
-                                />
-                              </div>
-                            </div>
-                          )}
-        
-                          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                            {cornerLines.map(([key, value]) => (
-                              <ProgressCard
-                                key={key}
-                                title={`${marketLineLabel(key)} ${pageText.cornerUnit}`}
-                                value={Number(value)}
-                              />
-                            ))}
-                          </div>
-                        </>
-                      ) : (
-                        <p className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-950/15 p-4 text-sm text-amber-100/80">
-                          {pageText.cornersUnavailable}
-                        </p>
-                      )}
-                    </article>
-        
-                    <article className="rounded-3xl border border-amber-500/25 bg-amber-950/10 p-5">
-                      <h3 className="text-xl font-black text-amber-300">
-                        {pageText.expectedYellowCards}
-                      </h3>
-        
-                      {yellowCardsExplanation && (
-                        <details className="mt-4 rounded-2xl border border-amber-500/20 bg-slate-900/40 p-4">
-                          <summary className="cursor-pointer font-bold text-amber-300">
-                            {pageText.howCardsCalculated}
-                          </summary>
-        
-                          <div className="mt-4 space-y-2 text-sm text-slate-300">
-                            <p>
-                              <strong>{pageText.calculationMethod}</strong>{" "}
-                              {yellowCardsExplanation.method}
-                            </p>
-        
-                            <p>
-                              <strong>{pageText.statisticalDistribution}</strong>{" "}
-                              {yellowCardsExplanation.distribution}
-                            </p>
-        
-                            <p className="break-words">
-                              <strong>{pageText.formula}</strong>{" "}
-                              {yellowCardsExplanation.formula}
-                            </p>
-                          </div>
-                        </details>
-                      )}
-        
-                      {yellowCardsForecast ? (
-                        <>
-                          <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                            <StatCard
-                              title={home.name}
-                              value={
-                                yellowCardsForecast.home_expected.toFixed(2)
-                              }
-                              note={pageText.expectedCardsNote}
-                            />
-        
-                            <StatCard
-                              title={away.name}
-                              value={
-                                yellowCardsForecast.away_expected.toFixed(2)
-                              }
-                              note={pageText.expectedCardsNote}
-                            />
-        
-                            <StatCard
-                              title={pageText.matchTotal}
-                              value={
-                                yellowCardsForecast.total_expected.toFixed(2)
-                              }
-                              note={
-                                yellowCardsForecast.most_likely_range
-                                  ? `${pageText.likelyRange}: ${yellowCardsForecast.most_likely_range.minimum} - ${yellowCardsForecast.most_likely_range.maximum}`
-                                  : pageText.expectedTotal
-                              }
-                            />
-                          </div>
-
-                          {actualYellowCards && (
-                            <div className="mt-5 rounded-2xl border border-emerald-500/25 bg-emerald-950/10 p-4">
-                              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                                <p className="text-sm font-black text-emerald-300">
-                                  {pageText.actualResult}
-                                </p>
-
-                                <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-300">
-                                  {pageText.actualCardsNote}
-                                </span>
-                              </div>
-
-                              <div className="grid gap-3 sm:grid-cols-3">
-                                <StatCard
-                                  title={home.name}
-                                  value={Number(actualYellowCards.home ?? 0).toFixed(0)}
-                                  note={pageText.actualCardsNote}
-                                />
-
-                                <StatCard
-                                  title={away.name}
-                                  value={Number(actualYellowCards.away ?? 0).toFixed(0)}
-                                  note={pageText.actualCardsNote}
-                                />
-
-                                <StatCard
-                                  title={pageText.matchTotal}
-                                  value={Number(actualYellowCards.total ?? 0).toFixed(0)}
-                                  note={pageText.actualResult}
-                                />
-                              </div>
-                            </div>
-                          )}
-        
-                          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                            {yellowCardLines.map(([key, value]) => (
-                              <ProgressCard
-                                key={key}
-                                title={`${marketLineLabel(key)} ${pageText.cardUnit}`}
-                                value={Number(value)}
-                              />
-                            ))}
-                          </div>
-        
-                          <p className="mt-4 text-xs text-slate-500">
-                            {yellowCardsForecast.referee_adjusted
-                              ? pageText.refereeAdjusted
-                              : pageText.refereeNotAdjusted}
-                          </p>
-                        </>
-                      ) : (
-                        <p className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-950/15 p-4 text-sm text-amber-100/80">
-                          {pageText.cardsUnavailable}
-                        </p>
-                      )}
-                    </article>
-                  </div>
-                </section>
-                </ProLockedSection>
-
-              <ProLockedSection
-                available={data.markets.advanced_available}
-                upgradeLabel={pageText.upgradeSubscription}
-                title={pageText.teamComparisonPro}
-                description={pageText.teamComparisonProDescription}
-              >
-              <section className="rounded-[32px] border border-slate-800 bg-[#050b1e] p-6 sm:p-8">
-                <h2 className="text-2xl font-black">
-                  {pageText.teamComparison}
+          <section className="rounded-2xl border border-violet-400/15 bg-[#05091a] p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.18em] text-violet-300">
+                  AI SCORE INTERPRETATION
+                </p>
+                <h2 className="mt-1 text-xl font-black text-white">
+                  {pageText.exactScoreReading}
                 </h2>
-      
-                <div className="mt-7 overflow-x-auto">
-                  <table className="w-full min-w-[650px] text-center">
-                    <thead>
-                      <tr className="border-b border-slate-800 text-slate-500">
-                        <th className="p-4">{home.name}</th>
-                        <th className="p-4">{pageText.metric}</th>
-                        <th className="p-4">{away.name}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {comparisons.map(([label, homeValue, awayValue]) => (
-                        <tr
-                          key={label}
-                          className="border-b border-slate-900"
-                        >
-                          <td className="p-4 font-bold text-cyan-300">
-                            {Number(homeValue ?? 0).toFixed(2)}
-                          </td>
-                          <td className="p-4 text-slate-300">
-                            {label}
-                          </td>
-                          <td className="p-4 font-bold text-violet-300">
-                            {Number(awayValue ?? 0).toFixed(2)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              </div>
+
+              <span className="rounded-full border border-slate-700 px-2 py-1 text-sm font-bold text-slate-500">
+                {pageText.scoreDistribution}
+              </span>
+            </div>
+
+            <div className="rounded-2xl border border-violet-400/25 bg-violet-400/[0.05] px-4 py-4 sm:px-5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-[13px] font-bold text-slate-400">
+                    {pageText.highestSingleScore}
+                  </p>
+
+                  <strong
+                    dir="ltr"
+                    className="mt-1 block text-4xl font-black tabular-nums text-violet-300"
+                  >
+                    {data.prediction.most_likely_score.score}
+                  </strong>
                 </div>
-              </section>
-              </ProLockedSection>
 
-            <MatchInfoCard
-              league={data.league}
-              season={data.season}
-              round={data.round}
-              stage={data.stage}
-              venue={data.venue}
-              referee={data.referee}
-              locale={locale}
-            />
-    
-            <ProScoreMatrix
-              matrix={data.markets.score_matrix}
-              mostLikelyScore={
-                data.prediction.most_likely_score.score
-              }
-              recommendedScore={
-                data.prediction.recommended_score.score
-              }
-              homeWin={data.markets.match_result.home_win}
-              draw={data.markets.match_result.draw}
-              awayWin={data.markets.match_result.away_win}
-            />
-    
-            <ProLockedSection
-              available={data.markets.advanced_available}
-              upgradeLabel={pageText.upgradeSubscription}
-              title={pageText.topScoresPro}
-              description={pageText.topScoresProDescription}
-            >
-              <section className="rounded-[32px] border border-slate-800 bg-[#050b1e] p-6 sm:p-8">
-                <h2 className="text-2xl font-black">
-                  {pageText.topScores}
-                </h2>
+                <div className="text-end">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-600">
+                    Probability
+                  </p>
 
-                <div className="mt-7 grid gap-4 md:grid-cols-2">
-                  {data.markets.top_scores.slice(0, 10).map(
-                    (score, index) => (
+                  <strong
+                    dir="ltr"
+                    className="mt-1 block text-xl font-black tabular-nums text-violet-200"
+                  >
+                    {pct(data.prediction.most_likely_score.probability)}
+                  </strong>
+                </div>
+              </div>
+            </div>
+
+            {data.markets.top_scores.filter(
+              (score, index, scores) =>
+                score.score !== data.prediction.most_likely_score.score &&
+                scores.findIndex((item) => item.score === score.score) === index,
+            ).length > 0 && (
+              <div className="mt-4">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <p className="text-[12px] font-black uppercase tracking-[0.14em] text-slate-500">
+                    {locale === "ar"
+                      ? "النتائج البديلة"
+                      : locale === "sv"
+                        ? "Alternativa resultat"
+                        : "Alternative scorelines"}
+                  </p>
+
+                  <span className="text-[11px] font-bold text-slate-600">
+                    Top 4
+                  </span>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  {data.markets.top_scores
+                    .filter(
+                      (score, index, scores) =>
+                        score.score !== data.prediction.most_likely_score.score &&
+                        scores.findIndex((item) => item.score === score.score) === index,
+                    )
+                    .slice(0, 4)
+                    .map((score) => (
                       <div
-                        key={`${score.score}-${index}`}
-                        className="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-950/40 p-5"
+                        key={score.score}
+                        className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950/45 px-3 py-3"
                       >
-                        <div className="flex items-center gap-4">
-                          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-500/15 font-black text-cyan-300">
-                            {index + 1}
-                          </span>
+                        <strong
+                          dir="ltr"
+                          className="text-xl font-black tabular-nums text-white"
+                        >
+                          {score.score}
+                        </strong>
 
-                          <strong className="text-2xl">
-                            {score.score}
-                          </strong>
-                        </div>
-
-                        <span className="font-bold text-cyan-300">
+                        <span
+                          dir="ltr"
+                          className="text-[13px] font-black tabular-nums text-cyan-300"
+                        >
                           {pct(score.probability)}
                         </span>
                       </div>
-                    ),
-                  )}
+                    ))}
                 </div>
-              </section>
-            </ProLockedSection>
-
-          <section className="rounded-[32px] border border-cyan-500/25 bg-gradient-to-l from-cyan-950/20 to-violet-950/20 p-6 sm:p-8">
-            <h2 className="text-2xl font-black">
-              {pageText.modelAlerts}
-            </h2>
-  
-            {data.analysis.warnings.length > 0 ? (
-              <ul className="mt-5 space-y-3">
-                {data.analysis.warnings.map((warning, index) => (
-                  <li
-                    key={`${warning}-${index}`}
-                    className="rounded-2xl border border-amber-500/25 bg-amber-950/15 p-4 text-slate-300"
-                  >
-                    {translateModelWarning(warning, locale)}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-5 text-slate-400">
-                {pageText.noWarnings}
-              </p>
+              </div>
             )}
-          </section>
-  
-          <ProLockedSection
-            available={data.markets.advanced_available}
-            upgradeLabel={pageText.upgradeSubscription}
-            title={pageText.confidenceFactorsPro}
-            description={pageText.confidenceFactorsProDescription}
-          >
-            <section className="rounded-[32px] border border-slate-800 bg-[#050b1e] p-6 sm:p-8">
-              <h2 className="text-2xl font-black">
-                {pageText.confidenceFactors}
-              </h2>
 
-              <div className="mt-7 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {Object.entries(
-                  data.analysis.confidence_factors,
-                ).map(([key, value]) => (
-                  <ProgressCard
-                    key={key}
-                    title={factorLabels[key] ?? key}
-                    value={value}
-                  />
+            <p className="mt-3 rounded-lg border border-slate-800 bg-slate-950/35 px-3 py-2 text-[12px] font-bold leading-5 text-slate-500">
+              {locale === "ar"
+                ? "النتيجة الرئيسية هي أعلى نتيجة منفردة من توزيع الاحتمالات، وتوضح النتائج البديلة السيناريوهات التالية الأكثر احتمالًا."
+                : locale === "sv"
+                  ? "Huvudresultatet är det enskilt mest sannolika resultatet, medan alternativen visar de näst mest sannolika scenarierna."
+                  : "The primary score is the highest-probability single score, while the alternatives show the next most likely scorelines."}
+            </p>
+          </section>
+
+          <div className="space-y-3">
+            <ProLockedSection available={data.markets.advanced_available} upgradeLabel={pageText.upgradeSubscription} title={pageText.matchEventsPro} description={pageText.matchEventsProDescription}>
+            <section className="h-full rounded-2xl border border-slate-800 bg-[#040a18] p-4">
+              <div className="mb-3"><p className="text-sm font-black uppercase tracking-[0.18em] text-cyan-400">MATCH EVENT ENGINE</p><h2 className="mt-1 text-xl font-black text-white">{pageText.matchEventsForecast}</h2></div>
+              <div className="grid gap-3 xl:grid-cols-2">
+                {[
+                  { key: "corners", title: pageText.expectedCorners, total: cornersForecast?.total_expected, homeValue: cornersForecast?.home_expected, awayValue: cornersForecast?.away_expected, range: cornersForecast?.most_likely_range, lines: cornerLines, actual: actualCorners, unit: pageText.cornerUnit, accent: "cyan" },
+                  { key: "cards", title: pageText.expectedYellowCards, total: yellowCardsForecast?.total_expected, homeValue: yellowCardsForecast?.home_expected, awayValue: yellowCardsForecast?.away_expected, range: yellowCardsForecast?.most_likely_range, lines: yellowCardLines, actual: actualYellowCards, unit: pageText.cardUnit, accent: "amber" },
+                ].map((event) => (
+                  <article key={event.key} className={["rounded-xl border p-3", event.accent === "cyan" ? "border-cyan-400/20 bg-cyan-400/[0.025]" : "border-amber-400/20 bg-amber-400/[0.025]"].join(" ")}>
+                    <div className="flex items-center justify-between gap-3"><h3 className={["text-[15px] font-black", event.accent === "cyan" ? "text-cyan-200" : "text-amber-200"].join(" ")}>{event.title}</h3><strong dir="ltr" className={["text-[1.85rem] font-black", event.accent === "cyan" ? "text-cyan-300" : "text-amber-300"].join(" ")}>{event.total != null ? Number(event.total).toFixed(2) : "—"}</strong></div>
+                    {event.total != null ? <>
+                      <div className="mt-2 grid grid-cols-3 gap-2"><StatCard title={home.name} value={Number(event.homeValue ?? 0).toFixed(2)} /><StatCard title={away.name} value={Number(event.awayValue ?? 0).toFixed(2)} /><StatCard title={pageText.matchTotal} value={Number(event.total).toFixed(2)} note={event.range ? `${event.range.minimum}-${event.range.maximum}` : undefined} /></div>
+                      {event.actual && <div className="mt-2 flex items-center justify-between rounded-lg border border-emerald-400/15 bg-emerald-400/[0.04] px-3 py-2.5 text-sm"><span className="font-bold text-emerald-300">{pageText.actualResult}</span><strong dir="ltr" className="font-black text-white">{Number(event.actual.home ?? 0).toFixed(0)} — {Number(event.actual.away ?? 0).toFixed(0)} ({Number(event.actual.total ?? 0).toFixed(0)})</strong></div>}
+                      <div className="mt-2 grid gap-2 sm:grid-cols-2">{event.lines.map(([key, value]) => <ProgressCard key={key} title={`${marketLineLabel(key)} ${event.unit}`} value={Number(value)} />)}</div>
+                    </> : <p className="mt-3 text-[13px] text-slate-500">{event.key === "corners" ? pageText.cornersUnavailable : pageText.cardsUnavailable}</p>}
+                  </article>
                 ))}
               </div>
             </section>
+            </ProLockedSection>
+
+            <MatchInfoCard league={data.league} season={data.season} round={data.round} stage={data.stage} venue={data.venue} referee={data.referee} locale={locale} />
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-cyan-400/10 bg-[#040a18] p-1"><ProScoreMatrix matrix={data.markets.score_matrix} mostLikelyScore={data.prediction.most_likely_score.score} recommendedScore={data.prediction.recommended_score.score} homeWin={data.markets.match_result.home_win} draw={data.markets.match_result.draw} awayWin={data.markets.match_result.away_win} /></div>
+
+          <section className="rounded-2xl border border-amber-400/15 bg-[#040a18] p-4">
+            <div className="flex items-center justify-between"><div><p className="text-sm font-black uppercase tracking-[0.18em] text-amber-400">MODEL CHECKS</p><h2 className="mt-1 text-base font-black text-white">{pageText.modelAlerts}</h2></div><span className="rounded-lg border border-amber-400/15 px-2 py-1 text-sm font-black text-amber-300">{data.analysis.warnings.length}</span></div>
+            {data.analysis.warnings.length > 0 ? <ul className="mt-3 grid gap-2 md:grid-cols-2">{data.analysis.warnings.map((warning, index) => <li key={`${warning}-${index}`} className="rounded-lg border border-amber-400/10 bg-amber-400/[0.03] px-3 py-2 text-[13px] leading-4 text-slate-300">• {translateModelWarning(warning, locale)}</li>)}</ul> : <p className="mt-3 text-sm font-bold text-emerald-300">{pageText.noWarnings}</p>}
+          </section>
+
+          <ProLockedSection available={data.markets.advanced_available} upgradeLabel={pageText.upgradeSubscription} title={pageText.confidenceFactorsPro} description={pageText.confidenceFactorsProDescription}>
+            <section className="rounded-2xl border border-emerald-400/12 bg-[#040a18] p-4">
+              <div className="flex items-end justify-between gap-3"><div><p className="text-sm font-black uppercase tracking-[0.18em] text-emerald-400">CONFIDENCE ENGINE</p><h2 className="mt-1 text-xl font-black text-white">{pageText.confidenceFactors}</h2></div><strong dir="ltr" className="text-xl font-black text-emerald-300">{Math.round(confidence.value)}<span className="text-[13px] text-slate-600">/100</span></strong></div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{Object.entries(data.analysis.confidence_factors).map(([key, value]) => <ProgressCard key={key} title={factorLabels[key] ?? key} value={value} />)}</div>
+            </section>
           </ProLockedSection>
 
-        <footer className="pb-5 text-center text-sm text-slate-600">
-          {data.api_version} — {data.engine_version}
+          <section className="rounded-2xl border border-violet-400/15 bg-[#040919] p-4">
+            <div className="flex items-end justify-between gap-3"><div><p className="text-sm font-black uppercase tracking-[0.18em] text-violet-400">PREDICTION MARKETS</p><h2 className="mt-1 text-xl font-black text-white">{pageText.topPredictionMarkets}</h2></div>{data.markets.advanced_available && <span className="text-sm font-black text-violet-300">{marketCards.length} {locale === "sv" ? "marknader" : locale === "en" ? "markets" : "سوقًا"}</span>}</div>
+            {data.markets.advanced_available ? <div className="mt-3 grid gap-2 lg:grid-cols-2">{marketGroups.map((group) => <div key={group.key} className="rounded-xl border border-slate-800/80 bg-slate-950/30 p-3"><h3 className="mb-2 text-sm font-black text-slate-400">{group.title}</h3><div className="space-y-2.5">{group.markets.map(([title, value, note]) => { const marketValue=Math.max(0,Math.min(100,Number(value)||0)); return <div key={title}><div className="flex items-center justify-between gap-3"><span className="min-w-0 text-[13px] font-bold leading-5 text-slate-200">{group.key === "btts" ? (locale === "sv" ? "Ja" : locale === "en" ? "Yes" : "نعم") : title}</span><strong dir="ltr" className={["text-sm font-black", confidenceTone(marketValue).text].join(" ")}>{pct(marketValue)}</strong></div><div className="mt-1 h-1 overflow-hidden rounded-full bg-slate-900"><div className={["h-full rounded-full", confidenceTone(marketValue).fill].join(" ")} style={{width:`${marketValue}%`}} /></div>{note && <span className="mt-1 block text-[13px] leading-4 text-slate-500">{note}</span>}{group.key === "btts" && <div className="mt-1 flex justify-between text-[13px] text-slate-500"><span>{marketText.no}</span><strong dir="ltr" className="text-violet-300">{pct(data.markets.btts.no)}</strong></div>}</div>})}</div></div>)}</div> : <div className="mt-3 rounded-xl border border-violet-400/15 bg-violet-400/[0.04] px-4 py-5 text-center"><h3 className="text-sm font-black text-white">{pageText.advancedMarketsPro}</h3><p className="mt-1 text-[13px] text-slate-500">{pageText.advancedMarketsDescription}</p><a href="/subscription" className="mt-3 inline-flex rounded-lg bg-violet-500 px-4 py-2 text-sm font-black text-white">{pageText.upgradeSubscription}</a></div>}
+          </section>
+        </div>
+
+        <MatchIntelligence
+          locale={locale}
+          available={data.match_intelligence_available}
+          data={data.match_intelligence}
+        />
+
+        <footer className="relative overflow-hidden rounded-2xl border border-cyan-400/10 bg-[#030815] px-4 py-3 text-center">
+          <div className="pointer-events-none absolute left-1/2 top-0 h-24 w-64 -translate-x-1/2 rounded-full bg-cyan-400/[0.06] blur-[60px]" />
+          <div className="relative mx-auto flex max-w-3xl flex-wrap items-center justify-center gap-3 sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="relative flex h-8 w-8 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-400/[0.06]">
+                <div className="absolute inset-1.5 rounded-full border border-dashed border-cyan-300/20" />
+                <span className="relative text-sm font-black tracking-tight text-cyan-300">AI</span>
+              </div>
+              <div className="text-start">
+                <strong className="block text-sm font-black tracking-[0.16em] text-cyan-300">MÅLX INTELLIGENCE</strong>
+                <span className="mt-1 block text-[13px] font-semibold text-slate-600">{locale === "ar" ? "بصمة الذكاء الاصطناعي للتحليل" : locale === "sv" ? "AI-signatur för matchanalys" : "AI analysis signature"}</span>
+              </div>
+            </div>
+            <span className="rounded-full border border-slate-800 bg-slate-950/70 px-3 py-1.5 text-sm font-black text-slate-500">{data.engine_version}</span>
+          </div>
+          <div className="relative mt-3 text-[13px] font-semibold tracking-[0.08em] text-slate-700">{data.api_version} — {data.engine_version}</div>
         </footer>
       </div>
     </main>

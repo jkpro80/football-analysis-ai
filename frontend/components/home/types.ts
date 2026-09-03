@@ -11,6 +11,12 @@ export type DashboardFixture = {
   date?: string;
   status?: string;
 
+  leagueName?: string;
+  leagueLogo?: string | null;
+  seasonName?: string;
+  roundName?: string;
+  stageName?: string;
+
   homeTeam: DashboardTeam;
   awayTeam: DashboardTeam;
 
@@ -73,4 +79,3 @@ export type QuickFilter =
   | "btts"
   | "home-win"
   | "away-win";
-

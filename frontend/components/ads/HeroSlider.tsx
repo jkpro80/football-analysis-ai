@@ -23,7 +23,7 @@ export type HeroSlide = {
 const DEFAULT_SLIDES: HeroSlide[] = [
   {
     id: 1,
-    eyebrow: "FOOTBALL ANALYSIS AI",
+    eyebrow: "MÅLX FOOTBALL ANALYTICS",
     title: "افتح جميع قدرات محرك التوقعات V7",
     description:
       "تحليلات متقدمة للأهداف، الركنيات، البطاقات، BTTS، Value Bets والنتيجة الصحيحة.",

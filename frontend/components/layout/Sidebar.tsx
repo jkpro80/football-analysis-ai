@@ -31,6 +31,13 @@ export default function Sidebar({
 
   const isAdmin = user?.role === "admin";
 
+  const hasPremiumAccess =
+    isAdmin ||
+    (
+      user?.subscription?.status?.toLowerCase() === "active" &&
+      user?.subscription?.plan?.code?.toLowerCase() === "premium"
+    );
+
   const mainNavigation: NavigationItem[] = [
     {
       label: messages.common.home,
@@ -57,6 +64,21 @@ export default function Sidebar({
       label: messages.common.predictions,
       href: "/predictions",
       icon: "◉",
+    },
+    {
+      label:
+        locale === "ar"
+          ? "بطاقاتي"
+          : locale === "sv"
+            ? "Mina kuponger"
+            : "My Cards",
+      href: hasPremiumAccess
+        ? "/prediction-cards"
+        : "/subscription",
+      icon: hasPremiumAccess ? "▣" : "🔒",
+      badge: hasPremiumAccess
+        ? undefined
+        : "Premium",
     },
     {
       label:
@@ -155,10 +177,10 @@ export default function Sidebar({
     <aside
       dir={direction}
       className={[
-        "h-screen shrink-0 bg-slate-950/95",
+        "malx-sidebar h-dvh shrink-0",
         mobile
           ? "flex w-full flex-col"
-          : "hidden w-56 lg:sticky lg:top-0 lg:flex lg:flex-col",
+          : "hidden w-56 lg:sticky lg:top-0 lg:self-start lg:flex lg:h-dvh lg:flex-col",
         direction === "rtl"
           ? "border-l border-slate-800"
           : "border-r border-slate-800",
@@ -169,19 +191,11 @@ export default function Sidebar({
           href="/"
           className="flex items-center gap-3"
         >
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500 text-xl font-black text-slate-950 shadow-lg shadow-cyan-500/20">
-            FA
-          </div>
-
-          <div>
-            <h1 className="font-bold text-white">
-              Football Analysis
-            </h1>
-
-            <p className="mt-0.5 text-xs text-slate-500">
-              Intelligence Platform
-            </p>
-          </div>
+          <img
+            src="/brand/malx-logo.svg"
+            alt="Målx Football Analytics"
+            className="h-[72px] w-[210px] max-w-full object-contain object-left drop-shadow-[0_0_18px_rgba(14,165,233,0.22)]"
+          />
         </Link>
       </div>
 
@@ -284,4 +298,3 @@ function NavigationGroup({
     </div>
   );
 }
-

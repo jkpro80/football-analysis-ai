@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+
+import ThemeToggle from "./ThemeToggle";
 import { useRouter } from "next/navigation";
 import {
   useCallback,
@@ -245,7 +247,7 @@ export default function Topbar({
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-800 bg-slate-950/90 backdrop-blur">
+    <header className="malx-topbar sticky top-0 z-40 border-b backdrop-blur">
       <div className="flex h-16 items-center gap-1.5 px-2 sm:gap-3 sm:px-4 lg:px-6">
         <button
           type="button"
@@ -316,6 +318,8 @@ export default function Topbar({
               </option>
             </select>
           </div>
+
+          <ThemeToggle />
 
           {isAuthenticated && (
             <div
@@ -485,4 +489,3 @@ export default function Topbar({
     </header>
   );
 }
-

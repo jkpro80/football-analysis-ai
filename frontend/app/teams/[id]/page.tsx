@@ -8,6 +8,7 @@ type Team = {
   sportmonks_id: number | null;
   name: string;
   country: string | null;
+  logo_url?: string | null;
   attack: number;
   defense: number;
   midfield: number;
@@ -230,7 +231,20 @@ export default async function TeamDetailsPage({
                 fontWeight: 950,
               }}
             >
-              {team.name.charAt(0).toUpperCase()}
+              {team.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={team.logo_url}
+                  alt={team.name}
+                  style={{
+                    width: "76px",
+                    height: "76px",
+                    objectFit: "contain",
+                  }}
+                />
+              ) : (
+                team.name.charAt(0).toUpperCase()
+              )}
             </div>
 
             <div>

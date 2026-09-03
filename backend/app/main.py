@@ -1,4 +1,5 @@
 
+
 from app.core.config import settings
 from app.core.logging import logger
 
@@ -8,6 +9,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.auth import router as auth_router
+from app.api.admin_statistics import router as admin_statistics_router
 from app.api.subscriptions import router as subscriptions_router
 from app.api.payments import router as payments_router
 from app.api.notifications import router as notifications_router
@@ -30,6 +32,7 @@ from app.api.teams import router as teams_router
 
 from app.api.predictions import router as prediction_router
 from app.api.strong_picks import router as strong_picks_router
+from app.api.prediction_cards import router as prediction_cards_router
 from app.api.latest.router import router as latest_prediction_router
 logger.info("Application started")
 
@@ -55,6 +58,7 @@ app.add_middleware(
 
 # Authentication APIs
 app.include_router(auth_router)
+app.include_router(admin_statistics_router)
 app.include_router(subscriptions_router)
 app.include_router(payments_router)
 app.include_router(notifications_router)
@@ -67,6 +71,7 @@ app.include_router(matches_router)
 app.include_router(latest_prediction_router)
 app.include_router(prediction_router)
 app.include_router(strong_picks_router)
+app.include_router(prediction_cards_router)
 # Prediction APIs
 app.include_router(standings_router)
 app.include_router(system_update_router)

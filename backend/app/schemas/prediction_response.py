@@ -134,10 +134,170 @@ class PredictionEvaluationResponse(BaseModel):
 
 
 
+class MatchIntelligencePlayerResponse(BaseModel):
+    player_id: int
+    player_name: str
+    player_image: Optional[str] = None
+    position_id: Optional[int] = None
+    position_name: Optional[str] = None
+    jersey_number: Optional[int] = None
+    formation_field: Optional[str] = None
+    formation_position: Optional[int] = None
+    is_predicted: bool = False
+
+
+class MatchIntelligenceAbsenceResponse(BaseModel):
+    player_id: int
+    player_name: str
+    player_image: Optional[str] = None
+    position_id: Optional[int] = None
+    position_name: Optional[str] = None
+    absence_type_name: Optional[str] = None
+    absence_type_code: Optional[str] = None
+    absence_category: str = "unknown"
+
+
+class MatchIntelligenceTeamResponse(BaseModel):
+    team_id: int
+    team_name: str
+    formation: Optional[str] = None
+
+    starter_count: int = Field(ge=0)
+    substitute_count: int = Field(ge=0)
+    predicted_count: int = Field(ge=0)
+
+    lineup_complete: bool = False
+
+    starter_positions: Dict[str, int] = Field(
+        default_factory=dict
+    )
+
+    starters: List[
+        MatchIntelligencePlayerResponse
+    ] = Field(
+        default_factory=list
+    )
+
+    substitutes: List[
+        MatchIntelligencePlayerResponse
+    ] = Field(
+        default_factory=list
+    )
+
+    absences: List[
+        MatchIntelligenceAbsenceResponse
+    ] = Field(
+        default_factory=list
+    )
+
+    absence_count: int = Field(ge=0)
+
+    absence_categories: Dict[str, int] = Field(
+        default_factory=dict
+    )
+
+    absence_positions: Dict[str, int] = Field(
+        default_factory=dict
+    )
+
+    absence_penalty: float = Field(
+        ge=0,
+        le=1,
+    )
+
+    availability_factor: float = Field(
+        ge=0,
+        le=1,
+    )
+
+
+class MatchIntelligenceWeatherResponse(BaseModel):
+    available: bool = False
+
+    temperature: Optional[float] = None
+    feels_like: Optional[float] = None
+    wind_speed: Optional[float] = None
+    wind_direction: Optional[int] = None
+    humidity: Optional[float] = None
+    pressure: Optional[float] = None
+    clouds: Optional[float] = None
+    description: Optional[str] = None
+
+    is_rain: bool = False
+    is_extreme_heat: bool = False
+    is_extreme_cold: bool = False
+
+    severity: float = Field(
+        default=0.0,
+        ge=0,
+        le=1,
+    )
+
+    attack_factor: float = Field(
+        default=1.0,
+        ge=0,
+        le=1,
+    )
+
+    fatigue_factor: float = Field(
+        default=1.0,
+        ge=0,
+        le=1,
+    )
+
+
+class MatchIntelligenceFeaturesResponse(BaseModel):
+    home_availability_factor: float = Field(
+        ge=0,
+        le=1,
+    )
+
+    away_availability_factor: float = Field(
+        ge=0,
+        le=1,
+    )
+
+    home_absence_penalty: float = Field(
+        ge=0,
+        le=1,
+    )
+
+    away_absence_penalty: float = Field(
+        ge=0,
+        le=1,
+    )
+
+    weather_attack_factor: float = Field(
+        ge=0,
+        le=1,
+    )
+
+    weather_fatigue_factor: float = Field(
+        ge=0,
+        le=1,
+    )
+
+    weather_severity: float = Field(
+        ge=0,
+        le=1,
+    )
+
+
+class MatchIntelligenceResponse(BaseModel):
+    fixture_id: int
+    home: MatchIntelligenceTeamResponse
+    away: MatchIntelligenceTeamResponse
+    weather: MatchIntelligenceWeatherResponse
+    features: MatchIntelligenceFeaturesResponse
+    warnings: List[str] = Field(
+        default_factory=list
+    )
+
 class PredictionAccessResponse(BaseModel):
     plan_code: str = "free"
 
     advanced_markets: bool = False
+    match_intelligence: bool = False
     score_matrix: bool = False
     features: bool = False
     raw_data: bool = False
@@ -174,6 +334,10 @@ class PredictionResponse(BaseModel):
     score_matrix: Optional[Any] = None
     features: Optional[Dict[str, Any]] = None
     raw_data: Optional[Dict[str, Any]] = None
+
+    match_intelligence: Optional[
+        MatchIntelligenceResponse
+    ] = None
 
     access: PredictionAccessResponse = Field(
         default_factory=PredictionAccessResponse

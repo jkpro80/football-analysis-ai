@@ -296,6 +296,21 @@ class FixtureContextAnalyzer:
             "starter_positions": dict(
                 position_counts
             ),
+            "starters": [
+                self._serialize_lineup_player(item)
+                for item in starters
+            ],
+            "substitutes": [
+                self._serialize_lineup_player(item)
+                for item in substitutes
+            ],
+            "absences": [
+                self._serialize_absence_player(
+                    absence=item,
+                    lineups=team_lineups,
+                )
+                for item in team_absences
+            ],
             "absence_count": len(team_absences),
             "absence_categories": dict(
                 absence_categories
@@ -313,6 +328,43 @@ class FixtureContextAnalyzer:
             ),
         }
 
+    @staticmethod
+    def _serialize_lineup_player(
+        item: FixtureLineup,
+    ) -> dict[str, Any]:
+        return {
+            "player_id": int(item.player_id),
+            "player_name": item.player_name,
+            "player_image": item.player_image,
+            "position_id": item.position_id,
+            "position_name": item.position_name,
+            "jersey_number": item.jersey_number,
+            "formation_field": item.formation_field,
+            "formation_position": item.formation_position,
+            "is_predicted": bool(item.is_predicted),
+        }
+
+    def _serialize_absence_player(
+        self,
+        *,
+        absence: FixtureAbsence,
+        lineups: list[FixtureLineup],
+    ) -> dict[str, Any]:
+        return {
+            "player_id": int(absence.player_id),
+            "player_name": absence.player_name,
+            "player_image": absence.player_image,
+            "position_id": absence.position_id,
+            "position_name": self._infer_absence_position(
+                absence=absence,
+                lineups=lineups,
+            ),
+            "absence_type_name": absence.absence_name,
+            "absence_type_code": absence.absence_code,
+            "absence_category": self._normalize_category(
+                absence.absence_category
+            ),
+        }
     def _absence_weight(
         self,
         *,

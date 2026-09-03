@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.database.models import (
     Match,
     PredictionRecord,
@@ -189,6 +190,214 @@ class SportmonksSyncService:
         except Exception:
             self.db.rollback()
             raise
+    async def sync_competition_teams(
+        self,
+    ) -> dict[str, Any]:
+        """
+        Synchronize teams only from configured
+        SportMonks competition seasons.
+
+        All configured season payloads are validated
+        before any database state is changed.
+        """
+
+        total_received = 0
+        total_created = 0
+        total_updated = 0
+        seasons_processed = 0
+
+        validated_teams: dict[
+            int,
+            dict[str, Any],
+        ] = {}
+
+        try:
+            competition_scope = (
+                settings.sportmonks_competition_scope
+            )
+
+            if not competition_scope:
+                raise ValueError(
+                    "SportMonks competition scope is empty."
+                )
+
+            # Phase 1:
+            # Fetch and validate every configured season
+            # before changing database state.
+            for competition_name, competition in (
+                competition_scope.items()
+            ):
+                season_id = competition.get(
+                    "season_id"
+                )
+
+                if (
+                    not isinstance(season_id, int)
+                    or season_id <= 0
+                ):
+                    raise ValueError(
+                        "Invalid SportMonks season_id "
+                        f"for {competition_name}."
+                    )
+
+                response = (
+                    await self.sportmonks.get_teams_by_season(
+                        season_id
+                    )
+                )
+
+                if not isinstance(response, dict):
+                    raise SportmonksAPIError(
+                        "Invalid teams response for "
+                        f"{competition_name} "
+                        f"(season {season_id})."
+                    )
+
+                data = response.get("data")
+
+                if isinstance(data, dict):
+                    teams = [data]
+                elif isinstance(data, list):
+                    teams = data
+                else:
+                    raise SportmonksAPIError(
+                        "Invalid teams payload for "
+                        f"{competition_name} "
+                        f"(season {season_id})."
+                    )
+
+                if not teams:
+                    raise SportmonksAPIError(
+                        "Empty teams payload for "
+                        f"{competition_name} "
+                        f"(season {season_id})."
+                    )
+
+                valid_teams_in_season = 0
+
+                for team_data in teams:
+                    if not isinstance(team_data, dict):
+                        raise SportmonksAPIError(
+                            "Invalid team entry for "
+                            f"{competition_name} "
+                            f"(season {season_id})."
+                        )
+
+                    sportmonks_id = self._safe_int(
+                        team_data.get("id")
+                    )
+
+                    if (
+                        sportmonks_id is None
+                        or sportmonks_id <= 0
+                    ):
+                        raise SportmonksAPIError(
+                            "Invalid SportMonks team ID for "
+                            f"{competition_name} "
+                            f"(season {season_id})."
+                        )
+
+                    valid_teams_in_season += 1
+
+                    validated_teams[
+                        sportmonks_id
+                    ] = team_data
+
+                if valid_teams_in_season == 0:
+                    raise SportmonksAPIError(
+                        "No valid teams returned for "
+                        f"{competition_name} "
+                        f"(season {season_id})."
+                    )
+
+                seasons_processed += 1
+
+            if not validated_teams:
+                raise SportmonksAPIError(
+                    "No teams were returned for the "
+                    "configured competition scope."
+                )
+
+            # Phase 2:
+            # Only after all configured seasons have
+            # validated successfully do we mutate DB.
+            for sportmonks_id, team_data in (
+                validated_teams.items()
+            ):
+                existing = (
+                    self.db.query(Team)
+                    .filter(
+                        Team.sportmonks_id
+                        == sportmonks_id
+                    )
+                    .first()
+                )
+
+                if existing is None:
+                    total_created += 1
+                else:
+                    total_updated += 1
+
+                self._upsert_team(
+                    team_data
+                )
+
+                total_received += 1
+
+            current_team_ids = set(
+                validated_teams.keys()
+            )
+
+            self.db.query(Team).update(
+                {
+                    Team.is_current_competition_team:
+                    False
+                },
+                synchronize_session=False,
+            )
+
+            self.db.query(Team).filter(
+                Team.sportmonks_id.in_(
+                    current_team_ids
+                )
+            ).update(
+                {
+                    Team.is_current_competition_team:
+                    True
+                },
+                synchronize_session=False,
+            )
+
+            self.db.commit()
+
+            return {
+                "status": "success",
+                "scope": "configured_competitions",
+                "seasons_processed": seasons_processed,
+                "received": total_received,
+                "created": total_created,
+                "updated": total_updated,
+                "current_scope_count": len(
+                    current_team_ids
+                ),
+            }
+
+        except (
+            SportmonksAPIError,
+            ValueError,
+        ):
+            self.db.rollback()
+            raise
+
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise
+
+        except Exception:
+            self.db.rollback()
+            raise
+
+
     async def sync_all_teams(
         self,
         per_page: int = 50,
@@ -271,16 +480,11 @@ class SportmonksSyncService:
                     )
                 ) or page
 
-                total_pages = self._safe_int(
-                    pagination.get(
-                        "total_pages"
-                    )
+                has_more = pagination.get(
+                    "has_more"
                 )
 
-                if total_pages is None:
-                    break
-
-                if current_page >= total_pages:
+                if has_more is not True:
                     break
 
                 page = current_page + 1

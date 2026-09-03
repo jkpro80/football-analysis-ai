@@ -5,6 +5,7 @@ import GlobalBackButton from "@/components/GlobalBackButton";
 import LegalFooter from "@/components/layout/LegalFooter";
 import { AuthProvider } from "@/context/auth-context";
 import { LocaleProvider } from "@/context/locale-context";
+import { ThemeProvider } from "@/context/theme-context";
 import {
   localeDirections,
 } from "@/lib/i18n/config";
@@ -14,10 +15,24 @@ import {
 
 import "./globals.css";
 
+const themeInitializationScript = `
+  (function () {
+    try {
+      var storedTheme = localStorage.getItem("malx-theme");
+      var theme = storedTheme === "light" ? "light" : "dark";
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.style.colorScheme = theme;
+    } catch (error) {
+      document.documentElement.dataset.theme = "dark";
+      document.documentElement.style.colorScheme = "dark";
+    }
+  })();
+`;
+
 export const metadata: Metadata = {
-  title: "Football Analysis AI",
+  title: "Målx | Football Analytics",
   description:
-    "Commercial football analysis and prediction platform",
+    "Målx football analytics, match intelligence and AI-powered predictions",
 };
 
 type RootLayoutProps = {
@@ -37,19 +52,28 @@ export default async function RootLayout({
     <html
       lang={locale}
       dir={direction}
+      data-theme="dark"
+      suppressHydrationWarning
     >
-      <body className="min-h-screen bg-slate-950 text-slate-100">
-        <LocaleProvider initialLocale={locale}>
+      <head>
+        <script
+          id="malx-theme-initializer"
+          dangerouslySetInnerHTML={{
+            __html: themeInitializationScript,
+          }}
+        />
+      </head>
+      <body className="min-h-screen">
+        <ThemeProvider>
+          <LocaleProvider initialLocale={locale}>
           <AuthProvider>
             <GlobalBackButton />
             {children}
             <LegalFooter />
           </AuthProvider>
-        </LocaleProvider>
+          </LocaleProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
 }
-
-
-

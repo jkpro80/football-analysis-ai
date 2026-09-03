@@ -739,10 +739,17 @@ class PredictionEngineV11:
             btts.get("no")
         )
 
+        btts_market_available = (
+            btts_yes_probability + btts_no_probability > 0.0
+        )
         predicted_btts = (
-            exact_score_available
-            and int(predicted_home) > 0
-            and int(predicted_away) > 0
+            btts_yes_probability >= btts_no_probability
+            if btts_market_available
+            else (
+                exact_score_available
+                and int(predicted_home) > 0
+                and int(predicted_away) > 0
+            )
         )
         actual_btts = (
             actual_home > 0
@@ -761,12 +768,19 @@ class PredictionEngineV11:
             totals_2_5.get("under")
         )
 
+        over_2_5_market_available = (
+            over_2_5_probability + under_2_5_probability > 0.0
+        )
         predicted_over_2_5 = (
-            exact_score_available
-            and (
-                int(predicted_home)
-                + int(predicted_away)
-            ) > 2.5
+            over_2_5_probability >= under_2_5_probability
+            if over_2_5_market_available
+            else (
+                exact_score_available
+                and (
+                    int(predicted_home)
+                    + int(predicted_away)
+                ) > 2.5
+            )
         )
         actual_over_2_5 = actual_total > 2.5
 
@@ -796,6 +810,7 @@ class PredictionEngineV11:
         ):
             corners_prediction = {}
 
+        # Legacy range retained only for backward compatibility.
         corners_range = corners_prediction.get(
             "most_likely_range",
             {},
@@ -814,6 +829,18 @@ class PredictionEngineV11:
             "maximum"
         )
 
+        corners_market = cls._select_event_market_line(
+            corners_prediction,
+            market_name="corners",
+        )
+
+        corners_line = corners_market.get(
+            "line"
+        )
+        corners_predicted = corners_market.get(
+            "predicted"
+        )
+
         actual_total_corners = None
         corners_correct = None
 
@@ -828,14 +855,22 @@ class PredictionEngineV11:
             )
 
             if (
-                corners_min is not None
-                and corners_max is not None
-            ):
-                corners_correct = (
-                    float(corners_min)
-                    <= actual_total_corners
-                    <= float(corners_max)
+                corners_line is not None
+                and corners_predicted in (
+                    "over",
+                    "under",
                 )
+            ):
+                if corners_predicted == "over":
+                    corners_correct = (
+                        actual_total_corners
+                        > float(corners_line)
+                    )
+                else:
+                    corners_correct = (
+                        actual_total_corners
+                        < float(corners_line)
+                    )
 
         yellow_cards_prediction = (
             match_events.get(
@@ -850,6 +885,7 @@ class PredictionEngineV11:
         ):
             yellow_cards_prediction = {}
 
+        # Legacy range retained only for backward compatibility.
         yellow_cards_range = (
             yellow_cards_prediction.get(
                 "most_likely_range",
@@ -874,6 +910,24 @@ class PredictionEngineV11:
             )
         )
 
+        yellow_cards_market = (
+            cls._select_event_market_line(
+                yellow_cards_prediction,
+                market_name="yellow_cards",
+            )
+        )
+
+        yellow_cards_line = (
+            yellow_cards_market.get(
+                "line"
+            )
+        )
+        yellow_cards_predicted = (
+            yellow_cards_market.get(
+                "predicted"
+            )
+        )
+
         actual_total_yellow_cards = None
         yellow_cards_correct = None
 
@@ -888,14 +942,22 @@ class PredictionEngineV11:
             )
 
             if (
-                yellow_cards_min is not None
-                and yellow_cards_max is not None
-            ):
-                yellow_cards_correct = (
-                    float(yellow_cards_min)
-                    <= actual_total_yellow_cards
-                    <= float(yellow_cards_max)
+                yellow_cards_line is not None
+                and yellow_cards_predicted in (
+                    "over",
+                    "under",
                 )
+            ):
+                if yellow_cards_predicted == "over":
+                    yellow_cards_correct = (
+                        actual_total_yellow_cards
+                        > float(yellow_cards_line)
+                    )
+                else:
+                    yellow_cards_correct = (
+                        actual_total_yellow_cards
+                        < float(yellow_cards_line)
+                    )
 
         checks = [
             winner_correct,
@@ -1035,6 +1097,17 @@ class PredictionEngineV11:
                     if actual_total_corners is not None
                     else None
                 ),
+                "line": corners_line,
+                "predicted": corners_predicted,
+                "probability": corners_market.get(
+                    "probability"
+                ),
+                "over_probability": corners_market.get(
+                    "over_probability"
+                ),
+                "under_probability": corners_market.get(
+                    "under_probability"
+                ),
                 "expected_min": corners_min,
                 "expected_max": corners_max,
                 "correct": corners_correct,
@@ -1051,6 +1124,17 @@ class PredictionEngineV11:
                     if actual_total_yellow_cards is not None
                     else None
                 ),
+                "line": yellow_cards_line,
+                "predicted": yellow_cards_predicted,
+                "probability": yellow_cards_market.get(
+                    "probability"
+                ),
+                "over_probability": yellow_cards_market.get(
+                    "over_probability"
+                ),
+                "under_probability": yellow_cards_market.get(
+                    "under_probability"
+                ),
                 "expected_min": yellow_cards_min,
                 "expected_max": yellow_cards_max,
                 "correct": yellow_cards_correct,
@@ -1061,6 +1145,179 @@ class PredictionEngineV11:
                 accuracy_percentage
             ),
         }
+
+    @classmethod
+    def _select_event_market_line(
+        cls,
+        prediction: Any,
+        *,
+        market_name: str | None = None,
+    ) -> Dict[str, Any]:
+        """
+        Select a validated Over/Under event market.
+
+        Corners and yellow-card selections use the frozen V2
+        candidate set validated on historical training data and
+        a later holdout sample. The strongest supported side is
+        selected from the event-engine probabilities.
+        """
+        if not isinstance(prediction, dict):
+            return {}
+
+        probabilities = prediction.get(
+            "over_probabilities",
+            {},
+        )
+
+        if not isinstance(probabilities, dict):
+            return {}
+
+        validated_candidates = {
+            "corners": {
+                ("over", 7.5),
+                ("under", 11.5),
+            },
+            "yellow_cards": {
+                ("over", 2.5),
+                ("under", 5.5),
+            },
+        }
+
+        allowed = validated_candidates.get(
+            market_name
+        )
+
+        candidates = []
+
+        for raw_line, raw_probability in probabilities.items():
+            try:
+                raw_line_text = str(
+                    raw_line
+                ).strip()
+
+                if raw_line_text.startswith(
+                    "over_"
+                ):
+                    raw_line_text = (
+                        raw_line_text
+                        .removeprefix("over_")
+                        .replace("_", ".")
+                    )
+
+                line = float(
+                    raw_line_text
+                )
+
+                over_probability = float(
+                    raw_probability
+                )
+
+            except (TypeError, ValueError):
+                continue
+
+            if not (
+                0.0
+                <= over_probability
+                <= 1.0
+            ):
+                continue
+
+            under_probability = (
+                1.0 - over_probability
+            )
+
+            if allowed is None:
+                predicted = (
+                    "over"
+                    if over_probability >= 0.5
+                    else "under"
+                )
+
+                probability = max(
+                    over_probability,
+                    under_probability,
+                )
+
+                candidates.append(
+                    {
+                        "line": line,
+                        "predicted": predicted,
+                        "probability": probability,
+                        "over_probability": (
+                            over_probability
+                        ),
+                        "under_probability": (
+                            under_probability
+                        ),
+                    }
+                )
+
+                continue
+
+            for predicted, probability in (
+                (
+                    "over",
+                    over_probability,
+                ),
+                (
+                    "under",
+                    under_probability,
+                ),
+            ):
+                if (
+                    predicted,
+                    line,
+                ) not in allowed:
+                    continue
+
+                if probability < 0.5:
+                    continue
+
+                candidates.append(
+                    {
+                        "line": line,
+                        "predicted": predicted,
+                        "probability": probability,
+                        "over_probability": (
+                            over_probability
+                        ),
+                        "under_probability": (
+                            under_probability
+                        ),
+                    }
+                )
+
+        if not candidates:
+            return {}
+
+        selected = max(
+            candidates,
+            key=lambda item: (
+                item["probability"],
+                -item["line"],
+            ),
+        )
+
+        return {
+            "line": selected["line"],
+            "predicted": selected["predicted"],
+            "probability": round(
+                selected["probability"]
+                * 100.0,
+                2,
+            ),
+            "over_probability": round(
+                selected["over_probability"]
+                * 100.0,
+                2,
+            ),
+            "under_probability": round(
+                selected["under_probability"]
+                * 100.0,
+                2,
+            ),
+        }
+
 
     @classmethod
     def _team_summary(cls, team: Any) -> Dict[str, Any]:

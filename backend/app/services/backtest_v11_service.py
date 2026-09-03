@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.database.models import Match
 from app.services.match_analysis_pipeline_v11 import MatchAnalysisPipelineV11
+from app.services.prediction_v11_record_service import PredictionV11RecordService
 
 
 class BacktestV11Service:
@@ -59,6 +60,22 @@ class BacktestV11Service:
             "over_2_5_correct": 0,
             "double_chance_correct": 0,
             "exact_score_correct": 0,
+        }
+
+        score_comparison = {
+            "raw_poisson_correct": 0,
+            "recommended_correct": 0,
+            "hybrid_correct": 0,
+            "xg_selector_v2_correct": 0,
+            "top_1_correct": 0,
+            "top_3_correct": 0,
+            "top_5_correct": 0,
+            "top_10_correct": 0,
+            "raw_poisson_total_goals": defaultdict(int),
+            "recommended_total_goals": defaultdict(int),
+            "hybrid_total_goals": defaultdict(int),
+            "xg_selector_v2_total_goals": defaultdict(int),
+            "actual_total_goals": defaultdict(int),
         }
 
         errors = {
@@ -116,6 +133,58 @@ class BacktestV11Service:
                 counters["exact_score_correct"] += int(
                     evaluation["correct"]["exact_score"]
                 )
+
+                comparison = evaluation["score_comparison"]
+                top_score_hits = evaluation["top_score_hits"]
+
+                score_comparison["top_1_correct"] += int(
+                    top_score_hits["top_1"]
+                )
+                score_comparison["top_3_correct"] += int(
+                    top_score_hits["top_3"]
+                )
+                score_comparison["top_5_correct"] += int(
+                    top_score_hits["top_5"]
+                )
+                score_comparison["top_10_correct"] += int(
+                    top_score_hits["top_10"]
+                )
+
+                score_comparison["raw_poisson_correct"] += int(
+                    comparison["raw_poisson"]["correct"]
+                )
+                score_comparison["recommended_correct"] += int(
+                    comparison["recommended"]["correct"]
+                )
+                score_comparison["hybrid_correct"] += int(
+                    comparison["hybrid"]["correct"]
+                )
+                score_comparison["xg_selector_v2_correct"] += int(
+                    comparison["xg_selector_v2"]["correct"]
+                )
+
+                actual_total = int(
+                    evaluation["actual"]["total_goals"]
+                )
+
+                score_comparison["actual_total_goals"][
+                    self._goal_total_bucket(actual_total)
+                ] += 1
+
+                for comparison_key, counter_key in (
+                    ("raw_poisson", "raw_poisson_total_goals"),
+                    ("recommended", "recommended_total_goals"),
+                    ("hybrid", "hybrid_total_goals"),
+                    ("xg_selector_v2", "xg_selector_v2_total_goals"),
+                ):
+                    predicted_total = self._score_total(
+                        comparison[comparison_key]["score"]
+                    )
+
+                    if predicted_total is not None:
+                        score_comparison[counter_key][
+                            self._goal_total_bucket(predicted_total)
+                        ] += 1
 
                 goal_errors = evaluation["goal_errors"]
 
@@ -209,6 +278,83 @@ class BacktestV11Service:
                     counters["exact_score_correct"],
                     processed,
                 ),
+            },
+            "top_score_hit_rate": {
+                "top_1": {
+                    "correct": score_comparison["top_1_correct"],
+                    "accuracy": self._percentage(
+                        score_comparison["top_1_correct"],
+                        processed,
+                    ),
+                },
+                "top_3": {
+                    "correct": score_comparison["top_3_correct"],
+                    "accuracy": self._percentage(
+                        score_comparison["top_3_correct"],
+                        processed,
+                    ),
+                },
+                "top_5": {
+                    "correct": score_comparison["top_5_correct"],
+                    "accuracy": self._percentage(
+                        score_comparison["top_5_correct"],
+                        processed,
+                    ),
+                },
+                "top_10": {
+                    "correct": score_comparison["top_10_correct"],
+                    "accuracy": self._percentage(
+                        score_comparison["top_10_correct"],
+                        processed,
+                    ),
+                },
+            },
+            "exact_score_comparison": {
+                "raw_poisson": {
+                    "correct": score_comparison["raw_poisson_correct"],
+                    "accuracy": self._percentage(
+                        score_comparison["raw_poisson_correct"],
+                        processed,
+                    ),
+                },
+                "recommended": {
+                    "correct": score_comparison["recommended_correct"],
+                    "accuracy": self._percentage(
+                        score_comparison["recommended_correct"],
+                        processed,
+                    ),
+                },
+                "hybrid": {
+                    "correct": score_comparison["hybrid_correct"],
+                    "accuracy": self._percentage(
+                        score_comparison["hybrid_correct"],
+                        processed,
+                    ),
+                },
+                "xg_selector_v2": {
+                    "correct": score_comparison["xg_selector_v2_correct"],
+                    "accuracy": self._percentage(
+                        score_comparison["xg_selector_v2_correct"],
+                        processed,
+                    ),
+                },
+                "goal_total_distribution": {
+                    "actual": dict(
+                        score_comparison["actual_total_goals"]
+                    ),
+                    "raw_poisson": dict(
+                        score_comparison["raw_poisson_total_goals"]
+                    ),
+                    "recommended": dict(
+                        score_comparison["recommended_total_goals"]
+                    ),
+                    "hybrid": dict(
+                        score_comparison["hybrid_total_goals"]
+                    ),
+                    "xg_selector_v2": dict(
+                        score_comparison["xg_selector_v2_total_goals"]
+                    ),
+                },
             },
             "mae": {
                 "home_goals": self._average(
@@ -342,6 +488,43 @@ class BacktestV11Service:
             prediction.get("most_likely_score")
         )
 
+        recommended_score = self._predicted_score(
+            prediction.get("recommended_score")
+        )
+
+        top_scores = prediction.get("top_scores")
+        if not isinstance(top_scores, list):
+            top_scores = []
+
+        normalized_top_scores = [
+            score
+            for score in (
+                self._predicted_score(item)
+                for item in top_scores
+            )
+            if score is not None
+        ]
+
+        top_score_hits = {
+            "top_1": actual_score in normalized_top_scores[:1],
+            "top_3": actual_score in normalized_top_scores[:3],
+            "top_5": actual_score in normalized_top_scores[:5],
+            "top_10": actual_score in normalized_top_scores[:10],
+        }
+
+        hybrid_score = PredictionV11RecordService._predicted_score(
+            most_likely_score=self._mapping(
+                prediction.get("most_likely_score")
+            ),
+            top_scores=top_scores,
+            home_win=result_probabilities.get("home_win", 0.0) * 100.0,
+            draw=result_probabilities.get("draw", 0.0) * 100.0,
+            away_win=result_probabilities.get("away_win", 0.0) * 100.0,
+        )
+
+        if hybrid_score is None:
+            hybrid_score = predicted_score
+
         expected_goals = self._mapping(
             prediction.get("expected_goals")
         )
@@ -370,6 +553,15 @@ class BacktestV11Service:
             ),
             default=home_xg + away_xg,
         )
+
+        xg_selector_v2_score = self._xg_selector_v2(
+            top_scores=top_scores,
+            home_xg=home_xg,
+            away_xg=away_xg,
+        )
+
+        if xg_selector_v2_score is None:
+            xg_selector_v2_score = predicted_score
 
         confidence = self._mapping(
             prediction.get("confidence")
@@ -440,6 +632,25 @@ class BacktestV11Service:
                 "over_2_5": over_2_5_correct,
                 "double_chance": double_chance_correct,
                 "exact_score": exact_score_correct,
+            },
+            "top_score_hits": top_score_hits,
+            "score_comparison": {
+                "raw_poisson": {
+                    "score": predicted_score,
+                    "correct": predicted_score == actual_score,
+                },
+                "recommended": {
+                    "score": recommended_score,
+                    "correct": recommended_score == actual_score,
+                },
+                "hybrid": {
+                    "score": hybrid_score,
+                    "correct": hybrid_score == actual_score,
+                },
+                "xg_selector_v2": {
+                    "score": xg_selector_v2_score,
+                    "correct": xg_selector_v2_score == actual_score,
+                },
             },
             "confidence": {
                 "value": confidence_value,
@@ -595,6 +806,104 @@ class BacktestV11Service:
             return f"{int(value[0])}-{int(value[1])}"
 
         return "not_available"
+
+    @classmethod
+    def _xg_selector_v2(
+        cls,
+        *,
+        top_scores: list[Any],
+        home_xg: float,
+        away_xg: float,
+    ) -> str | None:
+        candidates: list[tuple[float, float, int, str]] = []
+
+        for index, item in enumerate(top_scores):
+            if not isinstance(item, dict):
+                continue
+
+            score = cls._predicted_score(item)
+
+            if score == "not_available":
+                continue
+
+            home_goals = cls._first_number(
+                item,
+                ("home_goals", "home"),
+                default=-1.0,
+            )
+            away_goals = cls._first_number(
+                item,
+                ("away_goals", "away"),
+                default=-1.0,
+            )
+
+            if home_goals < 0 or away_goals < 0:
+                continue
+
+            probability = cls._first_number(
+                item,
+                ("probability",),
+                default=0.0,
+            )
+
+            distance = (
+                abs(home_goals - home_xg)
+                + abs(away_goals - away_xg)
+            )
+
+            candidates.append(
+                (
+                    distance,
+                    -probability,
+                    index,
+                    score,
+                )
+            )
+
+        if not candidates:
+            return None
+
+        candidates.sort(
+            key=lambda item: (
+                item[0],
+                item[1],
+                item[2],
+            )
+        )
+
+        return candidates[0][3]
+
+    @staticmethod
+    def _score_total(score: Any) -> int | None:
+        if not isinstance(score, str):
+            return None
+
+        normalized = score.strip().replace(":", "-")
+        parts = normalized.split("-")
+
+        if len(parts) != 2:
+            return None
+
+        try:
+            home_goals = int(parts[0])
+            away_goals = int(parts[1])
+        except (TypeError, ValueError):
+            return None
+
+        if home_goals < 0 or away_goals < 0:
+            return None
+
+        return home_goals + away_goals
+
+    @staticmethod
+    def _goal_total_bucket(total_goals: int) -> str:
+        if total_goals <= 1:
+            return "0_1"
+        if total_goals == 2:
+            return "2"
+        if total_goals == 3:
+            return "3"
+        return "4_plus"
 
     @classmethod
     def _highest_probability_key(
@@ -759,6 +1068,3 @@ class BacktestV11Service:
         total: int,
     ) -> float:
         return round(math.sqrt(squared_error / total), 3)
-
-
-

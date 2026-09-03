@@ -11,9 +11,7 @@ export default function GlobalBackButton() {
     pathname === "/" ||
     pathname === "/login" ||
     pathname === "/register" ||
-    pathname.startsWith("/admin") ||
-    pathname.startsWith("/matches/") ||
-    /^\/teams\/\d+$/.test(pathname);
+    pathname.startsWith("/admin");
 
   if (hidden) {
     return null;
@@ -28,5 +26,3 @@ export default function GlobalBackButton() {
     </div>
   );
 }
-
-

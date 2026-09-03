@@ -226,17 +226,7 @@ export default function LatestMatchHero({
   );
 
   return (
-    <section className="space-y-3">
-      <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
-        <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 font-bold text-emerald-300">
-          {translatedStatus}
-        </span>
-
-        <span className="rounded-full border border-slate-700 bg-slate-900/60 px-3 py-1 text-slate-400">
-          {matchDate}
-        </span>
-      </div>
-
+    <section>
       <MatchHero
         match={{
           id: matchId,
@@ -270,4 +260,3 @@ export default function LatestMatchHero({
     </section>
   );
 }
-

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import FixtureCard from "@/components/home/FixtureCard";
 import { getDashboardData } from "@/lib/dashboard";
 import { resolveRequestLocale } from "@/lib/i18n/server";
@@ -161,16 +162,20 @@ const LEAGUES_PAGE_TEXT = {
 
 type LeagueSummary = {
   name: string;
+  logo: string | null;
+  seasonName?: string;
   matches: number;
   teams: Set<string>;
   totalConfidence: number;
   confidenceCount: number;
 };
 
-export default async function LeaguesPage() {
+export default async function LeaguesPage({ searchParams }: { searchParams: Promise<{ league?: string }> }) {
   const locale = await resolveRequestLocale();
   const direction = localeDirections[locale];
   const text = LEAGUES_PAGE_TEXT[locale];
+  const params = await searchParams;
+  const selectedLeague = params.league?.trim() ?? "";
 
   const { fixtures } =
     await getDashboardData();
@@ -179,51 +184,62 @@ export default async function LeaguesPage() {
     new Map<string, LeagueSummary>();
 
   for (const fixture of fixtures) {
-    const homeCountry =
-      fixture.homeTeam.country?.trim() ||
+    const leagueName =
+      fixture.leagueName?.trim() ||
       text.unknown;
 
-    const awayCountry =
-      fixture.awayTeam.country?.trim() ||
-      text.unknown;
+    const current =
+      leaguesMap.get(leagueName) ?? {
+        name: leagueName,
+        logo:
+          fixture.leagueLogo ?? null,
+        seasonName:
+          fixture.seasonName,
+        matches: 0,
+        teams: new Set<string>(),
+        totalConfidence: 0,
+        confidenceCount: 0,
+      };
 
-    const countries = new Set([
-      homeCountry,
-      awayCountry,
-    ]);
+    current.matches += 1;
 
-    for (const country of countries) {
-      const current =
-        leaguesMap.get(country) ?? {
-          name: country,
-          matches: 0,
-          teams: new Set<string>(),
-          totalConfidence: 0,
-          confidenceCount: 0,
-        };
+    current.teams.add(
+      fixture.homeTeam.name,
+    );
 
-      current.matches += 1;
-      current.teams.add(
-        fixture.homeTeam.name,
-      );
-      current.teams.add(
-        fixture.awayTeam.name,
-      );
+    current.teams.add(
+      fixture.awayTeam.name,
+    );
 
-      if (
-        fixture.confidence?.score !== undefined
-      ) {
-        current.totalConfidence +=
-          fixture.confidence.score;
-
-        current.confidenceCount += 1;
-      }
-
-      leaguesMap.set(
-        country,
-        current,
-      );
+    if (
+      !current.logo &&
+      fixture.leagueLogo
+    ) {
+      current.logo =
+        fixture.leagueLogo;
     }
+
+    if (
+      !current.seasonName &&
+      fixture.seasonName
+    ) {
+      current.seasonName =
+        fixture.seasonName;
+    }
+
+    if (
+      fixture.confidence?.score !== undefined
+    ) {
+      current.totalConfidence +=
+        fixture.confidence.score;
+
+      current.confidenceCount += 1;
+    }
+
+    leaguesMap.set(
+      leagueName,
+      current,
+    );
   }
 
   const leagues = [
@@ -231,6 +247,8 @@ export default async function LeaguesPage() {
   ]
     .map((league) => ({
       name: league.name,
+      logo: league.logo,
+      seasonName: league.seasonName,
       matches: league.matches,
       teams: league.teams.size,
 
@@ -260,15 +278,18 @@ export default async function LeaguesPage() {
       ? leagues[0]
       : null;
 
-  const featuredFixtures = [
-    ...fixtures,
-  ]
-    .sort(
-      (first, second) =>
-        (second.confidence?.score ?? 0) -
-        (first.confidence?.score ?? 0),
-    )
-    .slice(0, 6);
+  const featuredFixtures = selectedLeague
+    ? fixtures.filter(
+        (fixture) =>
+          fixture.leagueName?.trim() === selectedLeague,
+      )
+    : [...fixtures]
+        .sort(
+          (first, second) =>
+            (second.confidence?.score ?? 0) -
+            (first.confidence?.score ?? 0),
+        )
+        .slice(0, 6);
 
   return (
     <main
@@ -375,20 +396,40 @@ export default async function LeaguesPage() {
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {leagues.map(
                 (league, index) => (
-                  <article
+                  <Link
                     key={league.name}
-                    className="rounded-3xl border border-slate-800 bg-slate-950/60 p-6 transition hover:border-amber-500/35"
+                    href={`/leagues?league=${encodeURIComponent(league.name)}#league-matches`}
+                    className="block rounded-3xl border border-slate-800 bg-slate-950/60 p-6 transition hover:border-amber-500/60 hover:bg-slate-950/90"
                   >
                     <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-xs font-black tracking-[0.18em] text-amber-400">
-                          {text.league} #
-                          {index + 1}
-                        </p>
+                      <div className="flex min-w-0 items-start gap-4">
+                        {league.logo ? (
+                          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-slate-800 bg-white/95 p-2">
+                            <img
+                              src={league.logo}
+                              alt=""
+                              aria-hidden="true"
+                              className="h-full w-full object-contain"
+                            />
+                          </div>
+                        ) : null}
 
-                        <h3 className="mt-3 text-2xl font-black">
-                          {league.name}
-                        </h3>
+                        <div className="min-w-0">
+                          <p className="text-xs font-black tracking-[0.18em] text-amber-400">
+                            {text.league} #
+                            {index + 1}
+                          </p>
+
+                          <h3 className="mt-3 text-2xl font-black">
+                            {league.name}
+                          </h3>
+
+                          {league.seasonName ? (
+                            <p className="mt-1 text-xs font-semibold text-slate-500">
+                              {league.seasonName}
+                            </p>
+                          ) : null}
+                        </div>
                       </div>
 
                       <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1 text-sm font-black text-amber-300">
@@ -425,14 +466,14 @@ export default async function LeaguesPage() {
                         league.teams,
                       )}
                     </p>
-                  </article>
+                  </Link>
                 ),
               )}
             </div>
           )}
         </section>
 
-        <section className="mt-12">
+        <section id="league-matches" className="mt-12">
           <div className="mb-6">
             <p className="text-sm font-bold tracking-[0.2em] text-cyan-400">
               {text.featuredEyebrow}
@@ -467,7 +508,7 @@ export default async function LeaguesPage() {
         </section>
 
         <footer className="mt-14 border-t border-slate-800 py-7 text-center text-sm text-slate-600">
-          Football Analysis AI
+          Målx
         </footer>
       </div>
     </main>

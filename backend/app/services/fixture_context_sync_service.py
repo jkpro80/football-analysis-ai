@@ -424,12 +424,14 @@ class FixtureContextSyncService:
             ),
             temperature=self._first_number(
                 weather.get("temperature"),
+                temperature.get("current"),
                 temperature.get("temp"),
                 temperature.get("day"),
             ),
             feels_like=self._first_number(
                 weather.get("feels_like"),
                 weather.get("feelslike"),
+                feels_like.get("current"),
                 feels_like.get("day"),
                 feels_like.get("temp"),
             ),

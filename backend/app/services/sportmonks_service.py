@@ -257,6 +257,27 @@ class SportmonksService:
             params={
                 "page": page,
                 "per_page": per_page,
+                "include": "country",
+            },
+        )
+
+    async def get_teams_by_season(
+        self,
+        season_id: int,
+    ) -> dict[str, Any]:
+        """
+        Get teams belonging to one SportMonks season.
+        """
+
+        if season_id <= 0:
+            raise ValueError(
+                "Sportmonks season ID must be positive."
+            )
+
+        return await self._request(
+            endpoint=f"teams/seasons/{season_id}",
+            params={
+                "include": "country",
             },
         )
 
@@ -274,10 +295,14 @@ class SportmonksService:
                 "Sportmonks team ID must be positive."
             )
 
-        params: dict[str, Any] = {}
+        includes = ["country"]
 
         if include_statistics:
-            params["include"] = "statistics"
+            includes.append("statistics")
+
+        params: dict[str, Any] = {
+            "include": ";".join(includes),
+        }
 
         return await self._request(
             endpoint=f"teams/{sportmonks_team_id}",
