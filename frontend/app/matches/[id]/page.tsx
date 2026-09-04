@@ -7,6 +7,7 @@ import ConfidenceGauge from "@/components/prediction/ConfidenceGauge";
 import ProScoreMatrix from "@/components/prediction/ProScoreMatrix";
 import MatchDashboardOverview from "@/components/prediction/MatchDashboardOverview";
 import MatchOdds, { type MatchOddsData } from "@/components/prediction/MatchOdds";
+import MatchShareCard from "@/components/prediction/MatchShareCard";
 import { apiFetch } from "@/lib/api";
 import { cookies } from "next/headers";
 import { resolveRequestLocale } from "@/lib/i18n/server";
@@ -2699,6 +2700,32 @@ export default async function MatchPage({
           scoreProbability={
             data.prediction.most_likely_score.probability
           }
+        />
+
+        <MatchShareCard
+          matchId={data.match.id}
+          homeTeam={home.name}
+          awayTeam={away.name}
+          homeLogo={home.logo}
+          awayLogo={away.logo}
+          mostLikelyScore={data.prediction.most_likely_score.score}
+          scoreProbability={data.prediction.most_likely_score.probability}
+          homeWin={result.home_win}
+          draw={result.draw}
+          awayWin={result.away_win}
+          over25={totals25?.over}
+          under25={totals25?.under}
+          bttsYes={data.markets.btts.yes}
+          bttsNo={data.markets.btts.no}
+          cornersForecast={cornersForecast}
+          yellowCardsForecast={yellowCardsForecast}
+          homeExpectedGoals={xg.home_expected_goals}
+          awayExpectedGoals={xg.away_expected_goals}
+          isFinished={data.match.is_finished}
+          homeScore={data.match.home_score}
+          awayScore={data.match.away_score}
+          evaluation={data.evaluation}
+          locale={locale}
         />
 
         <MatchDashboardOverview
