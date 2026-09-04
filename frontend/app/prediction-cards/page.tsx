@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { useLocale } from "@/context/locale-context";
 import { apiFetch } from "@/lib/api";
+import WinningPredictionCardShare from "@/components/prediction/WinningPredictionCardShare";
 
 import {
   generatePredictionCard,
@@ -1800,7 +1801,13 @@ export default function PredictionCardsPage() {
 
                     </button>
 
-                    <div className="flex justify-end border-t border-white/5 px-4 py-2">
+                    <div className="flex flex-wrap items-center justify-end gap-2 border-t border-white/5 px-4 py-2">
+                      {card.status === "won" && (
+                        <WinningPredictionCardShare
+                          card={card}
+                          locale={locale}
+                        />
+                      )}
                       <button
                         type="button"
                         onClick={() =>
