@@ -56,6 +56,8 @@ type MatchShareCardProps = {
   homeLogo?: string | null;
   awayLogo?: string | null;
   mostLikelyScore?: string | null;
+  mostLikelyHomeGoals?: number | null;
+  mostLikelyAwayGoals?: number | null;
   scoreProbability?: number | null;
 
   homeWin?: number | null;
@@ -148,6 +150,8 @@ export default function MatchShareCard({
   homeLogo,
   awayLogo,
   mostLikelyScore,
+  mostLikelyHomeGoals,
+  mostLikelyAwayGoals,
   scoreProbability,
   homeWin,
   draw,
@@ -255,12 +259,53 @@ export default function MatchShareCard({
   } as const;
 
   const t = labels[locale] ?? labels.en;
+  // Keep Home/Away semantics fixed and change only their physical side.
+  const isRtl = locale === "ar";
+
+  const leftTeam = isRtl ? awayTeam : homeTeam;
+  const rightTeam = isRtl ? homeTeam : awayTeam;
+  const leftLogo = isRtl ? awayLogo : homeLogo;
+  const rightLogo = isRtl ? homeLogo : awayLogo;
+
+  const leftPredictedScore = isRtl
+    ? mostLikelyAwayGoals
+    : mostLikelyHomeGoals;
+  const rightPredictedScore = isRtl
+    ? mostLikelyHomeGoals
+    : mostLikelyAwayGoals;
+
+  const leftActualScore = isRtl ? awayScore : homeScore;
+  const rightActualScore = isRtl ? homeScore : awayScore;
+
+  const leftExpectedGoals = isRtl
+    ? awayExpectedGoals
+    : homeExpectedGoals;
+  const rightExpectedGoals = isRtl
+    ? homeExpectedGoals
+    : awayExpectedGoals;
+
+  const visualPredictedScore =
+    typeof leftPredictedScore === "number" &&
+    typeof rightPredictedScore === "number"
+      ? `${leftPredictedScore}-${rightPredictedScore}`
+      : mostLikelyScore ?? "—";
+
+  const visualFinalScore =
+    isFinished &&
+    typeof leftActualScore === "number" &&
+    typeof rightActualScore === "number"
+      ? `${leftActualScore}-${rightActualScore}`
+      : null;
 
   const resultOptions = [
     { key: "home", label: t.home, value: homeWin },
     { key: "draw", label: t.draw, value: draw },
     { key: "away", label: t.away, value: awayWin },
   ];
+
+  const visualResultOptions = isRtl
+    ? [resultOptions[2], resultOptions[1], resultOptions[0]]
+    : resultOptions;
 
   const predictedResult = [...resultOptions].sort(
     (a, b) => (b.value ?? -1) - (a.value ?? -1),
@@ -324,7 +369,7 @@ export default function MatchShareCard({
       key: "score",
       icon: "#",
       title: t.exact,
-      value: mostLikelyScore ?? "—",
+      value: visualPredictedScore,
       probability: formatProbability(scoreProbability),
       probabilityValue: scoreProbability,
       status: status(evaluation?.exact_score_correct),
@@ -587,15 +632,15 @@ export default function MatchShareCard({
 
           {/* Match Hero */}
           <div className="rounded-[22px] border border-white/[0.09] bg-[#0b2748]/95 px-3 py-3">
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3" dir="ltr">
 
               {/* Home */}
               <div className="flex min-w-0 flex-col items-center text-center">
                 <div className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl border border-white/[0.08] bg-black/25 p-2">
-                  {homeLogo ? (
+                  {leftLogo ? (
                     <img
-                      src={homeLogo}
-                      alt={homeTeam}
+                      src={leftLogo}
+                      alt={leftTeam}
                       className="h-full w-full object-contain"
                     />
                   ) : (
@@ -605,7 +650,7 @@ export default function MatchShareCard({
 
                 <div className="mt-2 flex min-h-[34px] max-w-[180px] items-center justify-center">
                   <span className="text-center text-[13px] font-black leading-tight text-white sm:text-sm">
-                    {homeTeam}
+                    {leftTeam}
                   </span>
                 </div>
               </div>
@@ -625,7 +670,7 @@ export default function MatchShareCard({
                       : "border-cyan-300/35 bg-cyan-300/[0.08]",
                   ].join(" ")}
                 >
-                  {finalScore ?? mostLikelyScore ?? "—"}
+                  {visualFinalScore ?? visualPredictedScore}
                 </div>
 
                 {!finalScore ? (
@@ -649,10 +694,10 @@ export default function MatchShareCard({
               {/* Away */}
               <div className="flex min-w-0 flex-col items-center text-center">
                 <div className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl border border-white/[0.08] bg-black/25 p-2">
-                  {awayLogo ? (
+                  {rightLogo ? (
                     <img
-                      src={awayLogo}
-                      alt={awayTeam}
+                      src={rightLogo}
+                      alt={rightTeam}
                       className="h-full w-full object-contain"
                     />
                   ) : (
@@ -662,7 +707,7 @@ export default function MatchShareCard({
 
                 <div className="mt-2 flex min-h-[34px] max-w-[180px] items-center justify-center">
                   <span className="text-center text-[13px] font-black leading-tight text-white sm:text-sm">
-                    {awayTeam}
+                    {rightTeam}
                   </span>
                 </div>
               </div>
@@ -680,7 +725,7 @@ export default function MatchShareCard({
             </div>
 
             <div className="grid grid-cols-3 divide-x divide-white/[0.08]" dir="ltr">
-              {resultOptions.map((option) => {
+              {visualResultOptions.map((option) => {
                 const active = option.key === predictedResult?.key;
                 const isDraw = option.key === "draw";
 
@@ -858,11 +903,11 @@ export default function MatchShareCard({
             <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3" dir="ltr">
               <div>
                 <div className="truncate text-[9px] font-bold text-slate-300">
-                  {homeTeam}
+                  {leftTeam}
                 </div>
                 <div className="mt-1 flex items-center gap-2">
                   <span className="text-[18px] font-black text-emerald-300">
-                    {formatNumber(homeExpectedGoals)}
+                    {formatNumber(leftExpectedGoals)}
                   </span>
                   <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
                     <div className="h-full w-2/3 rounded-full bg-emerald-300" />
@@ -876,11 +921,11 @@ export default function MatchShareCard({
 
               <div>
                 <div className="truncate text-[9px] font-bold text-slate-300">
-                  {awayTeam}
+                  {rightTeam}
                 </div>
                 <div className="mt-1 flex items-center gap-2">
                   <span className="text-[18px] font-black text-cyan-300">
-                    {formatNumber(awayExpectedGoals)}
+                    {formatNumber(rightExpectedGoals)}
                   </span>
                   <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
                     <div className="h-full w-1/2 rounded-full bg-cyan-300" />

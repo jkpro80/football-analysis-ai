@@ -1301,6 +1301,12 @@ class User(Base):
         cascade="all, delete-orphan",
     )
 
+    email_verification_tokens = relationship(
+        "EmailVerificationToken",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
 class PasswordResetToken(Base):
     __tablename__ = "password_reset_tokens"
 
@@ -1343,6 +1349,51 @@ class PasswordResetToken(Base):
     user = relationship(
         "User",
         back_populates="password_reset_tokens",
+    )
+
+
+class EmailVerificationToken(Base):
+    __tablename__ = "email_verification_tokens"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+    user_id = Column(
+        Integer,
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+    token_hash = Column(
+        String(64),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    expires_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        index=True,
+    )
+    used_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+    )
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    user = relationship(
+        "User",
+        back_populates="email_verification_tokens",
     )
 
 

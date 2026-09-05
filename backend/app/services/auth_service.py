@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.database.models import (
+    EmailVerificationToken,
     PasswordResetToken,
     SubscriptionPlan,
     User,
@@ -28,6 +29,10 @@ class RegistrationConflictError(AuthServiceError):
     """Raised when an email or username already exists."""
 class InactiveUserError(AuthServiceError):
     """Raised when authentication is attempted by an inactive user."""
+
+
+class EmailVerificationRequiredError(AuthServiceError):
+    """Raised when authentication is attempted before email verification."""
 
 
 class PasswordResetError(AuthServiceError):
@@ -228,10 +233,12 @@ class AuthService:
         user = self.users.get_by_identifier(
             identifier,
         )
+
         if user is None:
             raise AuthenticationError(
                 "Invalid email, username, or password."
             )
+
         if not self.verify_password(
             password,
             user.password_hash,
@@ -239,10 +246,17 @@ class AuthService:
             raise AuthenticationError(
                 "Invalid email, username, or password."
             )
+
         if not user.is_active:
             raise InactiveUserError(
                 "User account is inactive."
             )
+
+        if not user.is_verified:
+            raise EmailVerificationRequiredError(
+                "Email verification is required before login."
+            )
+
         return user
     def issue_tokens(
         self,
@@ -283,6 +297,143 @@ class AuthService:
             normalized.encode("utf-8")
         ).hexdigest()
 
+    @staticmethod
+    def _hash_verification_token(token: str) -> str:
+        if not isinstance(token, str):
+            raise EmailVerificationRequiredError(
+                "Invalid email verification token."
+            )
+
+        normalized = token.strip()
+
+        if not normalized:
+            raise EmailVerificationRequiredError(
+                "Invalid email verification token."
+            )
+
+        return hashlib.sha256(
+            normalized.encode("utf-8")
+        ).hexdigest()
+
+    def create_email_verification_token(
+        self,
+        *,
+        user: User,
+    ) -> str:
+        if user is None or not user.is_active:
+            raise EmailVerificationRequiredError(
+                "Unable to create email verification token."
+            )
+
+        if user.is_verified:
+            raise EmailVerificationRequiredError(
+                "Email is already verified."
+            )
+
+        now = self._utc_now()
+
+        (
+            self.db.query(EmailVerificationToken)
+            .filter(
+                EmailVerificationToken.user_id == user.id,
+                EmailVerificationToken.used_at.is_(None),
+            )
+            .update(
+                {
+                    EmailVerificationToken.used_at: now,
+                },
+                synchronize_session=False,
+            )
+        )
+
+        raw_token = secrets.token_urlsafe(48)
+
+        verification_token = EmailVerificationToken(
+            user_id=user.id,
+            token_hash=self._hash_verification_token(
+                raw_token,
+            ),
+            expires_at=(
+                now
+                + timedelta(hours=24)
+            ),
+            used_at=None,
+            created_at=now,
+        )
+
+        try:
+            self.db.add(verification_token)
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+
+        return raw_token
+
+    def verify_email(
+        self,
+        *,
+        token: str,
+    ) -> User:
+        token_hash = self._hash_verification_token(
+            token,
+        )
+
+        now = self._utc_now()
+
+        verification_token = (
+            self.db.query(EmailVerificationToken)
+            .filter(
+                EmailVerificationToken.token_hash
+                == token_hash,
+                EmailVerificationToken.used_at.is_(None),
+                EmailVerificationToken.expires_at > now,
+            )
+            .first()
+        )
+
+        if verification_token is None:
+            raise EmailVerificationRequiredError(
+                "Invalid or expired email verification link."
+            )
+
+        user = self.users.get_by_id(
+            verification_token.user_id,
+        )
+
+        if user is None or not user.is_active:
+            raise EmailVerificationRequiredError(
+                "Invalid or expired email verification link."
+            )
+
+        user.is_verified = True
+        user.updated_at = now
+        verification_token.used_at = now
+
+        (
+            self.db.query(EmailVerificationToken)
+            .filter(
+                EmailVerificationToken.user_id == user.id,
+                EmailVerificationToken.id
+                != verification_token.id,
+                EmailVerificationToken.used_at.is_(None),
+            )
+            .update(
+                {
+                    EmailVerificationToken.used_at: now,
+                },
+                synchronize_session=False,
+            )
+        )
+
+        try:
+            self.db.commit()
+            self.db.refresh(user)
+        except Exception:
+            self.db.rollback()
+            raise
+
+        return user
     def create_password_reset_token(
         self,
         *,
@@ -436,5 +587,4 @@ class AuthService:
             )
             .first()
         )
-
 

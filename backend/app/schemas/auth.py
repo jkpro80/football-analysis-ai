@@ -82,6 +82,32 @@ class RegisterRequest(BaseModel):
         return value
 
 
+class EmailVerificationRequest(BaseModel):
+    token: str = Field(
+        min_length=40,
+        max_length=512,
+    )
+
+    @field_validator("token")
+    @classmethod
+    def normalize_token(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError(
+                "Verification token is required."
+            )
+        return normalized
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: EmailStr) -> str:
+        return str(value).strip().lower()
+
+
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 

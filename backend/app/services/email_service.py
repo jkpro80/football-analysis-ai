@@ -127,6 +127,147 @@ class EmailService:
                 "Unable to send password reset email."
             ) from exc
 
+    def send_email_verification(
+        self,
+        *,
+        recipient_email: str,
+        verification_token: str,
+    ) -> None:
+        recipient = recipient_email.strip().lower()
+        token = verification_token.strip()
+
+        if not recipient:
+            raise ValueError(
+                "recipient_email is required."
+            )
+
+        if not token:
+            raise ValueError(
+                "verification_token is required."
+            )
+
+        verification_url = (
+            self._build_verification_url(token)
+        )
+
+        message = EmailMessage()
+        message["Subject"] = "Verify your MALX email"
+        message["From"] = formataddr(
+            (
+                self.from_name,
+                self.from_email,
+            )
+        )
+        message["To"] = recipient
+
+        message.set_content(
+            "\n".join(
+                [
+                    "Verify your MALX email",
+                    "",
+                    "Thank you for creating your MALX account.",
+                    "",
+                    f"Verify your email: {verification_url}",
+                    "",
+                    "This verification link expires in 24 hours.",
+                    "",
+                    (
+                        "If you did not create this account, "
+                        "you can safely ignore this email."
+                    ),
+                ]
+            )
+        )
+
+        message.add_alternative(
+            self._build_verification_html(
+                verification_url,
+            ),
+            subtype="html",
+        )
+
+        try:
+            with smtplib.SMTP(
+                self.host,
+                self.port,
+                timeout=15,
+            ) as smtp:
+                smtp.ehlo()
+
+                if self.use_starttls:
+                    context = ssl.create_default_context()
+                    smtp.starttls(context=context)
+                    smtp.ehlo()
+
+                smtp.login(
+                    self.username,
+                    self.password,
+                )
+
+                smtp.send_message(message)
+
+        except (
+            smtplib.SMTPException,
+            OSError,
+        ) as exc:
+            raise EmailServiceError(
+                "Unable to send email verification message."
+            ) from exc
+
+    @staticmethod
+    def _build_verification_url(
+        token: str,
+    ) -> str:
+        base_url = (
+            settings.frontend_base_url
+            .strip()
+            .rstrip("/")
+        )
+
+        query = urlencode(
+            {
+                "token": token,
+            }
+        )
+
+        return (
+            f"{base_url}/verify-email?"
+            f"{query}"
+        )
+
+    @staticmethod
+    def _build_verification_html(
+        verification_url: str,
+    ) -> str:
+        return f"""\
+<!doctype html>
+<html>
+<body style="font-family:Arial,sans-serif;background:#f6f8fb;padding:24px;">
+  <div style="max-width:560px;margin:auto;background:#ffffff;padding:32px;border-radius:12px;">
+    <h2 style="margin-top:0;">Verify your MALX email</h2>
+
+    <p>Thank you for creating your MALX account.</p>
+
+    <p style="margin:28px 0;">
+      <a
+        href="{verification_url}"
+        style="background:#111827;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;display:inline-block;"
+      >
+        Verify email
+      </a>
+    </p>
+
+    <p>
+      This verification link expires in 24 hours.
+    </p>
+
+    <p style="color:#6b7280;font-size:14px;">
+      If you did not create this account, you can safely ignore this email.
+    </p>
+  </div>
+</body>
+</html>
+"""
     @staticmethod
     def _required_setting(
         value: str | None,

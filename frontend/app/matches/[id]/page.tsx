@@ -2697,6 +2697,12 @@ export default async function MatchPage({
           mostLikelyScore={
             data.prediction.most_likely_score.score
           }
+          mostLikelyHomeGoals={
+            data.prediction.most_likely_score.home_goals
+          }
+          mostLikelyAwayGoals={
+            data.prediction.most_likely_score.away_goals
+          }
           scoreProbability={
             data.prediction.most_likely_score.probability
           }
@@ -2709,6 +2715,8 @@ export default async function MatchPage({
           homeLogo={home.logo}
           awayLogo={away.logo}
           mostLikelyScore={data.prediction.most_likely_score.score}
+          mostLikelyHomeGoals={data.prediction.most_likely_score.home_goals}
+          mostLikelyAwayGoals={data.prediction.most_likely_score.away_goals}
           scoreProbability={data.prediction.most_likely_score.probability}
           homeWin={result.home_win}
           draw={result.draw}

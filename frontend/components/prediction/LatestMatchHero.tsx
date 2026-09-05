@@ -94,6 +94,8 @@ type LatestMatchHeroProps = {
   draw: number;
   awayWin: number;
   mostLikelyScore: string;
+  mostLikelyHomeGoals: number;
+  mostLikelyAwayGoals: number;
   scoreProbability: number;
 };
 
@@ -216,6 +218,8 @@ export default function LatestMatchHero({
   draw,
   awayWin,
   mostLikelyScore,
+  mostLikelyHomeGoals,
+  mostLikelyAwayGoals,
   scoreProbability,
 }: LatestMatchHeroProps) {
   const { locale } = useLocale();
@@ -252,6 +256,8 @@ export default function LatestMatchHero({
           awayWin,
         }}
         mostLikelyScore={{
+          homeGoals: mostLikelyHomeGoals,
+          awayGoals: mostLikelyAwayGoals,
           score: mostLikelyScore,
           probability: scoreProbability,
         }}

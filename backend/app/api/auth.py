@@ -1,12 +1,14 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database.database import get_db
 from app.database.models import User
 from app.dependencies.auth import get_current_user
 from app.schemas.auth import (
     AuthUserResponse,
+    EmailVerificationRequest,
     ForgotPasswordRequest,
     LoginRequest,
+    ResendVerificationRequest,
     ResetPasswordRequest,
     RefreshTokenRequest,
     RegisterRequest,
@@ -18,6 +20,7 @@ from app.services.auth_service import (
     AuthenticationError,
     AuthServiceError,
     InactiveUserError,
+    EmailVerificationRequiredError,
     PasswordResetError,
     RegistrationConflictError,
 )
@@ -58,6 +61,25 @@ def register(
     service = AuthService(db)
     try:
         user = service.register(payload)
+
+        try:
+            verification_token = (
+                service.create_email_verification_token(
+                    user=user,
+                )
+            )
+
+            EmailService().send_email_verification(
+                recipient_email=user.email,
+                verification_token=verification_token,
+            )
+        except Exception:
+            logger.exception(
+                "Email verification setup or delivery failed "
+                "for user_id=%s",
+                user.id,
+            )
+
         return UserResponse.model_validate(user)
     except RegistrationConflictError as error:
         raise HTTPException(
@@ -69,6 +91,80 @@ def register(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(error),
         ) from error
+@router.post(
+    "/verify-email",
+    status_code=status.HTTP_200_OK,
+)
+def verify_email(
+    payload: EmailVerificationRequest,
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    service = AuthService(db)
+
+    try:
+        service.verify_email(
+            token=payload.token,
+        )
+    except EmailVerificationRequiredError as error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(error),
+        ) from error
+
+    return {
+        "message": "Email verified successfully.",
+    }
+
+
+@router.post(
+    "/resend-verification",
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def resend_verification(
+    payload: ResendVerificationRequest,
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    service = AuthService(db)
+
+    try:
+        user = service.users.get_by_email(
+            str(payload.email),
+        )
+
+        if (
+            user is not None
+            and user.is_active
+            and not user.is_verified
+        ):
+            try:
+                verification_token = (
+                    service.create_email_verification_token(
+                        user=user,
+                    )
+                )
+
+                EmailService().send_email_verification(
+                    recipient_email=user.email,
+                    verification_token=verification_token,
+                )
+            except Exception:
+                logger.exception(
+                    "Email verification resend failed "
+                    "for user_id=%s",
+                    user.id,
+                )
+    except Exception:
+        logger.exception(
+            "Email verification resend lookup failed"
+        )
+
+    return {
+        "message": (
+            "If the account exists and requires verification, "
+            "a new verification email has been sent."
+        ),
+    }
+
 @router.post(
     "/forgot-password",
     status_code=status.HTTP_202_ACCEPTED,
@@ -149,12 +245,15 @@ def login(
     db: Session = Depends(get_db),
 ) -> dict:
     service = AuthService(db)
+
     try:
         user = service.authenticate(
             payload.identifier,
             payload.password,
         )
+
         tokens = service.issue_tokens(user)
+
         return {
             **tokens,
             "user": build_auth_user_response(
@@ -162,11 +261,19 @@ def login(
                 user,
             ),
         }
+
+    except EmailVerificationRequiredError as error:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(error),
+        ) from error
+
     except InactiveUserError as error:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(error),
         ) from error
+
     except AuthenticationError as error:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -175,6 +282,7 @@ def login(
                 "WWW-Authenticate": "Bearer",
             },
         ) from error
+
 @router.post(
     "/refresh",
     response_model=TokenResponse,

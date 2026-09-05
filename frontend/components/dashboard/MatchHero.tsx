@@ -98,6 +98,8 @@ type MatchHeroProps = {
     awayWin: number;
   };
   mostLikelyScore: {
+    homeGoals: number;
+    awayGoals: number;
     score: string;
     probability: number;
   };
@@ -508,6 +510,40 @@ export default function MatchHero({
   const { locale, direction } = useLocale();
   const text = TEXT[locale];
 
+  // Keep Home/Away semantics fixed in the data and change only their
+  // visual side according to the current language direction.
+  const isRtl = direction === "rtl";
+
+  const leftTeam = isRtl ? awayTeam : homeTeam;
+  const rightTeam = isRtl ? homeTeam : awayTeam;
+
+  const leftTeamRole = isRtl ? text.awayTeam : text.homeTeam;
+  const rightTeamRole = isRtl ? text.homeTeam : text.awayTeam;
+
+  const leftWinProbability = isRtl
+    ? probabilities.awayWin
+    : probabilities.homeWin;
+  const rightWinProbability = isRtl
+    ? probabilities.homeWin
+    : probabilities.awayWin;
+
+  const leftVariant = isRtl ? "away" as const : "home" as const;
+  const rightVariant = isRtl ? "home" as const : "away" as const;
+
+  const leftPredictedScore = isRtl
+    ? mostLikelyScore.awayGoals
+    : mostLikelyScore.homeGoals;
+  const rightPredictedScore = isRtl
+    ? mostLikelyScore.homeGoals
+    : mostLikelyScore.awayGoals;
+
+  const leftExpectedGoals = isRtl
+    ? expectedGoals.away
+    : expectedGoals.home;
+  const rightExpectedGoals = isRtl
+    ? expectedGoals.home
+    : expectedGoals.away;
+
   const formattedDate = formatDate(
     match.date,
     locale,
@@ -776,42 +812,46 @@ export default function MatchHero({
         <div dir="ltr" className="grid grid-cols-[1fr_auto_1fr] items-start gap-1.5 sm:gap-3 md:grid-cols-[1fr_0.92fr_1fr] md:items-center md:gap-3 xl:gap-7">
           <div dir={direction} className="flex min-w-0 flex-col items-center">
             <div className="flex items-center justify-center md:gap-4">
-              <TeamLogo team={awayTeam} accent="away" />
+              <TeamLogo team={leftTeam} accent={leftVariant} />
 
               <div className="hidden md:block">
                 <ProbabilityRing
-                  value={probabilities.awayWin}
+                  value={leftWinProbability}
                   label={text.win}
-                  variant="away"
+                  variant={leftVariant}
                 />
               </div>
             </div>
 
-            <span className="mt-1.5 rounded-full border border-rose-400/20 bg-rose-400/[0.07] px-2 py-0.5 text-[10px] font-black text-rose-300 md:mt-3 md:px-3 md:py-1 md:text-[12px]">
-              {text.awayTeam}
+            <span className={`mt-1.5 rounded-full border px-2 py-0.5 text-[10px] font-black md:mt-3 md:px-3 md:py-1 md:text-[12px] ${
+              leftVariant === "home"
+                ? "border-emerald-400/20 bg-emerald-400/[0.07] text-emerald-300"
+                : "border-rose-400/20 bg-rose-400/[0.07] text-rose-300"
+            }`}>
+              {leftTeamRole}
             </span>
 
             <h2 className="mt-1 max-w-full truncate text-center text-[13px] font-black leading-4 text-white sm:text-sm md:mt-2 md:text-2xl">
-              {awayTeam.name}
+              {leftTeam.name}
             </h2>
 
             <div className="mt-2 md:hidden">
               <ProbabilityRing
-                value={probabilities.awayWin}
+                value={leftWinProbability}
                 label={text.win}
-                variant="away"
+                variant={leftVariant}
                 size="small"
               />
             </div>
 
-            {awayTeam.country && (
+            {leftTeam.country && (
               <p className="mt-1 hidden text-[14px] text-slate-500 md:block">
-                {awayTeam.country}
+                {leftTeam.country}
               </p>
             )}
 
             <div className="hidden md:block">
-              <FormDots value={awayTeam.form} />
+              <FormDots value={leftTeam.form} />
             </div>
           </div>
 
@@ -822,14 +862,16 @@ export default function MatchHero({
 
             <div className="mt-1.5 rounded-xl border border-cyan-400/30 bg-cyan-950/10 px-2.5 py-2 shadow-[0_0_35px_rgba(34,211,238,0.10)] sm:px-4 md:mt-3 md:rounded-2xl md:px-8 md:py-3 lg:px-10">
               <p dir="ltr" className="whitespace-nowrap text-2xl font-black tracking-[0.04em] text-white sm:text-3xl md:text-5xl md:tracking-[0.08em]">
-                {mostLikelyScore.score}
+                <span>{leftPredictedScore}</span>
+                <span className="mx-2">-</span>
+                <span>{rightPredictedScore}</span>
               </p>
             </div>
 
             <div dir="ltr" className="mt-2 hidden w-full max-w-[330px] grid-cols-[1fr_auto_1fr] items-center gap-2 text-[12px] font-bold text-slate-500 md:grid">
-              <span className="truncate text-left">{homeTeam.name}</span>
-              <span className="text-slate-600">HOME — AWAY</span>
-              <span className="truncate text-right">{awayTeam.name}</span>
+              <span dir={direction} className="truncate text-left">{leftTeam.name}</span>
+              <span dir={direction} className="text-slate-600">{leftTeamRole} — {rightTeamRole}</span>
+              <span dir={direction} className="truncate text-right">{rightTeam.name}</span>
             </div>
 
             <span className="mt-1.5 whitespace-nowrap rounded-full border border-cyan-500/20 bg-cyan-500/[0.08] px-2 py-1 text-[9px] font-black tracking-[0.03em] text-cyan-300 sm:text-[10px] md:mt-3 md:px-4 md:py-1.5 md:text-[12px] md:tracking-[0.10em]">
@@ -865,7 +907,7 @@ export default function MatchHero({
                 <span className="whitespace-nowrap rounded-lg border border-slate-700/70 bg-slate-950/55 px-2 py-1 text-[9px] text-slate-500 md:rounded-xl md:px-4 md:py-2 md:text-[14px]">
                   {text.actualScore}:{" "}
                   <strong dir="ltr" className="ms-1 text-xs text-white md:text-lg">
-                    {match.home_score}-{match.away_score}
+                    {isRtl ? actualAwayScore : actualHomeScore}-{isRtl ? actualHomeScore : actualAwayScore}
                   </strong>
                 </span>
 
@@ -890,48 +932,52 @@ export default function MatchHero({
             <div className="flex items-center justify-center md:gap-4">
               <div className="hidden md:block">
                 <ProbabilityRing
-                  value={probabilities.homeWin}
+                  value={rightWinProbability}
                   label={text.win}
-                  variant="home"
+                  variant={rightVariant}
                 />
               </div>
 
-              <TeamLogo team={homeTeam} accent="home" />
+              <TeamLogo team={rightTeam} accent={rightVariant} />
             </div>
 
-            <span className="mt-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/[0.07] px-2 py-0.5 text-[10px] font-black text-emerald-300 md:mt-3 md:px-3 md:py-1 md:text-[12px]">
-              {text.homeTeam}
+            <span className={`mt-1.5 rounded-full border px-2 py-0.5 text-[10px] font-black md:mt-3 md:px-3 md:py-1 md:text-[12px] ${
+              rightVariant === "home"
+                ? "border-emerald-400/20 bg-emerald-400/[0.07] text-emerald-300"
+                : "border-rose-400/20 bg-rose-400/[0.07] text-rose-300"
+            }`}>
+              {rightTeamRole}
             </span>
 
             <h2 className="mt-1 max-w-full truncate text-center text-[13px] font-black leading-4 text-white sm:text-sm md:mt-2 md:text-2xl">
-              {homeTeam.name}
+              {rightTeam.name}
             </h2>
 
             <div className="mt-2 md:hidden">
               <ProbabilityRing
-                value={probabilities.homeWin}
+                value={rightWinProbability}
                 label={text.win}
-                variant="home"
+                variant={rightVariant}
                 size="small"
               />
             </div>
 
-            {homeTeam.country && (
+            {rightTeam.country && (
               <p className="mt-1 hidden text-[14px] text-slate-500 md:block">
-                {homeTeam.country}
+                {rightTeam.country}
               </p>
             )}
 
             <div className="hidden md:block">
-              <FormDots value={homeTeam.form} />
+              <FormDots value={rightTeam.form} />
             </div>
           </div>
         </div>
 
-        <div className="mt-3.5 grid grid-cols-3 gap-1.5 sm:mt-5 sm:gap-3">
-          <XgCard value={expectedGoals.away} label={`${awayTeam.name} — ${text.expectedXg}`} variant="away" />
+        <div dir="ltr" className="mt-3.5 grid grid-cols-3 gap-1.5 sm:mt-5 sm:gap-3">
+          <XgCard value={leftExpectedGoals} label={`${leftTeam.name} — ${text.expectedXg}`} variant={leftVariant} />
           <XgCard value={expectedGoals.total} label={text.totalXg} variant="total" />
-          <XgCard value={expectedGoals.home} label={`${homeTeam.name} — ${text.expectedXg}`} variant="home" />
+          <XgCard value={rightExpectedGoals} label={`${rightTeam.name} — ${text.expectedXg}`} variant={rightVariant} />
         </div>
 
         <div className="mt-2.5 flex flex-wrap items-center justify-center gap-1.5 border-t border-white/[0.05] pt-2.5 sm:mt-3 sm:gap-2 sm:pt-3">
