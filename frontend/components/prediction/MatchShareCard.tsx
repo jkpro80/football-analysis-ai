@@ -388,6 +388,7 @@ export default function MatchShareCard({
         ? formatProbability(cornersPick.probability)
         : formatNumber(cornersForecast?.total_expected),
       probabilityValue: cornersPick?.probability,
+      actualValue: evaluation?.corners?.actual_total,
       status: status(evaluation?.corners?.correct),
     },
     {
@@ -403,6 +404,7 @@ export default function MatchShareCard({
         ? formatProbability(cardsPick.probability)
         : formatNumber(yellowCardsForecast?.total_expected),
       probabilityValue: cardsPick?.probability,
+      actualValue: evaluation?.yellow_cards?.actual_total,
       status: status(evaluation?.yellow_cards?.correct),
     },
   ];
@@ -852,7 +854,7 @@ export default function MatchShareCard({
 
                   <div className="mt-2 flex-1">
                     <div className="text-[13px] font-black leading-tight text-white">
-                      {item.key === "score" && item.actualValue ? (
+                      {item.actualValue !== null && item.actualValue !== undefined ? (
                         <div className="space-y-0.5">
                           <div>{locale === "ar" ? "التوقع" : locale === "sv" ? "Prognos" : "Prediction"}: <span dir="ltr">{item.value}</span></div>
                           <div className="text-[10px] text-slate-300">{locale === "ar" ? "الفعلي" : locale === "sv" ? "Faktiskt" : "Actual"}: <span dir="ltr">{item.actualValue}</span></div>
