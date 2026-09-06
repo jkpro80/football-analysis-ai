@@ -74,9 +74,11 @@ function localizedStatus(
 export default function FixtureCard({
   fixture,
   showFavoriteAction = true,
+  returnHref,
 }: {
   fixture: DashboardFixture;
   showFavoriteAction?: boolean;
+  returnHref?: string;
 }) {
   const {
     locale,
@@ -142,7 +144,13 @@ export default function FixtureCard({
 
       <div className="mt-2 space-y-1.5 sm:mt-3 sm:space-y-2">
         <Link
-          href={`/matches/${fixture.id}`}
+          href={
+            returnHref
+              ? `/matches/${fixture.id}?returnTo=${encodeURIComponent(
+                  returnHref,
+                )}`
+              : `/matches/${fixture.id}`
+          }
           className="block rounded-lg bg-gradient-to-l from-cyan-500 to-blue-600 px-2.5 py-2 text-center text-xs font-black text-white transition hover:opacity-90 sm:px-3 sm:py-2.5 sm:text-sm"
         >
           {t.viewAnalysis}

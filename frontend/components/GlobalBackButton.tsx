@@ -1,11 +1,27 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import {
+  usePathname,
+  useSearchParams,
+} from "next/navigation";
 
 import BackButton from "@/components/BackButton";
 
 export default function GlobalBackButton() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const requestedReturnHref =
+    pathname.startsWith("/matches/")
+      ? searchParams.get("returnTo")
+      : null;
+
+  const safeReturnHref =
+    requestedReturnHref &&
+    requestedReturnHref.startsWith("/") &&
+    !requestedReturnHref.startsWith("//")
+      ? requestedReturnHref
+      : undefined;
 
   const hidden =
     pathname === "/" ||
@@ -18,10 +34,11 @@ export default function GlobalBackButton() {
   }
 
   return (
-    <div className="fixed left-4 top-20 z-50 sm:left-6">
+    <div className="mx-auto flex w-full max-w-7xl px-4 pt-4 sm:px-6">
       <BackButton
-        fallbackHref="/"
-        className="shadow-lg shadow-black/20 backdrop-blur"
+        fallbackHref={safeReturnHref ?? "/"}
+        preferredHref={safeReturnHref}
+        className="shrink-0"
       />
     </div>
   );

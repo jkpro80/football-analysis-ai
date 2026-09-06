@@ -4,8 +4,15 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
+
+import {
+  usePathname,
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
 
 import { useLocale } from "@/context/locale-context";
 import type { Locale } from "@/lib/i18n/config";
@@ -219,22 +226,185 @@ export default function MatchExplorer({
     direction,
   } = useLocale();
 
+
+
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const t = getText(locale);
 
+  const isInitialMount = useRef(true);
+  const isRestoringNavigationState = useRef(false);
+
   const [search, setSearch] =
-    useState("");
+    useState(() =>
+      searchParams.get("search") ?? "",
+    );
 
   const [statusFilter, setStatusFilter] =
-    useState<StatusFilter>("scheduled");
+    useState<StatusFilter>(() => {
+      const value = searchParams.get("status");
+
+      return [
+        "all",
+        "scheduled",
+        "live",
+        "finished",
+      ].includes(value ?? "")
+        ? (value as StatusFilter)
+        : "scheduled";
+    });
 
   const [sortOption, setSortOption] =
-    useState<SortOption>("date");
+    useState<SortOption>(() => {
+      const value = searchParams.get("sort");
+
+      return [
+        "confidence",
+        "best-pick",
+        "date",
+      ].includes(value ?? "")
+        ? (value as SortOption)
+        : "date";
+    });
 
   const [quickFilter, setQuickFilter] =
-    useState<QuickFilter>("all");
+    useState<QuickFilter>(() => {
+      const value = searchParams.get("quick");
+
+      return [
+        "all",
+        "today",
+        "tomorrow",
+        "week",
+        "high-confidence",
+        "over25",
+        "btts",
+        "home-win",
+        "away-win",
+      ].includes(value ?? "")
+        ? (value as QuickFilter)
+        : "all";
+    });
 
   const [currentPage, setCurrentPage] =
-    useState(1);
+    useState(() => {
+      const value = Number(
+        searchParams.get("page"),
+      );
+
+      return Number.isInteger(value) &&
+        value > 0
+        ? value
+        : 1;
+    });
+
+  useEffect(() => {
+    const params =
+      new URLSearchParams(
+        window.location.search,
+      );
+
+    const status =
+      params.get("status");
+    const sort =
+      params.get("sort");
+    const quick =
+      params.get("quick");
+    const page =
+      Number(params.get("page"));
+
+    isRestoringNavigationState.current = true;
+
+    setSearch(
+      params.get("search") ?? "",
+    );
+
+    setStatusFilter(
+      [
+        "all",
+        "scheduled",
+        "live",
+        "finished",
+      ].includes(status ?? "")
+        ? (status as StatusFilter)
+        : "scheduled",
+    );
+
+    setSortOption(
+      [
+        "confidence",
+        "best-pick",
+        "date",
+      ].includes(sort ?? "")
+        ? (sort as SortOption)
+        : "date",
+    );
+
+    setQuickFilter(
+      [
+        "all",
+        "today",
+        "tomorrow",
+        "week",
+        "high-confidence",
+        "over25",
+        "btts",
+        "home-win",
+        "away-win",
+      ].includes(quick ?? "")
+        ? (quick as QuickFilter)
+        : "all",
+    );
+
+    setCurrentPage(
+      Number.isInteger(page) &&
+        page > 0
+        ? page
+        : 1,
+    );
+  }, []);
+
+  const matchReturnHref = useMemo(() => {
+    const params = new URLSearchParams();
+
+    if (search.trim()) {
+      params.set("search", search.trim());
+    }
+
+    if (statusFilter !== "scheduled") {
+      params.set("status", statusFilter);
+    }
+
+    if (sortOption !== "date") {
+      params.set("sort", sortOption);
+    }
+
+    if (quickFilter !== "all") {
+      params.set("quick", quickFilter);
+    }
+
+    if (currentPage > 1) {
+      params.set(
+        "page",
+        String(currentPage),
+      );
+    }
+
+    const query = params.toString();
+
+    return query
+      ? `${pathname}?${query}`
+      : pathname;
+  }, [
+    pathname,
+    search,
+    statusFilter,
+    sortOption,
+    quickFilter,
+    currentPage,
+  ]);
 
   const [loadedFixtures, setLoadedFixtures] =
     useState<DashboardFixture[]>(fixtures);
@@ -325,7 +495,7 @@ export default function MatchExplorer({
           )?.getTime() ??
           Number.MAX_SAFE_INTEGER;
 
-        return firstDate - secondDate;
+        return secondDate - firstDate;
       },
     );
   }, [
@@ -337,12 +507,90 @@ export default function MatchExplorer({
   ]);
 
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    if (
+      isRestoringNavigationState.current
+    ) {
+      isRestoringNavigationState.current = false;
+      return;
+    }
+
     setCurrentPage(1);
   }, [
     search,
     statusFilter,
     sortOption,
     quickFilter,
+  ]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(
+      searchParams.toString(),
+    );
+
+    if (search.trim()) {
+      params.set(
+        "search",
+        search.trim(),
+      );
+    } else {
+      params.delete("search");
+    }
+
+    if (statusFilter !== "scheduled") {
+      params.set("status", statusFilter);
+    } else {
+      params.delete("status");
+    }
+
+    if (sortOption !== "date") {
+      params.set("sort", sortOption);
+    } else {
+      params.delete("sort");
+    }
+
+    if (quickFilter !== "all") {
+      params.set("quick", quickFilter);
+    } else {
+      params.delete("quick");
+    }
+
+    if (currentPage > 1) {
+      params.set(
+        "page",
+        String(currentPage),
+      );
+    } else {
+      params.delete("page");
+    }
+
+    const nextQuery = params.toString();
+    const currentQuery =
+      searchParams.toString();
+
+    if (nextQuery !== currentQuery) {
+      router.replace(
+        nextQuery
+          ? `${pathname}?${nextQuery}`
+          : pathname,
+        {
+          scroll: false,
+        },
+      );
+    }
+  }, [
+    currentPage,
+    search,
+    statusFilter,
+    sortOption,
+    quickFilter,
+    pathname,
+    router,
+    searchParams,
   ]);
 
   const totalPages = Math.max(
@@ -565,11 +813,12 @@ export default function MatchExplorer({
               <button
                 key={filter.key}
                 type="button"
-                onClick={() =>
+                onClick={() => {
+                  setCurrentPage(1);
                   setQuickFilter(
                     filter.key,
-                  )
-                }
+                  );
+                }}
                 className={[
                   "rounded-full border px-4 py-2 text-sm font-bold transition",
                   isActive
@@ -592,11 +841,12 @@ export default function MatchExplorer({
         <input
           type="search"
           value={search}
-          onChange={(event) =>
+          onChange={(event) => {
+            setCurrentPage(1);
             setSearch(
               event.target.value,
-            )
-          }
+            );
+          }}
           placeholder={
             t.searchPlaceholder
           }
@@ -605,12 +855,13 @@ export default function MatchExplorer({
 
         <select
           value={statusFilter}
-          onChange={(event) =>
+          onChange={(event) => {
+            setCurrentPage(1);
             setStatusFilter(
               event.target
                 .value as StatusFilter,
-            )
-          }
+            );
+          }}
           className="rounded-xl border border-[#242B33] bg-[#0C1014] px-4 py-3 text-white outline-none focus:border-cyan-500"
         >
           <option value="all">
@@ -632,12 +883,13 @@ export default function MatchExplorer({
 
         <select
           value={sortOption}
-          onChange={(event) =>
+          onChange={(event) => {
+            setCurrentPage(1);
             setSortOption(
               event.target
                 .value as SortOption,
-            )
-          }
+            );
+          }}
           className="rounded-xl border border-[#242B33] bg-[#0C1014] px-4 py-3 text-white outline-none focus:border-cyan-500"
         >
           <option value="confidence">
@@ -712,6 +964,7 @@ export default function MatchExplorer({
                 <FixtureCard
                   key={fixture.id}
                   fixture={fixture}
+                  returnHref={matchReturnHref}
                 />
               ),
             )}
