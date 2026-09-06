@@ -10,6 +10,8 @@ from app.database.models import (
     FixtureLineup,
     FixtureWeather,
     Match,
+    MatchStatistic,
+    PredictionRecord,
 )
 from app.services.auto_calibration_service import (
     AutoCalibrationService,
@@ -141,6 +143,18 @@ class SystemUpdateOrchestrator:
         )
 
         await report_progress(
+            52,
+            "Synchronizing recent finished V11 statistics...",
+        )
+
+        finished_statistics_result = (
+            self._sync_recent_finished_prediction_statistics(
+                prediction_limit=prediction_limit,
+                operations=operations,
+            )
+        )
+
+        await report_progress(
             60,
             "Applying pending ELO updates...",
         )
@@ -200,6 +214,7 @@ class SystemUpdateOrchestrator:
             team_sync_result["failed"]
             + statistics_result["failed"]
             + pending_fixture_result["failed"]
+            + finished_statistics_result["failed"]
             + (1 if elo_result["status"] == "failed" else 0)
             + evaluation_result["failed"]
             + calibration_result["failed"]
@@ -585,6 +600,232 @@ class SystemUpdateOrchestrator:
                 "updated": 0,
                 "created": 0,
                 "skipped": 0,
+                "failed": 1,
+            }
+
+    def _sync_recent_finished_prediction_statistics(
+        self,
+        *,
+        prediction_limit: int,
+        operations: list[dict[str, Any]],
+    ) -> dict[str, int]:
+        """
+        Retry missing corners/yellow-card statistics for recent finished
+        V11 fixtures and refresh already-evaluated records when data arrives.
+        """
+
+        safe_limit = max(
+            1,
+            min(
+                int(prediction_limit),
+                100,
+            ),
+        )
+        cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+
+        checked = 0
+        incomplete = 0
+        synced = 0
+        reevaluated = 0
+        skipped = 0
+        failed = 0
+        errors: list[dict[str, Any]] = []
+
+        try:
+            statement = (
+                select(
+                    Match,
+                    PredictionRecord,
+                )
+                .join(
+                    PredictionRecord,
+                    PredictionRecord.match_id == Match.id,
+                )
+                .where(
+                    PredictionRecord.model_version
+                    == PredictionV11RecordService.MODEL_VERSION,
+                    Match.status.in_(("5", "finished", "ft")),
+                    Match.sportmonks_id.is_not(None),
+                    Match.date >= cutoff,
+                )
+                .order_by(
+                    Match.date.desc(),
+                    Match.id.desc(),
+                )
+                .limit(safe_limit)
+            )
+
+            rows = self.db.execute(
+                statement
+            ).all()
+
+            for match, record in rows:
+                checked += 1
+
+                try:
+                    statistics = self.db.execute(
+                        select(MatchStatistic).where(
+                            MatchStatistic.fixture_id == match.id
+                        )
+                    ).scalars().all()
+
+                    statistics_by_team = {
+                        statistic.team_id: statistic
+                        for statistic in statistics
+                    }
+
+                    home_statistics = statistics_by_team.get(
+                        match.home_team_id
+                    )
+                    away_statistics = statistics_by_team.get(
+                        match.away_team_id
+                    )
+
+                    statistics_complete = (
+                        home_statistics is not None
+                        and away_statistics is not None
+                        and home_statistics.corners is not None
+                        and away_statistics.corners is not None
+                        and home_statistics.yellow_cards is not None
+                        and away_statistics.yellow_cards is not None
+                    )
+
+                    if not statistics_complete:
+                        incomplete += 1
+
+                        sync_result = (
+                            self.statistics_service
+                            .sync_fixture_statistics(
+                                int(match.sportmonks_id)
+                            )
+                        )
+
+                        if isinstance(sync_result, dict):
+                            result_status = str(
+                                sync_result.get("status", "")
+                            ).strip().lower()
+
+                            if result_status in {
+                                "success",
+                                "updated",
+                                "created",
+                            }:
+                                synced += 1
+
+                        statistics = self.db.execute(
+                            select(MatchStatistic).where(
+                                MatchStatistic.fixture_id == match.id
+                            )
+                        ).scalars().all()
+
+                        statistics_by_team = {
+                            statistic.team_id: statistic
+                            for statistic in statistics
+                        }
+
+                        home_statistics = statistics_by_team.get(
+                            match.home_team_id
+                        )
+                        away_statistics = statistics_by_team.get(
+                            match.away_team_id
+                        )
+
+                        statistics_complete = (
+                            home_statistics is not None
+                            and away_statistics is not None
+                            and home_statistics.corners is not None
+                            and away_statistics.corners is not None
+                            and home_statistics.yellow_cards is not None
+                            and away_statistics.yellow_cards is not None
+                        )
+
+                    if not statistics_complete:
+                        skipped += 1
+                        continue
+
+                    needs_refresh = (
+                        record.evaluated
+                        and (
+                            record.actual_total_corners is None
+                            or record.actual_total_yellow_cards is None
+                        )
+                    )
+
+                    if needs_refresh:
+                        self.evaluation_service.evaluate_prediction(
+                            match_id=match.id,
+                            force=True,
+                        )
+                        reevaluated += 1
+
+                except Exception as error:
+                    self.db.rollback()
+                    failed += 1
+                    errors.append(
+                        {
+                            "match_id": match.id,
+                            "sportmonks_id": match.sportmonks_id,
+                            "error": self._format_error(error),
+                        }
+                    )
+
+            summary = {
+                "checked": checked,
+                "incomplete": incomplete,
+                "synced": synced,
+                "reevaluated": reevaluated,
+                "skipped": skipped,
+                "failed": failed,
+            }
+
+            operations.append(
+                {
+                    "step": (
+                        "sync_recent_finished_prediction_statistics_v11"
+                    ),
+                    "status": (
+                        "success"
+                        if failed == 0
+                        else "completed_with_errors"
+                    ),
+                    "summary": summary,
+                    "errors": errors,
+                }
+            )
+
+            return summary
+
+        except Exception as error:
+            self.db.rollback()
+
+            error_message = self._format_error(
+                error
+            )
+
+            operations.append(
+                {
+                    "step": (
+                        "sync_recent_finished_prediction_statistics_v11"
+                    ),
+                    "status": "failed",
+                    "summary": {
+                        "checked": checked,
+                        "incomplete": incomplete,
+                        "synced": synced,
+                        "reevaluated": reevaluated,
+                        "skipped": skipped,
+                        "failed": 1,
+                    },
+                    "error": error_message,
+                }
+            )
+
+            return {
+                "checked": checked,
+                "incomplete": incomplete,
+                "synced": synced,
+                "reevaluated": reevaluated,
+                "skipped": skipped,
                 "failed": 1,
             }
 
