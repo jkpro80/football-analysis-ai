@@ -370,6 +370,7 @@ export default function MatchShareCard({
       icon: "#",
       title: t.exact,
       value: visualPredictedScore,
+      actualValue: visualFinalScore,
       probability: formatProbability(scoreProbability),
       probabilityValue: scoreProbability,
       status: status(evaluation?.exact_score_correct),
@@ -851,7 +852,14 @@ export default function MatchShareCard({
 
                   <div className="mt-2 flex-1">
                     <div className="text-[13px] font-black leading-tight text-white">
-                      {item.value}
+                      {item.key === "score" && item.actualValue ? (
+                        <div className="space-y-0.5">
+                          <div>{locale === "ar" ? "التوقع" : locale === "sv" ? "Prognos" : "Prediction"}: <span dir="ltr">{item.value}</span></div>
+                          <div className="text-[10px] text-slate-300">{locale === "ar" ? "الفعلي" : locale === "sv" ? "Faktiskt" : "Actual"}: <span dir="ltr">{item.actualValue}</span></div>
+                        </div>
+                      ) : (
+                        item.value
+                      )}
                     </div>
 
                     <div
