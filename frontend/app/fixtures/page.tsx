@@ -66,18 +66,27 @@ async function getMatches(): Promise<MatchItem[]> {
     process.env.BACKEND_API_URL ??
     "http://backend:8000";
 
-  const response = await fetch(
-    `${apiUrl}/matches?limit=100`,
-    {
-      cache: "no-store",
-    },
-  );
+  const today = new Date().toISOString().slice(0, 10);
+  const [recentResponse, upcomingResponse] = await Promise.all([
+    fetch(`${apiUrl}/matches?limit=50&date_to=${today}&sort=desc`, { cache: "no-store" }),
+    fetch(`${apiUrl}/matches?limit=50&date_from=${today}&sort=asc`, { cache: "no-store" }),
+  ]);
 
-  if (!response.ok) {
+  if (!recentResponse.ok || !upcomingResponse.ok) {
     throw new Error("Failed to load matches.");
   }
 
-  return response.json();
+  const recent = (await recentResponse.json()) as MatchItem[];
+  const upcoming = (await upcomingResponse.json()) as MatchItem[];
+  const unique = new Map<number, MatchItem>();
+
+  for (const match of [...recent, ...upcoming]) {
+    unique.set(match.id, match);
+  }
+
+  return Array.from(unique.values())
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(0, 100);
 }
 
 async function getPredictions(): Promise<PredictionItem[]> {

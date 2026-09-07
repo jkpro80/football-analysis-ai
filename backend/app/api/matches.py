@@ -71,6 +71,7 @@ def get_matches(
     season_name: str | None = None,
     status: str | None = None,
     offset: int = 0,
+    sort: str = "desc",
     db: Session = Depends(get_db),
 ) -> list[dict[str, Any]]:
     """
@@ -134,12 +135,13 @@ def get_matches(
                 Match.status == status.strip()
             )
 
+        sort_value = sort.strip().lower()
+        if sort_value not in {"asc", "desc"}:
+            raise HTTPException(status_code=422, detail="sort must be asc or desc.")
+        order_columns = (Match.date.asc(), Match.id.asc()) if sort_value == "asc" else (Match.date.desc(), Match.id.desc())
         matches = (
             query
-            .order_by(
-                Match.date.desc(),
-                Match.id.desc(),
-            )
+            .order_by(*order_columns)
             .offset(safe_offset)
             .limit(safe_limit)
             .all()
@@ -168,6 +170,8 @@ def get_matches(
 
         return results
 
+    except HTTPException:
+        raise
     except Exception as error:
         raise HTTPException(
             status_code=500,
