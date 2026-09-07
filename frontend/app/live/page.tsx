@@ -96,7 +96,7 @@ async function getMatches(): Promise<MatchApiItem[]> {
     "http://backend:8000";
 
   const response = await fetch(
-    `${apiUrl}/matches?limit=100`,
+    `${apiUrl}/matches?limit=100&date_from=${new Date().toISOString().slice(0, 10)}&sort=asc`,
     {
       cache: "no-store",
     },
