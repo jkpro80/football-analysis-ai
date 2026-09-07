@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Any, Awaitable, Callable
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.database.models import (
@@ -12,6 +12,7 @@ from app.database.models import (
     Match,
     MatchStatistic,
     PredictionRecord,
+    Team,
 )
 from app.services.auto_calibration_service import (
     AutoCalibrationService,
@@ -120,6 +121,16 @@ class SystemUpdateOrchestrator:
         )
 
         await report_progress(
+            18,
+            "Ensuring historical fixture coverage...",
+        )
+
+        history_result = await self._backfill_insufficient_history(
+            team_ids=team_sync_result["successful_team_ids"],
+            operations=operations,
+        )
+
+        await report_progress(
             25,
             "Synchronizing team statistics...",
         )
@@ -206,12 +217,16 @@ class SystemUpdateOrchestrator:
         prediction_result = self.generate_predictions(
             prediction_limit=prediction_limit,
             recent_limit=recent_limit,
+            team_ids=team_sync_result["successful_team_ids"],
+            start_date=start_date,
+            end_date=end_date,
             replace_existing_predictions=replace_existing_predictions,
             operations=operations,
         )
 
         total_failures = (
             team_sync_result["failed"]
+            + history_result["failed"]
             + statistics_result["failed"]
             + pending_fixture_result["failed"]
             + finished_statistics_result["failed"]
@@ -263,6 +278,12 @@ class SystemUpdateOrchestrator:
                 "teams_synced": team_sync_result["success"],
                 "teams_skipped": team_sync_result["skipped"],
                 "team_sync_failed": team_sync_result["failed"],
+                "history_teams_checked": history_result["checked"],
+                "history_already_sufficient": history_result["already_sufficient"],
+                "history_teams_backfilled": history_result["backfilled"],
+                "history_insufficient": history_result["insufficient"],
+                "history_skipped": history_result["skipped"],
+                "history_failed": history_result["failed"],
                 "statistics_updated": statistics_result["success"],
                 "statistics_skipped": statistics_result["skipped"],
                 "statistics_failed": statistics_result["failed"],
@@ -408,6 +429,232 @@ class SystemUpdateOrchestrator:
             "skipped": skipped,
             "failed": failed,
             "successful_team_ids": successful_team_ids,
+        }
+
+    def _get_team_history_coverage(
+        self,
+        *,
+        team: Team,
+        before_date: datetime,
+    ) -> dict[str, int]:
+        finished_filters = (
+            Match.date < before_date,
+            Match.status.in_(("5", "finished", "ft")),
+            Match.home_score.is_not(None),
+            Match.away_score.is_not(None),
+        )
+
+        overall = (
+            self.db.query(func.count(Match.id))
+            .filter(
+                or_(
+                    Match.home_team_id == team.id,
+                    Match.away_team_id == team.id,
+                ),
+                *finished_filters,
+            )
+            .scalar()
+            or 0
+        )
+
+        home = (
+            self.db.query(func.count(Match.id))
+            .filter(
+                Match.home_team_id == team.id,
+                *finished_filters,
+            )
+            .scalar()
+            or 0
+        )
+
+        away = (
+            self.db.query(func.count(Match.id))
+            .filter(
+                Match.away_team_id == team.id,
+                *finished_filters,
+            )
+            .scalar()
+            or 0
+        )
+
+        return {
+            "overall": int(overall),
+            "home": int(home),
+            "away": int(away),
+        }
+
+    async def _backfill_insufficient_history(
+        self,
+        *,
+        team_ids: list[int],
+        operations: list[dict[str, Any]],
+        minimum_venue_matches: int = 5,
+        lookback_days: int = 365,
+        chunk_days: int = 90,
+    ) -> dict[str, int]:
+        checked = 0
+        already_sufficient = 0
+        backfilled = 0
+        insufficient = 0
+        skipped = 0
+        failed = 0
+
+        cutoff = datetime.now(timezone.utc).replace(tzinfo=None)
+
+        for sportmonks_team_id in team_ids:
+            team = (
+                self.db.query(Team)
+                .filter(Team.sportmonks_id == sportmonks_team_id)
+                .first()
+            )
+
+            if team is None:
+                failed += 1
+                operations.append(
+                    {
+                        "step": "backfill_team_history",
+                        "sportmonks_team_id": sportmonks_team_id,
+                        "status": "failed",
+                        "error": "Local team was not found.",
+                    }
+                )
+                continue
+
+            checked += 1
+            coverage_before = self._get_team_history_coverage(
+                team=team,
+                before_date=cutoff,
+            )
+
+            if (
+                coverage_before["home"] >= minimum_venue_matches
+                and coverage_before["away"] >= minimum_venue_matches
+            ):
+                already_sufficient += 1
+                continue
+
+            oldest_allowed = cutoff - timedelta(days=lookback_days)
+            cursor_end = cutoff.date()
+            requests_made = 0
+            provider_skipped = False
+            hard_failure = False
+
+            while datetime.combine(
+                cursor_end,
+                datetime.min.time(),
+            ) >= oldest_allowed:
+                cursor_start = max(
+                    cursor_end - timedelta(days=chunk_days - 1),
+                    oldest_allowed.date(),
+                )
+
+                try:
+                    await self.sync_service.sync_team_and_fixtures(
+                        sportmonks_team_id=sportmonks_team_id,
+                        start_date=cursor_start.isoformat(),
+                        end_date=cursor_end.isoformat(),
+                    )
+                    requests_made += 1
+
+                except SportmonksAPIError as error:
+                    self.db.rollback()
+
+                    if self._is_expected_sportmonks_skip(error):
+                        provider_skipped = True
+                        skipped += 1
+                        operations.append(
+                            {
+                                "step": "backfill_team_history",
+                                "sportmonks_team_id": sportmonks_team_id,
+                                "status": "skipped",
+                                "reason": (
+                                    "Historical fixtures are not available "
+                                    "in the current SportMonks subscription."
+                                ),
+                                "error": self._format_error(error),
+                            }
+                        )
+                        break
+
+                    failed += 1
+                    hard_failure = True
+                    operations.append(
+                        {
+                            "step": "backfill_team_history",
+                            "sportmonks_team_id": sportmonks_team_id,
+                            "status": "failed",
+                            "error": self._format_error(error),
+                        }
+                    )
+                    break
+
+                except Exception as error:
+                    self.db.rollback()
+                    failed += 1
+                    hard_failure = True
+                    operations.append(
+                        {
+                            "step": "backfill_team_history",
+                            "sportmonks_team_id": sportmonks_team_id,
+                            "status": "failed",
+                            "error": self._format_error(error),
+                        }
+                    )
+                    break
+
+                coverage_now = self._get_team_history_coverage(
+                    team=team,
+                    before_date=cutoff,
+                )
+
+                if (
+                    coverage_now["home"] >= minimum_venue_matches
+                    and coverage_now["away"] >= minimum_venue_matches
+                ):
+                    break
+
+                if cursor_start <= oldest_allowed.date():
+                    break
+
+                cursor_end = cursor_start - timedelta(days=1)
+
+            if provider_skipped or hard_failure:
+                continue
+
+            coverage_after = self._get_team_history_coverage(
+                team=team,
+                before_date=cutoff,
+            )
+
+            if (
+                coverage_after["home"] >= minimum_venue_matches
+                and coverage_after["away"] >= minimum_venue_matches
+            ):
+                backfilled += 1
+                status = "success"
+            else:
+                insufficient += 1
+                status = "insufficient_provider_history"
+
+            operations.append(
+                {
+                    "step": "backfill_team_history",
+                    "sportmonks_team_id": sportmonks_team_id,
+                    "team": team.name,
+                    "status": status,
+                    "requests_made": requests_made,
+                    "coverage_before": coverage_before,
+                    "coverage_after": coverage_after,
+                }
+            )
+
+        return {
+            "checked": checked,
+            "already_sufficient": already_sufficient,
+            "backfilled": backfilled,
+            "insufficient": insufficient,
+            "skipped": skipped,
+            "failed": failed,
         }
 
     def _sync_team_statistics(
@@ -1193,9 +1440,6 @@ class SystemUpdateOrchestrator:
             .limit(prediction_limit)
         )
 
-        matches = list(
-            self.db.scalars(matches_statement).all()
-        )
 
         synced = 0
         skipped = 0
@@ -1434,23 +1678,59 @@ class SystemUpdateOrchestrator:
         *,
         prediction_limit: int,
         recent_limit: int,
+        team_ids: list[int] | None = None,
+        start_date: str,
+        end_date: str,
         replace_existing_predictions: bool,
         operations: list[dict[str, Any]],
     ) -> dict[str, int]:
+        prediction_start = datetime.fromisoformat(start_date)
+        prediction_end = datetime.fromisoformat(end_date) + timedelta(days=1)
+
         matches_statement = (
             select(Match)
             .where(
                 Match.status.in_(("1", "scheduled", "ns")),
                 Match.home_score.is_(None),
                 Match.away_score.is_(None),
+                Match.date >= prediction_start,
+                Match.date < prediction_end,
             )
-            .order_by(Match.date.asc())
-            .limit(prediction_limit)
         )
 
-        matches = list(
-            self.db.scalars(matches_statement).all()
-        )
+        if team_ids is not None:
+            local_team_ids = list(
+                self.db.scalars(
+                    select(Team.id).where(
+                        Team.sportmonks_id.in_(team_ids)
+                    )
+                ).all()
+            )
+
+            if not local_team_ids:
+                matches = []
+            else:
+                matches_statement = matches_statement.where(
+                    or_(
+                        Match.home_team_id.in_(local_team_ids),
+                        Match.away_team_id.in_(local_team_ids),
+                    )
+                )
+                matches = list(
+                    self.db.scalars(
+                        matches_statement
+                        .order_by(Match.date.asc())
+                        .limit(prediction_limit)
+                    ).all()
+                )
+        else:
+            matches = list(
+                self.db.scalars(
+                    matches_statement
+                    .order_by(Match.date.asc())
+                    .limit(prediction_limit)
+                ).all()
+            )
 
         created = 0
         replaced = 0

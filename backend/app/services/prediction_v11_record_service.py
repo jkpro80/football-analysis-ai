@@ -180,6 +180,9 @@ class PredictionV11RecordService:
             "btts_probability"
         ]
 
+        record.predicted_score_probability = mapped[
+            "predicted_score_probability"
+        ]
         record.predicted_score = mapped[
             "predicted_score"
         ]
@@ -296,6 +299,12 @@ class PredictionV11RecordService:
             away_win=away_win,
         )
 
+        predicted_score_probability = self._score_probability(
+            predicted_score=predicted_score,
+            most_likely_score=most_likely_score,
+            top_scores=top_scores,
+        )
+
         best_pick_key, best_pick_label, best_pick_probability = (
             self._best_pick(
                 home_win=home_win,
@@ -356,6 +365,7 @@ class PredictionV11RecordService:
             "over_2_5_probability": over_2_5,
             "btts_probability": btts_yes,
             "predicted_score": predicted_score,
+            "predicted_score_probability": predicted_score_probability,
             "best_pick_key": best_pick_key,
             "best_pick_label": best_pick_label,
             "best_pick_probability": best_pick_probability,
@@ -494,6 +504,34 @@ class PredictionV11RecordService:
             f"{cls._integer(home_goals)}-"
             f"{cls._integer(away_goals)}"
         )
+    @classmethod
+    def _score_probability(
+        cls,
+        *,
+        predicted_score: str | None,
+        most_likely_score: dict[str, Any],
+        top_scores: list[Any],
+    ) -> float | None:
+        if not predicted_score:
+            return None
+
+        target = str(predicted_score).strip()
+
+        for item in top_scores:
+            if not isinstance(item, dict):
+                continue
+            score = item.get("score")
+            if score is not None and str(score).strip() == target:
+                probability = item.get("probability")
+                return cls._number(probability) if probability is not None else None
+
+        score = most_likely_score.get("score")
+        if score is not None and str(score).strip() == target:
+            probability = most_likely_score.get("probability")
+            return cls._number(probability) if probability is not None else None
+
+        return None
+
     @staticmethod
     def _best_pick(
         *,

@@ -327,6 +327,8 @@ def generate_predictions(
     replace_existing: bool = Query(
         default=False,
     ),
+    start_date: str = Query(...),
+    end_date: str = Query(...),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """
@@ -341,6 +343,8 @@ def generate_predictions(
         result = orchestrator.generate_predictions(
             prediction_limit=limit,
             recent_limit=recent_limit,
+            start_date=start_date,
+            end_date=end_date,
             replace_existing_predictions=replace_existing,
             operations=operations,
         )

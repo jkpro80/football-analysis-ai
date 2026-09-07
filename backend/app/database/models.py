@@ -422,6 +422,11 @@ class PredictionRecord(Base):
         nullable=False,
     )
 
+    predicted_score_probability = Column(
+        Float,
+        nullable=True,
+    )
+
     predicted_score = Column(
         String(20),
         nullable=True,

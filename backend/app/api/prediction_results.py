@@ -34,6 +34,7 @@ class CorrectPredictionResult(BaseModel):
     actual_away_score: int
 
     predicted_score: str | None = None
+    predicted_score_probability: float | None = None
 
     result_prediction_correct: bool
     exact_score_correct: bool
@@ -161,6 +162,7 @@ def _persisted_correct_results(
                     record.actual_away_score
                 ),
                 predicted_score=record.predicted_score,
+                predicted_score_probability=record.predicted_score_probability,
                 result_prediction_correct=True,
                 exact_score_correct=(
                     record.exact_score_correct is True
